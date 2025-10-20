@@ -1,0 +1,3547 @@
+I have this website I'm making. I have received some user feedback on it. Please make the needed feedback changes.
+Keep the firebase config and Gemini API from the original code
+Feedback - 
+
+
+##Deck##
+Got some requests to redo how adding to the deck works once its created. Please implement the following - 
+Redo the deck search, so when adding a card it opens a modal, when doing so, it will show you a table of the cards that are able to be added to the deck (make sure they match the commander colors) and have a checkbox that you can select and add multiple at once.
+Make sure you can add a new card to the collection & deck at the same time through the deck screen, but also use the modal to search and add cards already in the collection.
+You can have mulitple cards of the same kind in your collection, currently when you add a card to your deck, it adds all cards to the deck instead of just one. When you add the card to the deck, if the quanitity is more than 1, duplicate the card in the DB and add it to the deck and remove 1 quantity count from the original card.
+Correct the export deck, you cant export the currently selected deck because there is no option to select a deck.
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MTG Forge - Deck & Collection Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+      }
+      .card-image-container {
+        position: relative;
+        padding-top: 140%; /* Aspect ratio for MTG cards */
+      }
+      .card-image {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .modal-backdrop {
+        background-color: rgba(0, 0, 0, 0.75);
+      }
+      /* Hide scrollbar for webkit */
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      /* Hide scrollbar for IE, Edge and Firefox */
+      .no-scrollbar {
+        -ms-overflow-style: none; /* IE and Edge */
+        scrollbar-width: none; /* Firefox */
+      }
+      /* Master Delete Button Logic */
+      .delete-button {
+        display: none;
+      }
+      .edit-mode .delete-button {
+        display: inline-flex; /* Use flex to align icon and text */
+      }
+
+      .group-header {
+        background-color: #374151; /* gray-700 */
+        color: #d1d5db; /* gray-300 */
+        padding: 0.75rem 1.5rem;
+        font-weight: bold;
+        font-size: 1.25rem;
+        margin-top: 1.5rem;
+        border-bottom: 3px solid #4f46e5; /* indigo-600 */
+        position: sticky;
+        top: 72px; /* Height of header */
+        z-index: 5;
+      }
+      /* For Table Sorting */
+      .sortable {
+        cursor: pointer;
+      }
+      .sortable:hover {
+        color: #a78bfa;
+      }
+      .edit-mode .sortable {
+        cursor: default;
+      }
+      .edit-mode .sortable:hover {
+        color: inherit;
+      }
+      .sort-asc::after {
+        content: " ▲";
+        font-size: 0.8em;
+      }
+      .sort-desc::after {
+        content: " ▼";
+        font-size: 0.8em;
+      }
+      /* Card Modal Edit Mode */
+      .card-modal-value-display {
+        display: block;
+      }
+      .card-modal-value-input {
+        display: none;
+      }
+      .card-modal-edit-mode .card-modal-value-display {
+        display: none;
+      }
+      .card-modal-edit-mode .card-modal-value-input {
+        display: block;
+      }
+
+      .oracle-text-truncate {
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+      }
+      .kpi-gradient-bar {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        height: 4px;
+        border-radius: 0 0 0.5rem 0.5rem;
+        transition: width 0.5s ease-in-out;
+      }
+      /* Toast Notifications */
+      #toast-container {
+        position: fixed;
+        bottom: 1.5rem;
+        right: 1.5rem;
+        z-index: 100;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+      .toast {
+        display: flex;
+        align-items: center;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+          0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        min-width: 300px;
+        max-width: 400px;
+        transform: translateX(120%);
+        animation: slideIn 0.5s forwards, slideOut 0.5s 4.5s forwards;
+      }
+      @keyframes slideIn {
+        from {
+          transform: translateX(120%);
+        }
+        to {
+          transform: translateX(0);
+        }
+      }
+      @keyframes slideOut {
+        from {
+          transform: translateX(0);
+        }
+        to {
+          transform: translateX(120%);
+        }
+      }
+
+      /* Accordion styles */
+      details > summary {
+        list-style: none;
+        cursor: pointer;
+      }
+      details > summary::-webkit-details-marker {
+        display: none;
+      }
+      details summary:before {
+        content: "+";
+        margin-right: 0.5rem;
+        font-weight: bold;
+      }
+      details[open] summary:before {
+        content: "-";
+      }
+    </style>
+  </head>
+  <body class="bg-gray-900 text-gray-200">
+    <!-- Login Screen -->
+    <div
+      id="login-screen"
+      class="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900"
+    >
+      <div class="p-8 bg-gray-800 rounded-lg shadow-2xl max-w-sm w-full">
+        <h1
+          class="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600 mb-2 text-center"
+        >
+          MTG Forge
+        </h1>
+        <p class="text-gray-400 mb-6 text-center">
+          Your personal MTG collection manager.
+        </p>
+        <form id="email-login-form" class="space-y-4">
+          <div>
+            <label
+              for="email"
+              class="block text-sm font-medium text-left text-gray-300"
+              >Email</label
+            >
+            <input
+              type="email"
+              id="email"
+              required
+              class="mt-1 w-full p-2 border rounded-md bg-gray-700 border-gray-600 text-white"
+            />
+          </div>
+          <div>
+            <label
+              for="password"
+              class="block text-sm font-medium text-left text-gray-300"
+              >Password</label
+            >
+            <input
+              type="password"
+              id="password"
+              required
+              class="mt-1 w-full p-2 border rounded-md bg-gray-700 border-gray-600 text-white"
+            />
+          </div>
+          <div class="flex space-x-2">
+            <button
+              type="button"
+              id="email-login-btn"
+              class="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-indigo-700 transition"
+            >
+              Login
+            </button>
+            <button
+              type="button"
+              id="signup-btn"
+              class="w-full bg-gray-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-500 transition"
+            >
+              Sign Up
+            </button>
+          </div>
+        </form>
+        <div class="relative flex py-5 items-center">
+          <div class="flex-grow border-t border-gray-600"></div>
+          <span class="flex-shrink mx-4 text-gray-500">Or</span>
+          <div class="flex-grow border-t border-gray-600"></div>
+        </div>
+        <button
+          id="login-with-google-btn"
+          class="w-full flex items-center justify-center bg-gray-200 border border-gray-400 text-gray-800 font-bold py-3 px-4 rounded-lg hover:bg-gray-300 transition"
+        >
+          <svg
+            class="w-5 h-5 mr-3"
+            viewBox="0 0 48 48"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              fill-rule="evenodd"
+              clip-rule="evenodd"
+              d="M48 24C48 22.0435 47.2107 20.1692 45.8284 18.7869C44.4461 17.4046 42.5717 16.6152 40.6154 16.6152H24V29.5385H37.8462C37.4308 32.6154 35.8462 35.2615 33.2308 36.9231V43.8462H41.6923C45.5077 40.2462 48 34.8 48 24Z"
+              fill="#4285F4"
+            ></path>
+            <path
+              fill-rule="evenodd"
+              clip-rule="evenodd"
+              d="M24 48C30.6 48 36.2769 45.8769 40.6154 42.1846L33.2308 36.9231C31.1077 38.3077 28.1538 39.2308 24 39.2308C17.6308 39.2308 12.1846 34.9846 10.3385 29.2615H1.56923V36.4615C5.90769 43.4769 14.3077 48 24 48Z"
+              fill="#34A853"
+            ></path>
+            <path
+              fill-rule="evenodd"
+              clip-rule="evenodd"
+              d="M10.3385 29.2615C9.87692 27.8769 9.6 26.3077 9.6 24.5538C9.6 22.8 9.87692 21.2308 10.3385 19.8462V12.6462H1.56923C-0.553846 16.7077 -0.553846 21.8462 1.56923 35.9077L10.3385 29.2615Z"
+              fill="#FBBC05"
+            ></path>
+            <path
+              fill-rule="evenodd"
+              clip-rule="evenodd"
+              d="M24 9.87692C27.3231 9.87692 30.0923 11 32.3077 12.9231L39.8769 5.35385C35.6308 1.84615 30.0923 0 24 0C14.3077 0 5.90769 4.52308 1.56923 11.5385L10.3385 18.2308C12.1846 12.5077 17.6308 9.87692 24 9.87692Z"
+              fill="#EA4335"
+            ></path>
+          </svg>
+          Sign in with Google
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Application Container -->
+    <div id="app-wrapper" class="hidden w-full h-screen flex">
+      <!-- Sidebar Navigation -->
+      <nav class="w-64 bg-gray-800 flex-shrink-0 flex flex-col p-4">
+        <div class="flex items-center gap-3 mb-8">
+          <svg
+            class="w-10 h-10 text-purple-400"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+          >
+            <path
+              d="M5 22V8H3V6L12 1L21 6V8H19V22H15V14H9V22H5ZM7 20H11V12H13V20H17V8.825L12 5.5L7 8.825V20Z"
+            />
+          </svg>
+          <h1
+            class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600"
+          >
+            MTG Forge
+          </h1>
+        </div>
+        <div class="space-y-2 flex-grow">
+          <button
+            id="nav-collection"
+            class="nav-link w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg bg-indigo-600 text-white"
+          >
+            <svg
+              class="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+              ></path>
+            </svg>
+            My Collection
+          </button>
+          <button
+            id="nav-decks"
+            class="nav-link w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-gray-700 hover:text-white"
+          >
+            <svg
+              class="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+              ></path>
+            </svg>
+            Decks
+          </button>
+          <div class="border-t border-gray-700 my-4"></div>
+          <button
+            id="nav-rule-lookup"
+            class="nav-link w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-gray-700 hover:text-white"
+          >
+            <svg
+              class="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.79 4 4s-1.79 4-4 4c-1.742 0-3.223-.835-3.772-2M12 5v.01M12 19v.01"
+              ></path>
+            </svg>
+            Rule Lookup
+          </button>
+          <button
+            id="nav-general-chat"
+            class="nav-link w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-gray-700 hover:text-white"
+          >
+            <svg
+              class="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+              ></path>
+            </svg>
+            MTG Chat
+          </button>
+        </div>
+        <div class="space-y-2">
+          <button
+            id="nav-settings"
+            class="nav-link w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-gray-700 hover:text-white"
+          >
+            <svg
+              class="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+              ></path>
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+              ></path>
+            </svg>
+            Settings
+          </button>
+        </div>
+      </nav>
+
+      <!-- Main Content -->
+      <div
+        id="app-content"
+        class="flex-1 flex flex-col h-screen overflow-y-auto"
+      >
+        <header
+          class="bg-gray-800/80 backdrop-blur-sm sticky top-0 z-10 p-4 flex justify-between items-center border-b border-gray-700"
+        >
+          <h2 id="page-title" class="text-2xl font-bold">My Collection</h2>
+          <div class="flex items-center gap-4">
+            <button
+              id="new-player-guide-btn"
+              class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 flex items-center gap-2"
+            >
+              <svg
+                class="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.79 4 4s-1.79 4-4 4c-1.742 0-3.223-.835-3.772-2M12 5v.01M12 19v.01"
+                ></path>
+              </svg>
+              New Player Guide
+            </button>
+            <button
+              id="edit-mode-toggle"
+              class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 flex items-center gap-2"
+            >
+              <svg
+                class="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                ></path>
+              </svg>
+              <span id="edit-mode-text">Edit Mode</span>
+            </button>
+          </div>
+        </header>
+
+        <main id="main-content" class="p-6 space-y-6">
+          <!-- Collection View -->
+          <div id="collection-view">
+            <!-- Add Card Section -->
+             <div id="add-card-section-wrapper">
+                <div class="bg-gray-800 p-4 rounded-lg shadow-lg mb-6">
+                <h3 class="text-xl font-semibold mb-4">Add Card to Collection</h3>
+                <div class="flex flex-col md:flex-row gap-4">
+                    <input
+                    type="text"
+                    id="card-search-input"
+                    class="flex-grow bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="Enter card name (e.g., Sol Ring)"
+                    />
+                    <button
+                    id="search-card-btn"
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 flex items-center justify-center"
+                    >
+                    <svg
+                        id="search-icon"
+                        class="w-5 h-5 mr-2"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                        ></path>
+                    </svg>
+                    <span id="search-text">Search</span>
+                    <div
+                        id="search-spinner"
+                        class="hidden animate-spin rounded-full h-5 w-5 border-b-2 border-white"
+                    ></div>
+                    </button>
+                </div>
+                </div>
+            </div>
+
+            <!-- Collection Filters & Grouping -->
+            <div
+              class="bg-gray-800 p-4 rounded-lg shadow-lg mb-6 flex flex-wrap gap-4 items-end"
+            >
+              <div class="flex-grow" style="min-width: 150px">
+                <label for="filter-text" class="text-sm text-gray-400"
+                  >Filter by Name/Type</label
+                >
+                <input
+                  type="text"
+                  id="filter-text"
+                  class="w-full mt-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="e.g., Goblin, Instant..."
+                />
+              </div>
+              <div class="flex-grow flex gap-4" style="min-width: 320px">
+                <div class="flex-1">
+                  <label
+                    for="collection-group-by-1"
+                    class="text-sm text-gray-400"
+                    >Group By</label
+                  >
+                  <select
+                    id="collection-group-by-1"
+                    class="collection-group-select w-full mt-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="">None</option>
+                    <option value="type_line">Type</option>
+                    <option value="rarity">Rarity</option>
+                    <option value="color_identity">Color</option>
+                    <option value="cmc">Mana Value</option>
+                    <option value="set_name">Set</option>
+                  </select>
+                </div>
+                <div class="flex-1">
+                  <label
+                    for="collection-group-by-2"
+                    class="text-sm text-gray-400"
+                    >Then By</label
+                  >
+                  <select
+                    id="collection-group-by-2"
+                    class="collection-group-select w-full mt-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="">None</option>
+                    <option value="type_line">Type</option>
+                    <option value="rarity">Rarity</option>
+                    <option value="color_identity">Color</option>
+                    <option value="cmc">Mana Value</option>
+                    <option value="set_name">Set</option>
+                  </select>
+                </div>
+              </div>
+              <div class="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="hide-in-deck-checkbox"
+                  class="h-4 w-4 rounded bg-gray-700 border-gray-600 text-indigo-600 focus:ring-indigo-500"
+                />
+                <label for="hide-in-deck-checkbox" class="text-sm text-gray-300"
+                  >Hide Cards in Decks</label
+                >
+              </div>
+              <div class="flex-shrink-0">
+                <label class="text-sm text-gray-400">Grid Size</label>
+                <div class="mt-1 flex items-center rounded-lg bg-gray-700 p-1">
+                  <button
+                    class="grid-size-btn p-2 rounded-md text-gray-400"
+                    data-size="sm"
+                    title="Small"
+                  >
+                    S
+                  </button>
+                  <button
+                    class="grid-size-btn p-2 rounded-md bg-indigo-600 text-white"
+                    data-size="md"
+                    title="Medium"
+                  >
+                    M
+                  </button>
+                  <button
+                    class="grid-size-btn p-2 rounded-md text-gray-400"
+                    data-size="lg"
+                    title="Large"
+                  >
+                    L
+                  </button>
+                </div>
+              </div>
+              <div class="flex-shrink-0">
+                <label class="text-sm text-gray-400">View</label>
+                <div class="mt-1 flex items-center rounded-lg bg-gray-700 p-1">
+                  <button
+                    id="view-toggle-grid"
+                    class="view-toggle p-2 rounded-md bg-indigo-600 text-white"
+                    title="Grid View"
+                  >
+                    <svg
+                      class="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
+                      ></path>
+                    </svg>
+                  </button>
+                  <button
+                    id="view-toggle-table"
+                    class="view-toggle p-2 rounded-md text-gray-400"
+                    title="Table View"
+                  >
+                    <svg
+                      class="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M4 6h16M4 10h16M4 14h16M4 18h16"
+                      ></path>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              <button
+                id="reset-filters-btn"
+                class="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg"
+              >
+                Reset
+              </button>
+            </div>
+
+            <!-- Collection Content -->
+            <div id="collection-content">
+              <!-- Grouped or Table content will be injected here -->
+            </div>
+            <div
+              id="collection-pagination"
+              class="flex justify-center items-center space-x-2 mt-6"
+            >
+              <!-- Pagination controls will be injected here -->
+            </div>
+            <p id="no-cards-msg" class="text-center text-gray-500 mt-8">
+              Your collection is empty. Use the search bar above to add cards!
+            </p>
+          </div>
+
+          <!-- Decks View -->
+          <div id="decks-view" class="hidden">
+            <div
+              class="bg-gray-800 p-4 rounded-lg shadow-lg mb-6 flex flex-col md:flex-row justify-between items-center gap-4"
+            >
+              <h2 class="text-2xl font-semibold">My Decks</h2>
+              <button
+                id="create-deck-btn"
+                class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300"
+              >
+                Create New Deck
+              </button>
+            </div>
+            <div
+              id="decks-list"
+              class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            >
+              <!-- Deck items will be dynamically inserted here -->
+            </div>
+            <p id="no-decks-msg" class="text-center text-gray-500 mt-8">
+              You haven't created any decks yet. Click the button above to start
+              building!
+            </p>
+          </div>
+
+          <!-- Single Deck View -->
+          <div id="single-deck-view" class="hidden">
+            <!-- Will be populated by JS -->
+          </div>
+
+          <!-- Settings View -->
+          <div id="settings-view" class="hidden space-y-8">
+            <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+              <h2
+                class="text-2xl font-semibold mb-4 border-b border-gray-700 pb-2"
+              >
+                Account
+              </h2>
+              <div class="space-y-4">
+                <div>
+                  <label class="text-sm text-gray-400">User Email</label>
+                  <p
+                    id="user-email"
+                    class="text-lg bg-gray-700 p-2 rounded-md"
+                  ></p>
+                </div>
+                <button
+                  id="logout-btn"
+                  class="w-full sm:w-auto bg-red-800 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2"
+                >
+                  <svg
+                    class="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                    ></path>
+                  </svg>
+                  Logout
+                </button>
+              </div>
+            </div>
+            <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+              <h2
+                class="text-2xl font-semibold mb-4 border-b border-gray-700 pb-2"
+              >
+                Card Modal Display
+              </h2>
+              <div
+                id="modal-visibility-settings"
+                class="grid grid-cols-2 sm:grid-cols-3 gap-4"
+              >
+                <!-- Checkboxes will be injected here -->
+              </div>
+            </div>
+            <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+              <h2
+                class="text-2xl font-semibold mb-4 border-b border-gray-700 pb-2"
+              >
+                Deck Management
+              </h2>
+              <p class="text-gray-400 mb-4">
+                Enable "Edit Mode" from the top bar to delete decks.
+              </p>
+              <div id="settings-deck-list" class="space-y-4">
+                <!-- Deck list for deletion will be populated here -->
+              </div>
+            </div>
+            <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+              <h2
+                class="text-2xl font-semibold mb-4 border-b border-gray-700 pb-2"
+              >
+                Data Management
+              </h2>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <button
+                  id="export-all-data-btn"
+                  class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg"
+                >
+                  Export All Data
+                </button>
+                <label
+                  class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg cursor-pointer text-center flex items-center justify-center"
+                >
+                  <span>Import All Data</span>
+                  <input
+                    type="file"
+                    id="import-all-data-input"
+                    class="hidden"
+                    accept=".json"
+                  />
+                </label>
+                <button
+                  id="export-deck-data-btn"
+                  class="flex-1 bg-blue-800 hover:bg-blue-900 text-white font-bold py-2 px-4 rounded-lg"
+                >
+                  Export Active Deck
+                </button>
+                <label
+                  class="flex-1 bg-green-800 hover:bg-green-900 text-white font-bold py-2 px-4 rounded-lg cursor-pointer text-center flex items-center justify-center"
+                >
+                  <span>Import Deck</span>
+                  <input
+                    type="file"
+                    id="import-deck-data-input"
+                    class="hidden"
+                    accept=".json"
+                  />
+                </label>
+              </div>
+            </div>
+            <div
+              class="bg-red-900/50 border border-red-700 p-6 rounded-lg shadow-lg"
+            >
+              <h2 class="text-2xl font-semibold mb-4 text-red-300">
+                Danger Zone
+              </h2>
+              <p class="text-red-200 mb-4">
+                This action is irreversible and will permanently delete your
+                entire collection and all your decks.
+              </p>
+              <button
+                id="clear-data-btn"
+                class="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg"
+              >
+                Clear All Account Data
+              </button>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <!-- Modals -->
+
+    <!-- Card Versions Modal (for search results) -->
+    <div
+      id="card-versions-modal"
+      class="fixed inset-0 z-[60] hidden items-center justify-center p-4 modal-backdrop"
+    >
+      <div
+        class="bg-gray-800 rounded-lg shadow-2xl max-w-6xl w-full h-[90vh] flex flex-col"
+      >
+        <div
+          class="p-4 border-b border-gray-700 flex justify-between items-center"
+        >
+          <h3 id="card-versions-modal-title" class="text-xl font-bold">
+            Select Card Version
+          </h3>
+          <button
+            id="close-versions-modal-btn"
+            class="text-gray-400 hover:text-white text-3xl"
+          >
+            &times;
+          </button>
+        </div>
+        <div
+          id="card-versions-grid"
+          class="p-6 grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 overflow-y-auto no-scrollbar"
+        >
+          <!-- Card versions will be injected here -->
+        </div>
+        <div
+          id="versions-loading"
+          class="flex-grow flex items-center justify-center"
+        >
+          <div
+            class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-400"
+          ></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card Add Confirmation Modal -->
+    <div
+      id="card-confirmation-modal"
+      class="fixed inset-0 z-[70] hidden items-center justify-center p-4 modal-backdrop"
+    >
+      <div class="bg-gray-800 rounded-lg shadow-2xl max-w-4xl w-full">
+        <div
+          id="card-confirmation-content"
+          class="p-6 grid grid-cols-1 md:grid-cols-3 gap-6"
+        >
+          <!-- Content injected by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Card Details Modal -->
+    <div
+      id="card-details-modal"
+      class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop overflow-y-auto"
+    >
+      <div
+        id="card-details-modal-content-wrapper"
+        class="bg-gray-800 rounded-lg shadow-2xl max-w-4xl w-full my-8 relative"
+      >
+        <div class="absolute top-2 right-4 flex items-center gap-4 z-10">
+          <button
+            id="edit-card-details-btn"
+            class="text-gray-400 hover:text-white"
+          >
+            <svg
+              class="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+              ></path>
+            </svg>
+          </button>
+          <button
+            id="close-card-details-btn"
+            class="text-gray-400 hover:text-white text-4xl font-bold"
+          >
+            &times;
+          </button>
+        </div>
+        <div id="card-details-content" class="p-6">
+          <!-- Content will be injected by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- AI Suggestions Modal -->
+    <div
+      id="ai-suggestions-modal"
+      class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop"
+    >
+      <div
+        class="bg-gray-800 rounded-lg shadow-2xl max-w-2xl w-full h-[80vh] flex flex-col"
+      >
+        <div
+          class="p-4 border-b border-gray-700 flex justify-between items-center"
+        >
+          <h3 id="ai-suggestions-title" class="text-xl font-bold">
+            Gemini Deck Suggestions
+          </h3>
+          <button
+            id="close-ai-modal-btn"
+            class="text-gray-400 hover:text-white text-3xl"
+          >
+            &times;
+          </button>
+        </div>
+        <div
+          id="ai-chat-history"
+          class="flex-grow p-4 space-y-4 overflow-y-auto no-scrollbar"
+        >
+          <!-- Chat messages will be injected here -->
+        </div>
+        <div class="p-4 border-t border-gray-700">
+          <form id="ai-chat-form" class="flex gap-2">
+            <input
+              type="text"
+              id="ai-chat-input"
+              class="flex-grow bg-gray-700 border border-gray-600 rounded-lg px-4 py-2"
+              placeholder="Ask a follow-up question..."
+              required
+            />
+            <button
+              type="submit"
+              class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold p-2 rounded-lg"
+            >
+              Send
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI Blueprint Modal -->
+    <div
+      id="ai-blueprint-modal"
+      class="fixed inset-0 z-[60] hidden items-center justify-center p-4 modal-backdrop"
+    >
+      <div
+        class="bg-gray-800 rounded-lg shadow-2xl max-w-2xl w-full h-[80vh] flex flex-col"
+      >
+        <div
+          class="p-4 border-b border-gray-700 flex justify-between items-center"
+        >
+          <h3 class="text-xl font-bold">AI Commander Blueprint</h3>
+          <button
+            id="close-blueprint-modal-btn"
+            class="text-gray-400 hover:text-white text-3xl"
+          >
+            &times;
+          </button>
+        </div>
+        <div class="flex-grow p-6 overflow-y-auto no-scrollbar space-y-4">
+          <div id="ai-blueprint-content"></div>
+        </div>
+        <div class="p-4 flex justify-end gap-4 border-t border-gray-700">
+          <button
+            type="button"
+            id="cancel-blueprint-btn"
+            class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            id="confirm-blueprint-btn"
+            class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg"
+          >
+            Create Deck with this Strategy
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Deck Creation Modal -->
+    <div
+      id="deck-creation-modal"
+      class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop"
+    >
+      <div class="bg-gray-800 rounded-lg shadow-2xl max-w-lg w-full">
+        <form id="deck-creation-form">
+          <div class="p-6">
+            <h3 class="text-xl font-bold mb-4">Create a New Deck</h3>
+            <div class="space-y-4">
+              <div>
+                <label
+                  for="deck-name-input"
+                  class="block text-sm font-medium text-gray-300 mb-1"
+                  >Deck Name (Optional)</label
+                >
+                <input
+                  type="text"
+                  id="deck-name-input"
+                  class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2"
+                  placeholder="Gemini will name it if left blank"
+                />
+              </div>
+              <div>
+                <label
+                  for="deck-format-select"
+                  class="block text-sm font-medium text-gray-300 mb-1"
+                  >Deck Format</label
+                >
+                <select
+                  id="deck-format-select"
+                  class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2"
+                >
+                  <option value="commander">Commander</option>
+                  <option value="standard">Standard</option>
+                  <option value="modern">Modern</option>
+                </select>
+              </div>
+              <!-- Commander Search - shown conditionally -->
+              <div id="commander-selection-container" class="space-y-2 pt-2">
+                <label class="block text-sm font-medium text-gray-300"
+                  >Choose Commander</label
+                >
+                <div class="flex border-b border-gray-600">
+                  <button
+                    type="button"
+                    id="commander-source-collection-btn"
+                    class="commander-source-btn flex-1 p-2 border-b-2 border-indigo-500 text-white"
+                  >
+                    From Collection
+                  </button>
+                  <button
+                    type="button"
+                    id="commander-source-search-btn"
+                    class="commander-source-btn flex-1 p-2 border-b-2 border-transparent text-gray-400"
+                  >
+                    Search New
+                  </button>
+                </div>
+                <div id="commander-from-collection" class="mt-2">
+                  <input
+                    type="text"
+                    id="commander-collection-filter"
+                    class="w-full bg-gray-900/80 border border-gray-600 rounded-lg px-3 py-1 text-sm mb-2"
+                    placeholder="Filter collection commanders..."
+                  />
+                  <div
+                    id="commander-collection-list"
+                    class="max-h-60 overflow-y-auto grid grid-cols-1 gap-1 p-1 bg-gray-900/50 rounded-md"
+                  >
+                    <!-- Legendary creatures from collection will be listed here -->
+                  </div>
+                </div>
+                <div id="commander-from-search" class="hidden mt-2">
+                  <div class="flex gap-2">
+                    <input
+                      type="text"
+                      id="commander-search-input"
+                      class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2"
+                      placeholder="Search Scryfall for a legendary creature..."
+                    />
+                    <button
+                      type="button"
+                      id="commander-search-btn"
+                      class="bg-indigo-600 hover:bg-indigo-700 px-4 rounded-lg"
+                    >
+                      Search
+                    </button>
+                  </div>
+                  <div
+                    id="commander-search-results"
+                    class="max-h-60 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2"
+                  ></div>
+                </div>
+                <div
+                  id="selected-commander-preview"
+                  class="hidden items-center gap-4 p-2 bg-gray-900 rounded-lg mt-2"
+                ></div>
+              </div>
+            </div>
+            <div class="flex justify-end gap-4 mt-6">
+              <button
+                type="button"
+                id="cancel-deck-btn"
+                class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                id="save-deck-btn"
+                class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center"
+              >
+                <span id="save-deck-text">Create Deck</span>
+                <div
+                  id="save-deck-spinner"
+                  class="hidden animate-spin rounded-full h-5 w-5 border-b-2 border-white"
+                ></div>
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Generic Confirmation Modal -->
+    <div
+      id="confirmation-modal"
+      class="fixed inset-0 z-[80] hidden items-center justify-center p-4 modal-backdrop"
+    >
+      <div class="bg-gray-800 rounded-lg shadow-2xl max-w-sm w-full">
+        <div class="p-6 text-center">
+          <h3 id="confirmation-title" class="text-xl font-bold mb-2">
+            Are you sure?
+          </h3>
+          <p id="confirmation-message" class="text-gray-400 mb-6">
+            This action cannot be undone.
+          </p>
+          <div class="flex justify-center gap-4">
+            <button
+              id="confirm-action-btn"
+              class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-lg"
+            >
+              Confirm
+            </button>
+            <button
+              id="cancel-action-btn"
+              class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded-lg"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Deck Deletion Options Modal -->
+    <div
+      id="deck-delete-options-modal"
+      class="fixed inset-0 z-[80] hidden items-center justify-center p-4 modal-backdrop"
+    >
+      <div class="bg-gray-800 rounded-lg shadow-2xl max-w-md w-full">
+        <div class="p-6 text-center">
+          <h3 class="text-xl font-bold mb-2">Delete Deck</h3>
+          <p class="text-gray-400 mb-6">
+            Do you also want to remove the cards from this deck from your
+            collection?
+          </p>
+          <div class="flex flex-col gap-4">
+            <button
+              id="delete-deck-and-cards-btn"
+              class="bg-red-800 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg"
+            >
+              Delete Deck & Remove Cards
+            </button>
+            <button
+              id="delete-deck-only-btn"
+              class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg"
+            >
+              Delete Deck Only
+            </button>
+            <button
+              id="cancel-delete-deck-btn"
+              class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rule Lookup Modal -->
+    <div
+      id="rule-lookup-modal"
+      class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop"
+    >
+      <div
+        class="bg-gray-800 rounded-lg shadow-2xl max-w-2xl w-full h-[80vh] flex flex-col"
+      >
+        <div
+          class="p-4 border-b border-gray-700 flex justify-between items-center"
+        >
+          <h3 class="text-xl font-bold">Rule Lookup</h3>
+          <button
+            id="close-rule-lookup-modal-btn"
+            class="text-gray-400 hover:text-white text-3xl"
+          >
+            &times;
+          </button>
+        </div>
+        <div
+          id="rule-lookup-history"
+          class="flex-grow p-4 space-y-4 overflow-y-auto no-scrollbar"
+        >
+          <div class="bg-gray-700 p-3 rounded-lg">
+            <p>
+              Ask a Magic: The Gathering rule question below. For example, "What
+              is banding?" or "How does cascade work?".
+            </p>
+          </div>
+        </div>
+        <div class="p-4 border-t border-gray-700">
+          <form id="rule-lookup-form" class="flex gap-2">
+            <input
+              type="text"
+              id="rule-lookup-input"
+              class="flex-grow bg-gray-700 border border-gray-600 rounded-lg px-4 py-2"
+              placeholder="Enter your rule question..."
+              required
+            />
+            <button
+              type="submit"
+              class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold p-2 rounded-lg"
+            >
+              Ask
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- MTG Chat Modal -->
+    <div
+      id="mtg-chat-modal"
+      class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop"
+    >
+      <div
+        class="bg-gray-800 rounded-lg shadow-2xl max-w-2xl w-full h-[80vh] flex flex-col"
+      >
+        <div
+          class="p-4 border-b border-gray-700 flex justify-between items-center"
+        >
+          <h3 class="text-xl font-bold">MTG Chat</h3>
+          <button
+            id="close-mtg-chat-modal-btn"
+            class="text-gray-400 hover:text-white text-3xl"
+          >
+            &times;
+          </button>
+        </div>
+        <div
+          id="mtg-chat-history"
+          class="flex-grow p-4 space-y-4 overflow-y-auto no-scrollbar"
+        >
+          <div class="bg-gray-700 p-3 rounded-lg">
+            <p>
+              Welcome! Ask me anything about MTG strategy, lore, deck building,
+              or cards.
+            </p>
+          </div>
+        </div>
+        <div class="p-4 border-t border-gray-700">
+          <form id="mtg-chat-form" class="flex gap-2">
+            <input
+              type="text"
+              id="mtg-chat-input"
+              class="flex-grow bg-gray-700 border border-gray-600 rounded-lg px-4 py-2"
+              placeholder="Ask a question..."
+              required
+            />
+            <button
+              type="submit"
+              class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold p-2 rounded-lg"
+            >
+              Send
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- New Player Guide Modal -->
+    <div
+      id="new-player-guide-modal"
+      class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop"
+    >
+      <div
+        class="bg-gray-800 rounded-lg shadow-2xl max-w-3xl w-full h-[80vh] flex flex-col"
+      >
+        <div
+          class="p-4 border-b border-gray-700 flex justify-between items-center"
+        >
+          <h3 class="text-xl font-bold">New Player Guide</h3>
+          <button
+            id="close-new-player-guide-modal-btn"
+            class="text-gray-400 hover:text-white text-3xl"
+          >
+            &times;
+          </button>
+        </div>
+        <div class="flex-grow p-6 space-y-4 overflow-y-auto no-scrollbar">
+          <details class="bg-gray-900/50 p-4 rounded-lg">
+            <summary class="font-semibold text-lg hover:text-indigo-400">
+              The Colors of Magic
+            </summary>
+            <div class="mt-4 space-y-3 text-gray-300">
+              <p>
+                <strong>White (W):</strong> The color of order, law, and
+                community. White excels at creating armies of small creatures,
+                protecting them with enchantments, gaining life, and using
+                powerful spells that affect all players equally to level the
+                playing field.
+              </p>
+              <p>
+                <strong>Blue (U):</strong> The color of knowledge, manipulation,
+                and deceit. Blue is the master of controlling the game by
+                countering opponent's spells, drawing extra cards to find the
+                right answers, and controlling the board with tricky creatures
+                (often with flying) and illusions.
+              </p>
+              <p>
+                <strong>Black (B):</strong> The color of ambition, death, and
+                power at any cost. Black is willing to sacrifice anything—life,
+                creatures, cards in hand—to win. It is the undisputed master of
+                destroying creatures, forcing opponents to discard cards, and
+                reanimating creatures from any graveyard.
+              </p>
+              <p>
+                <strong>Red (R):</strong> The color of chaos, freedom, and
+                impulse. Red wants to win, and it wants to win now. It uses
+                direct damage spells ("burn") to destroy creatures or attack the
+                opponent directly, and deploys fast creatures with haste to keep
+                the pressure on.
+              </p>
+              <p>
+                <strong>Green (G):</strong> The color of nature, growth, and
+                brute force. Green is all about playing massive, powerful
+                creatures. It excels at "ramping" its mana—getting more lands
+                into play faster than normal—to cast its huge threats far ahead
+                of schedule.
+              </p>
+            </div>
+          </details>
+
+          <details class="bg-gray-900/50 p-4 rounded-lg">
+            <summary class="font-semibold text-lg hover:text-indigo-400">
+              Anatomy of a Deck
+            </summary>
+            <div class="mt-4 space-y-3 text-gray-300">
+              <p class="text-sm text-gray-400">
+                Note: These are general guidelines. Ratios change dramatically
+                based on strategy!
+              </p>
+              <h4 class="font-bold text-md text-indigo-300">
+                Typical 60-Card Deck (Standard, Modern, etc.)
+              </h4>
+              <ul class="list-disc list-inside">
+                <li>
+                  <strong>~24 Lands:</strong> This is the most crucial number.
+                  Too few and you won't be able to cast your spells; too many
+                  and you'll run out of things to do.
+                </li>
+                <li>
+                  <strong>~20-25 Creatures:</strong> The core of most
+                  strategies. These are your attackers and blockers.
+                </li>
+                <li>
+                  <strong>~11-16 Other Spells:</strong> This includes removal,
+                  card draw, and any other spells that support your
+                  creature-based game plan.
+                </li>
+              </ul>
+              <h4 class="font-bold text-md text-indigo-300 mt-4">
+                Typical 100-Card Deck (Commander/EDH)
+              </h4>
+              <ul class="list-disc list-inside">
+                <li>
+                  <strong>1 Commander:</strong> Your legendary creature that
+                  defines the deck's colors and strategy.
+                </li>
+                <li>
+                  <strong>~37-38 Lands:</strong> You need more lands in
+                  Commander due to the higher mana costs and longer games.
+                </li>
+                <li>
+                  <strong>~10-12 Ramp/Mana Rocks:</strong> Spells or artifacts
+                  that help you generate extra mana. Crucial for keeping up.
+                </li>
+                <li>
+                  <strong>~10 Card Draw:</strong> Spells that let you draw more
+                  cards. Essential for not running out of gas in a long game.
+                </li>
+                <li>
+                  <strong>~10-12 Interaction/Removal:</strong> Ways to deal with
+                  your opponents' threats.
+                </li>
+                <li>
+                  <strong>~28-30 "Theme" Cards:</strong> These are the
+                  creatures, spells, and other cards that work with your
+                  commander to execute your deck's main strategy.
+                </li>
+              </ul>
+            </div>
+          </details>
+
+          <details class="bg-gray-900/50 p-4 rounded-lg">
+            <summary class="font-semibold text-lg hover:text-indigo-400">
+              Common Playstyles (Archetypes)
+            </summary>
+            <div class="mt-4 space-y-3 text-gray-300">
+              <p>
+                <strong>Aggro (Aggressive):</strong> The goal is to win as
+                quickly as possible, usually by attacking with cheap, efficient
+                creatures. Aggro decks try to overwhelm the opponent before they
+                can execute their own, more powerful late-game strategy. They
+                live by the motto, "the best defense is a good offense."
+              </p>
+              <p>
+                <strong>Control:</strong> The polar opposite of Aggro. Control
+                decks aim to survive the early game by countering the opponent's
+                key spells and destroying their creatures. They win the game in
+                the long run by using powerful spells, planeswalkers, or a
+                single, hard-to-kill creature once the opponent has run out of
+                resources.
+              </p>
+              <p>
+                <strong>Midrange:</strong> The jack-of-all-trades. Midrange
+                decks are flexible, able to play defensively against Aggro decks
+                and then switch gears to be the aggressor against slower Control
+                decks. They focus on playing individually powerful and efficient
+                cards that are good in almost any situation.
+              </p>
+              <p>
+                <strong>Combo (Combination):</strong> These decks aim to
+                assemble a specific combination of two or more cards that
+                results in an instant win or an insurmountable advantage. Combo
+                decks often feel like they are "playing solitaire," as they can
+                sometimes ignore what the opponent is doing to focus entirely on
+                finding their winning pieces.
+              </p>
+              <p>
+                <strong>Tempo:</strong> A close cousin of Aggro. Tempo decks
+                play an early threat and then protect it by cheaply disrupting
+                the opponent's game plan just long enough to win. They use
+                spells to bounce creatures back to their owner's hand or tap
+                them down to clear the way for attacks, keeping their opponent
+                constantly off-balance.
+              </p>
+            </div>
+          </details>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notification Modal -->
+    <div
+      id="notification-modal"
+      class="fixed inset-0 z-[90] hidden items-center justify-center p-4 modal-backdrop"
+    >
+      <div
+        class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm text-center"
+      >
+        <h3
+          id="notification-title"
+          class="text-lg font-bold mb-2 text-red-400"
+        ></h3>
+        <p id="notification-message" class="text-gray-300"></p>
+        <button
+          id="notification-close-btn"
+          class="mt-4 w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+
+    <!-- Firebase and App Logic -->
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+      import {
+        getAuth,
+        onAuthStateChanged,
+        signOut,
+        GoogleAuthProvider,
+        signInWithPopup,
+        createUserWithEmailAndPassword,
+        signInWithEmailAndPassword,
+        signInAnonymously,
+        signInWithCustomToken,
+      } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+      import {
+        getFirestore,
+        doc,
+        getDoc,
+        collection,
+        onSnapshot,
+        addDoc,
+        deleteDoc,
+        updateDoc,
+        arrayUnion,
+        writeBatch,
+        getDocs,
+        setDoc,
+        deleteField,
+      } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+      document.addEventListener("DOMContentLoaded", () => {
+        console.log(
+          "[DOMContentLoaded] Event fired. App is initializing. Find in <script> block."
+        );
+
+        // --- FIREBASE & APP CONFIG ---
+        let db, auth;
+        let userId = null;
+        let collectionUnsubscribe = null;
+        let decksUnsubscribe = null;
+
+        const appId =
+          typeof __app_id !== "undefined" ? __app_id : "mtg-forge-default";
+        console.log(`[Config] App ID set to: ${appId}`);
+
+        const firebaseConfig =
+          typeof __firebase_config !== "undefined"
+            ? JSON.parse(__firebase_config)
+            : {
+                apiKey: "AIzaSyAdqbFNjrB6y-8BrMEYYCT5ywiCgZVtMaE",
+                authDomain: "mtglibrary-70b46.firebaseapp.com",
+                projectId: "mtglibrary-70b46",
+                storageBucket: "mtglibrary-70b46.appspot.com",
+                messagingSenderId: "602862103839",
+                appId: "1:602862103839:web:23c64b7486c058c903d42a",
+                measurementId: "G-EWELJJQ631",
+              };
+        console.log("[Config] Firebase config loaded.");
+
+        const app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+
+        const GEMINI_API_KEY = "AIzaSyDkbSsM1e4aN85G7ZVGw-XOs4HE8_E4Zig";
+        const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${GEMINI_API_KEY}`;
+        console.log("[Config] Gemini API URL configured.");
+
+        // --- STATE ---
+        let currentCardForAdd = null;
+        let currentCommanderForAdd = null;
+        let tempAiBlueprint = null;
+        let localCollection = {};
+        let localDecks = {};
+        let cardDeckAssignments = {};
+        let deckChartInstances = {};
+        let collectionViewMode = "grid";
+        let collectionGridSize = "md";
+        let collectionSortState = { column: "name", direction: "asc" };
+        let collectionCurrentPage = 1;
+        const COLLECTION_PAGE_SIZE = 100;
+        let currentSearchContext = {
+          mode: "collection",
+          deckId: null,
+        };
+        let modalVisibilitySettings = {};
+        let activeAiChatHistory = [];
+        let ruleLookupHistory = [];
+        let mtgChatHistory = [];
+        console.log("[State] Initial application state variables declared.");
+
+        // --- DOM ELEMENTS ---
+        const views = {
+          collection: document.getElementById("collection-view"),
+          decks: document.getElementById("decks-view"),
+          singleDeck: document.getElementById("single-deck-view"),
+          settings: document.getElementById("settings-view"),
+        };
+
+        const navLinks = {
+          collection: document.getElementById("nav-collection"),
+          decks: document.getElementById("nav-decks"),
+          settings: document.getElementById("nav-settings"),
+          ruleLookup: document.getElementById("nav-rule-lookup"),
+          generalChat: document.getElementById("nav-general-chat"),
+        };
+
+        // --- INITIALIZATION ---
+
+        onAuthStateChanged(auth, async (user) => {
+          if (user) {
+            userId = user.uid;
+            console.log(`[Auth] User is signed in. UID: ${userId}`);
+            document.getElementById("user-email").textContent =
+              user.email || "Anonymous User";
+            document.getElementById("login-screen").classList.add("hidden");
+            document.getElementById("app-wrapper").classList.remove("hidden");
+            setupListeners();
+            loadSettings();
+          } else {
+            console.log(
+              "[Auth] No user signed in. Attempting custom token or anonymous sign-in."
+            );
+            try {
+              if (typeof __initial_auth_token !== "undefined") {
+                await signInWithCustomToken(auth, __initial_auth_token);
+                console.log("[Auth] Successfully signed in with custom token.");
+              } else {
+                await signInAnonymously(auth);
+                console.log("[Auth] Successfully signed in anonymously.");
+              }
+            } catch (error) {
+              console.error("Error during sign-in:", error);
+              document.getElementById("login-screen").classList.remove("hidden");
+              document.getElementById("app-wrapper").classList.add("hidden");
+            }
+          }
+        });
+
+        // --- DATA FUNCTIONS ---
+
+        function setupListeners() {
+          console.log(
+            "[Function: setupListeners] Setting up Firestore listeners. Find in <script> block."
+          );
+          if (collectionUnsubscribe) collectionUnsubscribe();
+          const collectionRef = collection(db, `artifacts/${appId}/users/${userId}/collection`);
+          collectionUnsubscribe = onSnapshot(
+            collectionRef,
+            (querySnapshot) => {
+              let updatedCollection = {};
+              querySnapshot.forEach((doc) => {
+                updatedCollection[doc.id] = { firestoreId: doc.id, ...doc.data() };
+              });
+              localCollection = updatedCollection;
+              console.log(
+                `[Firestore: Collection] Snapshot received. ${
+                  Object.keys(localCollection).length
+                } cards loaded.`
+              );
+              updateCardAssignments();
+              renderCollection();
+              // Re-render deck if visible to update card counts from collection
+              const activeDeckId = views.singleDeck.dataset.deckId;
+              if (
+                !views.singleDeck.classList.contains("hidden") &&
+                activeDeckId
+              ) {
+                renderSingleDeck(activeDeckId);
+              }
+            },
+            (error) => {
+              console.error("Error listening to collection changes:", error);
+            }
+          );
+
+          if (decksUnsubscribe) decksUnsubscribe();
+          const decksRef = collection(db, `artifacts/${appId}/users/${userId}/decks`);
+          decksUnsubscribe = onSnapshot(
+            decksRef,
+            (querySnapshot) => {
+              let updatedDecks = {};
+              querySnapshot.forEach((doc) => {
+                updatedDecks[doc.id] = { id: doc.id, ...doc.data() };
+              });
+              localDecks = updatedDecks;
+              console.log(
+                `[Firestore: Decks] Snapshot received. ${
+                  Object.keys(localDecks).length
+                } decks loaded.`
+              );
+              updateCardAssignments();
+              if (!views.decks.classList.contains("hidden")) {
+                renderDecksList();
+              }
+               const activeDeckId = views.singleDeck.dataset.deckId;
+              if (
+                !views.singleDeck.classList.contains("hidden") &&
+                activeDeckId
+              ) {
+                renderSingleDeck(activeDeckId);
+              }
+            },
+            (error) => {
+              console.error("Error listening to deck changes:", error);
+            }
+          );
+        }
+
+        async function saveSettings() {
+            if (!userId) return;
+            const userSettingsRef = doc(db, `artifacts/${appId}/users/${userId}`);
+            const settings = { modalVisibility: modalVisibilitySettings };
+            try {
+                await setDoc(userSettingsRef, { settings }, { merge: true });
+                showToast("Settings saved successfully.", "success");
+            } catch (error) {
+                console.error("Error saving settings:", error);
+                showToast("Failed to save settings.", "error");
+            }
+        }
+
+
+        async function loadSettings() {
+          if (!userId) return;
+          try {
+            const userDocRef = doc(db, `artifacts/${appId}/users/${userId}`);
+            const userDoc = await getDoc(userDocRef);
+            if (userDoc.exists()) {
+              const settings = userDoc.data().settings;
+              if (settings && settings.modalVisibility) {
+                modalVisibilitySettings = settings.modalVisibility;
+                console.log(
+                  "[Settings] Loaded modal visibility settings:",
+                  modalVisibilitySettings
+                );
+              }
+            }
+          } catch (e) {
+            console.error("Error loading settings:", e);
+          }
+          renderModalVisibilitySettings();
+        }
+
+        function updateCardAssignments() {
+          cardDeckAssignments = {};
+          Object.values(localDecks).forEach((deck) => {
+            if (deck.cards) {
+              Object.keys(deck.cards).forEach((cardId) => {
+                if (!cardDeckAssignments[cardId]) {
+                  cardDeckAssignments[cardId] = [];
+                }
+                cardDeckAssignments[cardId].push({
+                  deckId: deck.id,
+                  deckName: deck.name,
+                });
+              });
+            }
+            if (deck.commander) {
+              if (!cardDeckAssignments[deck.commander.id]) {
+                cardDeckAssignments[deck.commander.id] = [];
+              }
+              cardDeckAssignments[deck.commander.id].push({
+                deckId: deck.id,
+                deckName: deck.name,
+              });
+            }
+          });
+          console.log("[State] Card to deck assignments updated.");
+        }
+
+        // --- RENDER FUNCTIONS ---
+
+        function renderCollection() {
+          console.log(
+            "[Function: renderCollection] Triggering a full re-render of the collection view. Find in <script> block."
+          );
+          renderPaginatedCollection();
+        }
+
+        function groupCardsRecursively(cards, groupByKeys) {
+          if (!groupByKeys || !groupByKeys.length) {
+            return cards;
+          }
+
+          const currentKey = groupByKeys[0];
+          const remainingKeys = groupByKeys.slice(1);
+
+          const groups = cards.reduce((acc, card) => {
+            let key;
+            if (currentKey === "color_identity") {
+              const colors = card.color_identity.join("");
+              key = colors === "" ? "Colorless" : colors;
+            } else if (currentKey === "type_line") {
+              key = card.type_line.split(" — ")[0];
+            } else {
+              key = card[currentKey] ?? "Other";
+            }
+            (acc[key] = acc[key] || []).push(card);
+            return acc;
+          }, {});
+
+          if (remainingKeys.length > 0) {
+            for (const groupName in groups) {
+              groups[groupName] = groupCardsRecursively(
+                groups[groupName],
+                remainingKeys
+              );
+            }
+          }
+
+          return groups;
+        }
+
+        function renderPaginatedCollection() {
+          console.log(
+            `[Function: renderPaginatedCollection] Rendering page ${collectionCurrentPage} of the collection. Find in <script> block.`
+          );
+          const contentDiv = document.getElementById("collection-content");
+          const paginationDiv = document.getElementById("collection-pagination");
+          const noCardsMsg = document.getElementById("no-cards-msg");
+          let cards = Object.values(localCollection);
+
+          if (document.getElementById("hide-in-deck-checkbox").checked) {
+            cards = cards.filter((card) => !cardDeckAssignments[card.id]);
+          }
+
+          if (cards.length === 0) {
+            contentDiv.innerHTML = "";
+            paginationDiv.innerHTML = "";
+            noCardsMsg.classList.remove("hidden");
+            return;
+          }
+          noCardsMsg.classList.add("hidden");
+
+          const filterText = document
+            .getElementById("filter-text")
+            .value.toLowerCase();
+          if (filterText) {
+            cards = cards.filter(
+              (card) =>
+                card.name.toLowerCase().includes(filterText) ||
+                card.type_line.toLowerCase().includes(filterText)
+            );
+          }
+
+          // Get grouping keys
+          const groupByKeys = [
+            document.getElementById("collection-group-by-1").value,
+            document.getElementById("collection-group-by-2").value,
+          ].filter(Boolean); // filter(Boolean) removes empty strings
+
+          // Sort before grouping or pagination
+          const { column, direction } = collectionSortState;
+          cards.sort((a, b) => {
+            let valA, valB;
+
+            if (column === "price") {
+              valA = parseFloat(a.prices?.usd || 0);
+              valB = parseFloat(b.prices?.usd || 0);
+            } else if (column === "count") {
+              valA = a.count || 1;
+              valB = b.count || 1;
+            } else {
+              valA = a[column] || "";
+              valB = b[column] || "";
+            }
+
+            if (typeof valA === "string") valA = valA.toLowerCase();
+            if (typeof valB === "string") valB = valB.toLowerCase();
+
+            if (valA < valB) return direction === "asc" ? -1 : 1;
+            if (valA > valB) return direction === "asc" ? 1 : -1;
+            return 0;
+          });
+
+          // Pagination
+          const totalPages = Math.ceil(cards.length / COLLECTION_PAGE_SIZE);
+          if (totalPages > 1) {
+            const start = (collectionCurrentPage - 1) * COLLECTION_PAGE_SIZE;
+            const end = start + COLLECTION_PAGE_SIZE;
+            const paginatedCards = cards.slice(start, end);
+            renderPaginationControls(totalPages);
+            cards = paginatedCards;
+          } else {
+            paginationDiv.innerHTML = "";
+          }
+
+          if (collectionViewMode === "grid") {
+            renderCollectionGrid(cards, groupByKeys);
+          } else {
+            renderCollectionTable(cards, groupByKeys);
+          }
+        }
+
+        function renderPaginationControls(totalPages) {
+          const paginationDiv = document.getElementById("collection-pagination");
+          let html = "";
+          for (let i = 1; i <= totalPages; i++) {
+            const activeClass =
+              i === collectionCurrentPage
+                ? "bg-indigo-600 text-white"
+                : "bg-gray-700 hover:bg-gray-600";
+            html += `<button class="pagination-btn ${activeClass} font-bold py-2 px-4 rounded" data-page="${i}">${i}</button>`;
+          }
+          paginationDiv.innerHTML = html;
+
+          document.querySelectorAll(".pagination-btn").forEach((button) => {
+            button.addEventListener("click", () => {
+              collectionCurrentPage = parseInt(button.dataset.page, 10);
+              renderPaginatedCollection();
+            });
+          });
+        }
+
+        function renderCollectionGrid(cards, groupByKeys) {
+          console.log(
+            `[Function: renderCollectionGrid] Rendering collection as a grid. Card count: ${cards.length}. Find in <script> block.`
+          );
+          const contentDiv = document.getElementById("collection-content");
+
+          const sizeClasses = {
+            sm: "grid-cols-4 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-9 xl:grid-cols-11",
+            md: "grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-9",
+            lg: "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6",
+          };
+          const gridClass = sizeClasses[collectionGridSize] || sizeClasses.md;
+
+          function renderRecursiveGroups(groups, level) {
+            return Object.keys(groups)
+              .sort()
+              .map((groupName) => {
+                const content = groups[groupName];
+                const header = `<div class="group-header col-span-full" style="top: ${
+                  72 + level * 60
+                }px; padding-left: ${1.5 + level}rem;">${groupName}</div>`;
+
+                if (Array.isArray(content)) {
+                  // Base case: render cards
+                  return header + content.map(renderCollectionCard).join("");
+                } else {
+                  // Recursive step: render subgroup
+                  return header + renderRecursiveGroups(content, level + 1);
+                }
+              })
+              .join("");
+          }
+
+          if (groupByKeys.length > 0) {
+            console.log(
+              `[renderCollectionGrid] Grouping cards by "${groupByKeys.join(
+                ", "
+              )}".`
+            );
+            const groupedCards = groupCardsRecursively(cards, groupByKeys);
+            contentDiv.innerHTML = `<div class="grid ${gridClass} gap-4 p-4">
+                                ${renderRecursiveGroups(groupedCards, 0)}
+                            </div>`;
+          } else {
+            contentDiv.innerHTML = `<div class="grid ${gridClass} gap-4 p-4">
+                                ${cards.map(renderCollectionCard).join("")}
+                            </div>`;
+          }
+          addCollectionCardListeners();
+        }
+
+        function renderCollectionTable(cards, groupByKeys) {
+          console.log(
+            `[Function: renderCollectionTable] Rendering collection as a table. Card count: ${cards.length}. Find in <script> block.`
+          );
+          const contentDiv = document.getElementById("collection-content");
+          const renderTableRows = (cardGroup) =>
+            cardGroup
+              .map((card) => {
+                const price =
+                  card.prices?.usd_foil && card.finish === "foil"
+                    ? card.prices.usd_foil
+                    : card.prices?.usd || "N/A";
+                const isCommander = card.type_line.includes("Legendary");
+                return `<tr class="bg-gray-800 border-b border-gray-700 hover:bg-gray-700/50">
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 flex-shrink-0">
+                                        <div class="card-image-container rounded-md overflow-hidden">
+                                           <img src="${
+                                             card.image_uris?.small
+                                           }" class="card-image" loading="lazy" alt="${
+                  card.name
+                }">
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="font-bold">${card.name}</div>
+                                        <div class="text-sm text-gray-400">${
+                                          card.set_name
+                                        }</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-center">${
+                              card.count || 1
+                            }</td>
+                            <td class="px-6 py-4">${card.type_line}</td>
+                            <td class="px-6 py-4">${card.rarity}</td>
+                            <td class="px-6 py-4 text-center">${
+                              card.cmc || 0
+                            }</td>
+                            <td class="px-6 py-4 text-right">$${price}</td>
+                            <td class="px-6 py-4 text-right">
+                                <button class="p-2 hover:bg-gray-600 rounded-full view-card-details-btn" data-card-id="${
+                                  card.id
+                                }">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                </button>
+                                ${
+                                  isCommander
+                                    ? `<button class="p-2 hover:bg-gray-600 rounded-full create-deck-from-commander-btn" data-card-id="${card.id}" title="Create Commander Deck">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                    </button>`
+                                    : ""
+                                }
+                                <button class="p-2 hover:bg-red-800 rounded-full delete-button" data-card-id="${
+                                  card.id
+                                }" data-firestore-id="${card.firestoreId}">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                </button>
+                            </td>
+                        </tr>`;
+              })
+              .join("");
+
+          function renderRecursiveRows(groups, level) {
+            return Object.keys(groups)
+              .sort()
+              .map((groupName) => {
+                const content = groups[groupName];
+                const headerRow = `
+                <tr class="bg-gray-700/80 backdrop-blur-sm">
+                    <th colspan="7" class="px-6 py-2 text-left text-lg font-bold text-gray-300" style="position: sticky; top: ${
+                      132 + level * 48
+                    }px; padding-left: ${1 + level}rem; z-index: 4;">
+                        ${groupName}
+                    </th>
+                </tr>
+            `;
+                if (Array.isArray(content)) {
+                  return headerRow + renderTableRows(content);
+                } else {
+                  return headerRow + renderRecursiveRows(content, level + 1);
+                }
+              })
+              .join("");
+          }
+
+          const tableHeader = `
+                        <thead class="text-xs text-gray-400 uppercase bg-gray-700 sticky" style="top: 72px; z-index: 5;">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 sortable" data-sort="name">Name / Info</th>
+                                <th scope="col" class="px-6 py-3 sortable" data-sort="count">#</th>
+                                <th scope="col" class="px-6 py-3 sortable" data-sort="type_line">Type</th>
+                                <th scope="col" class="px-6 py-3 sortable" data-sort="rarity">Rarity</th>
+                                <th scope="col" class="px-6 py-3 sortable" data-sort="cmc">Mana</th>
+                                <th scope="col" class="px-6 py-3 sortable" data-sort="price">Price</th>
+                                <th scope="col" class="px-6 py-3"></th>
+                            </tr>
+                        </thead>`;
+
+          if (groupByKeys.length > 0) {
+            console.log(
+              `[renderCollectionTable] Grouping cards by "${groupByKeys.join(
+                ", "
+              )}".`
+            );
+            const groupedCards = groupCardsRecursively(cards, groupByKeys);
+            contentDiv.innerHTML = `<div class="overflow-x-auto bg-gray-800 rounded-lg">
+                                   <table class="w-full text-sm text-left text-gray-300">
+                                       ${tableHeader}
+                                       <tbody>${renderRecursiveRows(
+                                         groupedCards,
+                                         0
+                                       )}</tbody>
+                                   </table>
+                               </div>`;
+          } else {
+            contentDiv.innerHTML = `
+                           <div class="overflow-x-auto bg-gray-800 rounded-lg">
+                               <table class="w-full text-sm text-left text-gray-300">
+                                   ${tableHeader}
+                                   <tbody>
+                                       ${renderTableRows(cards)}
+                                   </tbody>
+                               </table>
+                           </div>`;
+          }
+
+          addCollectionTableListeners();
+        }
+
+        function renderSingleDeck(deckId) {
+          console.log(
+            `[Function: renderSingleDeck] Rendering view for deck ID ${deckId}. Find in <script> block.`
+          );
+          const deck = localDecks[deckId];
+          if (!deck) {
+            console.error(
+              `[renderSingleDeck] Could not find deck with ID ${deckId}. Returning to decks view.`
+            );
+            showView("decks");
+            return;
+          }
+          views.singleDeck.dataset.deckId = deckId;
+
+          const allDeckCards = [...Object.values(deck.cards || {})];
+          if (deck.commander)
+            allDeckCards.push({ ...deck.commander, count: 1 });
+
+          const totalCost = allDeckCards.reduce((acc, card) => {
+            const price =
+              card.finish === "foil"
+                ? card.prices?.usd_foil
+                : card.prices?.usd;
+            const cardCost = parseFloat(price) || 0;
+            const count = card.count || 1;
+            return acc + cardCost * count;
+          }, 0);
+
+          const cardCountsByType = allDeckCards.reduce((acc, card) => {
+            const mainType = card.type_line.split(" — ")[0];
+            const count = card.count || 1;
+            if (acc[mainType]) {
+              acc[mainType] += count;
+            } else {
+              acc[mainType] = count;
+            }
+            return acc;
+          }, {});
+
+          const blueprint = deck.aiBlueprint?.suggestedCounts;
+          const kpiData = [
+            {
+              label: "Deck Value",
+              current: `$${totalCost.toFixed(2)}`,
+              target: null,
+            },
+            {
+              label: "Total",
+              current: allDeckCards.reduce((acc, c) => acc + (c.count || 1), 0),
+              target: blueprint?.Total,
+            },
+            {
+              label: "Creature",
+              current: cardCountsByType.Creature || 0,
+              target: blueprint?.Creature,
+            },
+            {
+              label: "Land",
+              current: cardCountsByType.Land || 0,
+              target: blueprint?.Land,
+            },
+            {
+              label: "Instant",
+              current: cardCountsByType.Instant || 0,
+              target: blueprint?.Instant,
+            },
+            {
+              label: "Sorcery",
+              current: cardCountsByType.Sorcery || 0,
+              target: blueprint?.Sorcery,
+            },
+            {
+              label: "Enchantment",
+              current: cardCountsByType.Enchantment || 0,
+              target: blueprint?.Enchantment,
+            },
+            {
+              label: "Artifact",
+              current: cardCountsByType.Artifact || 0,
+              target: blueprint?.Artifact,
+            },
+            {
+              label: "Planeswalker",
+              current: cardCountsByType.Planeswalker || 0,
+              target: blueprint?.Planeswalker,
+            },
+          ];
+
+          const kpiHtml = kpiData
+            .map((kpi) => {
+              const hasTarget = kpi.target !== null && kpi.target !== undefined;
+              const percentage = hasTarget
+                ? Math.min((kpi.current / kpi.target) * 100, 100)
+                : 0;
+              let barColor = "bg-gray-500";
+              if (hasTarget) {
+                if (percentage < 50) barColor = "bg-red-500";
+                else if (percentage < 90) barColor = "bg-yellow-500";
+                else barColor = "bg-green-500";
+              }
+
+              return `
+                <div class="bg-gray-700/50 p-3 rounded-lg relative overflow-hidden">
+                    <div class="flex justify-between items-baseline">
+                        <span class="text-sm text-gray-400">${kpi.label}</span>
+                        <span class="font-bold text-lg">${kpi.current}${
+                hasTarget ? ` / ${kpi.target}` : ""
+              }</span>
+                    </div>
+                    ${
+                      hasTarget
+                        ? `<div class="kpi-gradient-bar ${barColor}" style="width: ${percentage}%"></div>`
+                        : ""
+                    }
+                </div>
+            `;
+            })
+            .join("");
+
+          const manaCurveData = allDeckCards.reduce((acc, card) => {
+            if (card && !card.type_line.toLowerCase().includes("land")) {
+              const cmc = Math.min(card.cmc, 7); // Group 7+ cmc together
+              const count = card.count || 1;
+              acc[cmc] = (acc[cmc] || 0) + count;
+            }
+            return acc;
+          }, {});
+
+          const colorIdentity = deck.commander?.color_identity || [];
+          const colorSymbols = {
+            W: '<img src="https://svgs.scryfall.io/card-symbols/W.svg" class="w-5 h-5" alt="White Mana">',
+            U: '<img src="https://svgs.scryfall.io/card-symbols/U.svg" class="w-5 h-5" alt="Blue Mana">',
+            B: '<img src="https://svgs.scryfall.io/card-symbols/B.svg" class="w-5 h-5" alt="Black Mana">',
+            R: '<img src="https://svgs.scryfall.io/card-symbols/R.svg" class="w-5 h-5" alt="Red Mana">',
+            G: '<img src="https://svgs.scryfall.io/card-symbols/G.svg" class="w-5 h-5" alt="Green Mana">',
+          };
+          const colorIcons = colorIdentity
+            .map((c) => colorSymbols[c])
+            .join("");
+
+          views.singleDeck.innerHTML = `
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                <!-- Left Column: Commander & Info -->
+                <div class="lg:col-span-1 space-y-6">
+                    <div class="bg-gray-800 p-4 rounded-lg shadow-lg">
+                        <div class="flex justify-between items-start">
+                             <h2 class="text-3xl font-bold mb-2">${
+                               deck.name
+                             }</h2>
+                             <div class="flex items-center gap-1">${colorIcons}</div>
+                        </div>
+                        <p class="text-gray-400">Format: ${
+                          deck.format
+                        }</p>
+                         ${deck.summary ? `<p class="text-gray-300 mt-2 text-sm italic">${deck.summary}</p>` : ''}
+                    </div>
+
+                    ${
+                      deck.commander
+                        ? `
+                        <div class="bg-gray-800 p-4 rounded-lg shadow-lg">
+                            <h3 class="text-xl font-semibold mb-3">Commander</h3>
+                            <div class="relative group">
+                                <div class="card-image-container rounded-lg overflow-hidden">
+                                    <img src="${
+                                      deck.commander.image_uris?.normal
+                                    }" class="card-image" alt="${
+                            deck.commander.name
+                          }">
+                                </div>
+                                <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <button class="view-card-details-btn bg-white/20 backdrop-blur-sm text-white font-bold py-2 px-4 rounded-lg" data-card-id="${
+                                      deck.commander.id
+                                    }">View Details</button>
+                                </div>
+                            </div>
+                        </div>`
+                        : ""
+                    }
+                    
+                    <div class="bg-gray-800 p-4 rounded-lg shadow-lg">
+                         <h3 class="text-xl font-semibold mb-3">Statistics</h3>
+                         <div class="grid grid-cols-2 gap-3">
+                            ${kpiHtml}
+                         </div>
+                    </div>
+
+                     <div class="bg-gray-800 p-4 rounded-lg shadow-lg">
+                         <h3 class="text-xl font-semibold mb-3">Mana Curve</h3>
+                         <canvas id="mana-curve-chart"></canvas>
+                     </div>
+
+                    <div class="bg-gray-800 p-4 rounded-lg shadow-lg">
+                         <h3 class="text-xl font-semibold mb-3">AI Tools</h3>
+                         <div class="space-y-3">
+                             <button id="ai-suggestions-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg">Deck Suggestions</button>
+                         </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Decklist -->
+                <div class="lg:col-span-3 bg-gray-800 p-4 rounded-lg shadow-lg">
+                    <div class="flex flex-col md:flex-row justify-between md:items-center mb-4 gap-3">
+                        <h3 class="text-2xl font-semibold">Decklist</h3>
+                        <div class="flex items-center gap-2">
+                             <button id="add-cards-to-deck-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">Add Cards</button>
+                             <button id="deck-delete-btn" data-deck-id="${deckId}" class="delete-button bg-red-800 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg">Delete Deck</button>
+                        </div>
+                    </div>
+                    <div id="decklist-container" class="space-y-4">
+                        <!-- Decklist will be populated here -->
+                    </div>
+                </div>
+            </div>
+        `;
+
+          renderDecklist(deckId);
+          renderManaCurveChart(manaCurveData);
+          addSingleDeckListeners(deckId);
+        }
+
+        // --- UI/HELPER FUNCTIONS ---
+
+        function toggleEditMode() {
+            console.log("[Function: toggleEditMode] Toggling edit mode. Find in <script> block.");
+            const appWrapper = document.getElementById('app-wrapper');
+            const isEditMode = appWrapper.classList.toggle('edit-mode');
+            const buttonText = document.getElementById('edit-mode-text');
+            if (isEditMode) {
+                buttonText.textContent = 'Exit Edit Mode';
+                showToast('Edit mode enabled. Deletion is now possible.', 'warning');
+            } else {
+                buttonText.textContent = 'Edit Mode';
+            }
+            // Re-render views that might be affected by edit mode
+            if (!views.collection.classList.contains('hidden')) {
+                renderCollection();
+            }
+            if (!views.decks.classList.contains('hidden')) {
+                renderDecksList();
+            }
+            const activeDeckId = views.singleDeck.dataset.deckId;
+            if (!views.singleDeck.classList.contains('hidden') && activeDeckId) {
+                renderSingleDeck(activeDeckId);
+            }
+        }
+
+        function renderModalVisibilitySettings() {
+            console.log("[Function: renderModalVisibilitySettings] Rendering settings for modal fields. Find in <script> block.");
+            const container = document.getElementById('modal-visibility-settings');
+            const allFields = ['count', 'finish', 'condition', 'purchasePrice', 'notes', 'deckAssignments'];
+            
+            // Default to true if not set
+            allFields.forEach(field => {
+                if (modalVisibilitySettings[field] === undefined) {
+                    modalVisibilitySettings[field] = true;
+                }
+            });
+
+            container.innerHTML = allFields.map(field => {
+                const label = field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+                return `
+                    <div class="flex items-center">
+                        <input type="checkbox" id="setting-vis-${field}" data-field="${field}" class="h-4 w-4 rounded bg-gray-700 border-gray-600 text-indigo-600 focus:ring-indigo-500" ${modalVisibilitySettings[field] ? 'checked' : ''}>
+                        <label for="setting-vis-${field}" class="ml-2 text-sm text-gray-300">${label}</label>
+                    </div>
+                `;
+            }).join('');
+
+            container.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                checkbox.addEventListener('change', (e) => {
+                    const field = e.target.dataset.field;
+                    modalVisibilitySettings[field] = e.target.checked;
+                    saveSettings();
+                });
+            });
+        }
+
+        function showToast(message, type = "info") {
+            const container = document.getElementById("toast-container");
+            const toast = document.createElement("div");
+            let bgColor, icon;
+
+            switch (type) {
+                case "success":
+                    bgColor = "bg-green-600";
+                    icon = `<svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+                    break;
+                case "error":
+                    bgColor = "bg-red-600";
+                    icon = `<svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+                    break;
+                case "warning":
+                    bgColor = "bg-yellow-500";
+                    icon = `<svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>`;
+                    break;
+                default: // info
+                    bgColor = "bg-blue-600";
+                    icon = `<svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+                    break;
+            }
+
+            toast.className = `toast text-white ${bgColor}`;
+            toast.innerHTML = `${icon}<span>${message}</span>`;
+            
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.remove();
+            }, 5000);
+        }
+
+        function openModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+        }
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        }
+        
+        function renderDecksList() {
+             console.log('[Function: renderDecksList] Rendering deck list. Find in <script> block.');
+             const container = document.getElementById('decks-list');
+             const noDecksMsg = document.getElementById('no-decks-msg');
+             const decks = Object.values(localDecks);
+
+             if (decks.length === 0) {
+                 container.innerHTML = '';
+                 noDecksMsg.classList.remove('hidden');
+                 return;
+             }
+             noDecksMsg.classList.add('hidden');
+
+             container.innerHTML = decks.map(deck => {
+                const commander = deck.commander;
+                const commanderImg = commander ? commander.image_uris?.art_crop : 'https://placehold.co/600x440/2d3748/e2e8f0?text=No+Commander';
+                const cardCount = Object.values(deck.cards || {}).reduce((sum, card) => sum + (card.count || 1), 0) + (commander ? 1 : 0);
+
+                 return `
+                    <div class="bg-gray-700/50 rounded-lg overflow-hidden shadow-lg hover:shadow-indigo-500/30 transition-shadow duration-300">
+                         <div class="relative">
+                            <img src="${commanderImg}" alt="${commander ? commander.name : 'Deck Art'}" class="w-full h-48 object-cover">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
+                            <div class="absolute bottom-0 left-0 p-4">
+                                <h3 class="text-xl font-bold">${deck.name}</h3>
+                                <p class="text-sm text-gray-300">${deck.format} - ${cardCount} cards</p>
+                            </div>
+                         </div>
+                         <div class="p-4 flex justify-between items-center">
+                            <button class="view-deck-btn bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg" data-deck-id="${deck.id}">View Deck</button>
+                            <button class="delete-button bg-red-800 hover:bg-red-700 p-2 rounded-lg" data-deck-id="${deck.id}">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
+                         </div>
+                    </div>
+                 `;
+             }).join('');
+
+            document.querySelectorAll('.view-deck-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const deckId = e.currentTarget.dataset.deckId;
+                    showView('singleDeck');
+                    renderSingleDeck(deckId);
+                });
+            });
+
+             document.querySelectorAll('#decks-list .delete-button').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const deckId = e.currentTarget.dataset.deckId;
+                    openDeckDeleteOptions(deckId);
+                });
+            });
+        }
+        
+        function renderSettings() {
+            console.log('[Function: renderSettings] Rendering settings view. Find in <script> block.');
+             renderModalVisibilitySettings();
+             const deckListContainer = document.getElementById('settings-deck-list');
+             const decks = Object.values(localDecks);
+             if (decks.length > 0) {
+                 deckListContainer.innerHTML = decks.map(deck => `
+                     <div class="flex justify-between items-center bg-gray-700 p-3 rounded-lg">
+                         <span>${deck.name}</span>
+                         <button class="delete-button bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded-lg" data-deck-id="${deck.id}">Delete</button>
+                     </div>
+                 `).join('');
+
+                 deckListContainer.querySelectorAll('.delete-button').forEach(btn => {
+                     btn.addEventListener('click', (e) => {
+                         const deckId = e.currentTarget.dataset.deckId;
+                         openDeckDeleteOptions(deckId);
+                     });
+                 });
+             } else {
+                 deckListContainer.innerHTML = '<p class="text-gray-500">No decks to manage.</p>';
+             }
+        }
+
+        function openDeckDeleteOptions(deckId) {
+            console.log(`[Function: openDeckDeleteOptions] Opening delete options for deck ${deckId}`);
+            const modal = document.getElementById('deck-delete-options-modal');
+            modal.querySelector('#delete-deck-and-cards-btn').dataset.deckId = deckId;
+            modal.querySelector('#delete-deck-only-btn').dataset.deckId = deckId;
+            openModal('deck-delete-options-modal');
+        }
+
+        function showView(viewName, options = {}) {
+            console.log(`[Function: showView] Switching to ${viewName} view. Find in <script> block.`);
+            Object.keys(views).forEach(key => {
+                views[key].classList.add('hidden');
+            });
+            views[viewName].classList.remove('hidden');
+
+            Object.keys(navLinks).forEach(key => {
+                const link = navLinks[key];
+                link.classList.remove('bg-indigo-600', 'text-white');
+                link.classList.add('text-gray-400', 'hover:bg-gray-700', 'hover:text-white');
+            });
+            
+            const navLink = navLinks[viewName];
+            if (navLink) {
+                 navLink.classList.add('bg-indigo-600', 'text-white');
+                 navLink.classList.remove('text-gray-400', 'hover:bg-gray-700', 'hover:text-white');
+            }
+
+            const pageTitle = document.getElementById('page-title');
+            const collectionAddCardSection = document.getElementById('add-card-section-wrapper');
+            const collectionHeader = collectionAddCardSection.querySelector('h3');
+            
+            // Reset special states
+            collectionHeader.textContent = 'Add Card to Collection';
+            
+            if (viewName === 'collection') {
+                pageTitle.textContent = 'My Collection';
+                if (options.addingToDeck) {
+                    currentSearchContext = { mode: 'deck', deckId: options.addingToDeck.id };
+                    collectionHeader.textContent = `Add Cards to "${options.addingToDeck.name}"`;
+                    document.getElementById('card-search-input').focus();
+                } else {
+                    currentSearchContext = { mode: 'collection', deckId: null };
+                }
+                renderCollection();
+            } else if (viewName === 'decks') {
+                pageTitle.textContent = 'Decks';
+                renderDecksList();
+            } else if (viewName === 'settings') {
+                pageTitle.textContent = 'Settings';
+                renderSettings();
+            } else if (viewName === 'singleDeck') {
+                // Title is set in renderSingleDeck
+            }
+        }
+
+        function toggleCardDetailsEditMode() {
+            console.log("[Function: toggleCardDetailsEditMode] Toggling edit mode for the card details modal.");
+            const wrapper = document.getElementById('card-details-modal-content-wrapper');
+            const isEditing = wrapper.classList.toggle('card-modal-edit-mode');
+
+            if (isEditing) {
+                showToast("Card edit mode enabled.", "info");
+            } else {
+                // Here you would typically grab the input values and save them.
+                const cardId = wrapper.dataset.cardId;
+                if (cardId) {
+                    console.log(`[toggleCardDetailsEditMode] Exited edit mode for card ${cardId}. Save logic to be implemented.`);
+                }
+                showToast("Exited card edit mode.", "info");
+            }
+        }
+        
+        function selectCommander(card) {
+            console.log(`[Function: selectCommander] Commander selected: ${card.name}`);
+            currentCommanderForAdd = card;
+            const previewContainer = document.getElementById('selected-commander-preview');
+            previewContainer.innerHTML = `
+                <img src="${card.image_uris?.art_crop}" class="w-16 h-12 object-cover rounded-sm">
+                <div class="flex-grow">
+                    <p class="font-bold">${card.name}</p>
+                    <p class="text-xs text-gray-400">${card.type_line}</p>
+                </div>
+                <button type="button" id="clear-selected-commander" class="p-1 text-red-400 hover:text-red-200">&times;</button>
+            `;
+            previewContainer.classList.remove('hidden');
+
+            document.getElementById('clear-selected-commander').addEventListener('click', () => {
+                 currentCommanderForAdd = null;
+                 previewContainer.innerHTML = '';
+                 previewContainer.classList.add('hidden');
+            });
+        }
+
+        function openDeckCreationModal(commanderCard = null) {
+            console.log("[Function: openDeckCreationModal] Opening modal to create a new deck.");
+            const form = document.getElementById('deck-creation-form');
+            form.reset();
+            currentCommanderForAdd = null;
+            tempAiBlueprint = null;
+
+            document.getElementById('selected-commander-preview').innerHTML = '';
+            document.getElementById('selected-commander-preview').classList.add('hidden');
+            
+            // Populate commander list from collection
+            const commanderListContainer = document.getElementById('commander-collection-list');
+            const legendaryCreatures = Object.values(localCollection).filter(c => c.type_line.includes('Legendary') && c.type_line.includes('Creature'));
+            
+            if (legendaryCreatures.length > 0) {
+                 commanderListContainer.innerHTML = legendaryCreatures.map(c => `
+                    <div class="flex items-center gap-2 p-1 rounded-md hover:bg-gray-700 cursor-pointer select-commander-from-collection-btn" data-card-id='${c.id}'>
+                        <img src="${c.image_uris?.art_crop}" class="w-16 h-12 object-cover rounded-sm">
+                        <span>${c.name}</span>
+                    </div>
+                 `).join('');
+
+                 document.querySelectorAll('.select-commander-from-collection-btn').forEach(btn => {
+                     btn.addEventListener('click', () => {
+                         const cardId = btn.dataset.cardId;
+                         const card = Object.values(localCollection).find(c => c.id === cardId);
+                         if (card) {
+                            selectCommander(card);
+                         }
+                     });
+                 });
+
+            } else {
+                commanderListContainer.innerHTML = '<p class="text-gray-500 text-sm p-2">No legendary creatures in your collection.</p>';
+            }
+
+            if (commanderCard) {
+                selectCommander(commanderCard);
+            }
+
+            openModal('deck-creation-modal');
+        }
+
+        function handleCardSelection(card) {
+            console.log(`[Function: handleCardSelection] Card selected: ${card.name} (${card.id})`);
+            currentCardForAdd = card;
+            closeModal('card-versions-modal');
+            renderCardConfirmationModal(card);
+            openModal('card-confirmation-modal');
+        }
+
+        function renderCardConfirmationModal(card) {
+            const contentDiv = document.getElementById('card-confirmation-content');
+            
+            const cleanedCard = {
+                id: card.id, name: card.name,
+                image_uris: { small: card.image_uris?.small, normal: card.image_uris?.normal, art_crop: card.image_uris?.art_crop },
+                mana_cost: card.mana_cost, cmc: card.cmc, type_line: card.type_line, oracle_text: card.oracle_text,
+                power: card.power, toughness: card.toughness, colors: card.colors, color_identity: card.color_identity,
+                keywords: card.keywords, set: card.set, set_name: card.set_name, rarity: card.rarity,
+                prices: card.prices, legalities: card.legalities
+            };
+
+            contentDiv.innerHTML = `
+                <div class="md:col-span-1">
+                    <img src="${card.image_uris?.normal}" alt="${card.name}" class="rounded-lg w-full">
+                </div>
+                <div class="md:col-span-2 space-y-4">
+                    <h3 class="text-2xl font-bold">${card.name}</h3>
+                    <form id="add-card-form">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="card-quantity" class="block text-sm font-medium text-gray-300">Quantity</label>
+                                <input type="number" id="card-quantity" value="1" min="1" class="mt-1 w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2">
+                            </div>
+                            <div>
+                                <label for="card-finish" class="block text-sm font-medium text-gray-300">Finish</label>
+                                <select id="card-finish" class="mt-1 w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2">
+                                    <option value="nonfoil" ${!card.foil ? 'selected' : ''}>Non-Foil</option>
+                                    <option value="foil" ${card.foil ? 'selected' : ''}>Foil</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mt-6 flex justify-end gap-4">
+                            <button type="button" id="cancel-add-card-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">Cancel</button>
+                            <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">Add Card</button>
+                        </div>
+                    </form>
+                </div>
+            `;
+
+            document.getElementById('cancel-add-card-btn').addEventListener('click', () => closeModal('card-confirmation-modal'));
+            
+            document.getElementById('add-card-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const quantity = parseInt(document.getElementById('card-quantity').value, 10);
+                const finish = document.getElementById('card-finish').value;
+
+                const cardToAdd = { ...cleanedCard, count: quantity, finish: finish, addedAt: new Date().toISOString() };
+
+                if (currentSearchContext.mode === 'collection') {
+                    await addCardToCollection(cardToAdd);
+                } else if (currentSearchContext.mode === 'deck') {
+                    await addCardToDeck(cardToAdd, currentSearchContext.deckId);
+                }
+
+                closeModal('card-confirmation-modal');
+            });
+        }
+        
+        async function addCardToCollection(cardData) {
+            console.log(`[Function: addCardToCollection] Adding ${cardData.count}x ${cardData.name} to collection.`);
+            const existingCard = Object.values(localCollection).find(c => c.id === cardData.id && c.finish === cardData.finish);
+            
+            try {
+                if (existingCard) {
+                    const newCount = (existingCard.count || 1) + cardData.count;
+                    const cardRef = doc(db, `artifacts/${appId}/users/${userId}/collection`, existingCard.firestoreId);
+                    await updateDoc(cardRef, { count: newCount });
+                    showToast(`Updated ${cardData.name} to ${newCount} in collection.`, 'success');
+                } else {
+                    await addDoc(collection(db, `artifacts/${appId}/users/${userId}/collection`), cardData);
+                    showToast(`Added ${cardData.count}x ${cardData.name} to collection.`, 'success');
+                }
+            } catch (error) {
+                console.error("Error adding card to collection:", error);
+                showToast("Failed to add card to collection.", "error");
+            }
+        }
+        
+        async function addCardToDeck(cardData, deckId) {
+            if (!deckId) { console.error("[addCardToDeck] No deckId provided."); return; }
+            console.log(`[Function: addCardToDeck] Adding ${cardData.count}x ${cardData.name} to deck ${deckId}.`);
+            
+            const deckRef = doc(db, `artifacts/${appId}/users/${userId}/decks`, deckId);
+            const deck = localDecks[deckId];
+            if (!deck) { showToast("Deck not found.", "error"); return; }
+            
+            const cardId = cardData.id;
+            const existingCardInDeck = deck.cards?.[cardId];
+
+            const updateData = {};
+            if (existingCardInDeck) {
+                const newCount = (existingCardInDeck.count || 1) + cardData.count;
+                updateData[`cards.${cardId}.count`] = newCount;
+            } else {
+                 updateData[`cards.${cardId}`] = cardData;
+            }
+
+            try {
+                await updateDoc(deckRef, updateData);
+                showToast(`Added ${cardData.name} to ${deck.name}.`, 'success');
+            } catch (error) {
+                console.error("Error adding card to deck:", error);
+                showToast("Failed to add card to deck.", "error");
+            }
+        }
+
+        function renderCardDetailsModal(card) {
+            const contentDiv = document.getElementById('card-details-content');
+            const wrapper = document.getElementById('card-details-modal-content-wrapper');
+            wrapper.dataset.cardId = card.id;
+            wrapper.classList.remove('card-modal-edit-mode'); 
+
+            contentDiv.innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="md:col-span-1">
+                        <img src="${card.image_uris?.normal}" class="rounded-lg w-full">
+                    </div>
+                    <div class="md:col-span-2 space-y-4">
+                        <h3 class="text-3xl font-bold">${card.name} ${card.mana_cost || ''}</h3>
+                        <p class="text-lg text-gray-400">${card.type_line}</p>
+                        <div class="text-gray-300 space-y-2 whitespace-pre-wrap">${card.oracle_text}</div>
+                        ${card.power && card.toughness ? `<p class="text-xl font-bold">${card.power}/${card.toughness}</p>` : ''}
+                        <hr class="border-gray-600">
+                        <p><strong>Set:</strong> ${card.set_name} (${card.set.toUpperCase()})</p>
+                        <p><strong>Rarity:</strong> ${card.rarity}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+       async function getAiDeckNameAndSummary(commanderCard) {
+            const prompt = `You are a creative Magic: The Gathering deck builder. Given the following commander card, generate a creative, flavorful name for a Commander deck built around it, and a brief one-paragraph summary of the deck's likely strategy. Return ONLY a valid JSON object with keys "name" and "summary".
+
+            Commander Card:
+            Name: ${commanderCard.name}
+            Type: ${commanderCard.type_line}
+            Mana Cost: ${commanderCard.mana_cost}
+            Oracle Text: ${commanderCard.oracle_text}
+            Power/Toughness: ${commanderCard.power}/${commanderCard.toughness}
+            `;
+
+            try {
+                const response = await fetch(GEMINI_API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                    }),
+                });
+
+                if (!response.ok) {
+                    throw new Error('Gemini API request failed');
+                }
+
+                const data = await response.json();
+                const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                
+                if (!text) {
+                    throw new Error('Invalid response from Gemini API');
+                }
+                
+                // Clean the response
+                const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+                const aiResponse = JSON.parse(cleanedText);
+                
+                return { name: aiResponse.name, summary: aiResponse.summary };
+
+            } catch (error) {
+                console.error("Error getting AI deck name/summary:", error);
+                return { name: `Deck for ${commanderCard.name}`, summary: "No summary generated." }; // Fallback
+            }
+        }
+
+        async function handleDeckCreationSubmit(e) {
+            e.preventDefault();
+            const deckNameInput = document.getElementById('deck-name-input');
+            let deckName = deckNameInput.value.trim();
+            const deckFormat = document.getElementById('deck-format-select').value;
+
+            if (deckFormat === 'commander' && !currentCommanderForAdd) {
+                showToast('Please select a commander for this deck.', 'error');
+                return;
+            }
+
+            const saveButton = document.getElementById('save-deck-btn');
+            const saveText = document.getElementById('save-deck-text');
+            const saveSpinner = document.getElementById('save-deck-spinner');
+
+            saveButton.disabled = true;
+            saveText.textContent = 'Generating...';
+            saveSpinner.classList.remove('hidden');
+
+            let deckSummary = '';
+
+            try {
+                if (deckFormat === 'commander' && currentCommanderForAdd && !deckName) {
+                    const aiData = await getAiDeckNameAndSummary(currentCommanderForAdd);
+                    deckName = aiData.name;
+                    deckSummary = aiData.summary;
+                } else if (!deckName) {
+                    deckName = `New ${deckFormat.charAt(0).toUpperCase() + deckFormat.slice(1)} Deck`;
+                }
+
+                const newDeck = {
+                    name: deckName,
+                    format: deckFormat,
+                    summary: deckSummary,
+                    commander: deckFormat === 'commander' ? currentCommanderForAdd : null,
+                    cards: {},
+                    createdAt: new Date().toISOString(),
+                    aiBlueprint: tempAiBlueprint || null
+                };
+
+                const docRef = await addDoc(collection(db, `artifacts/${appId}/users/${userId}/decks`), newDeck);
+                showToast(`Deck "${deckName}" created successfully!`, 'success');
+                closeModal('deck-creation-modal');
+                showView('singleDeck');
+                renderSingleDeck(docRef.id);
+
+            } catch (error) {
+                console.error("Error creating deck:", error);
+                showToast('Failed to create deck.', 'error');
+            } finally {
+                saveButton.disabled = false;
+                saveText.textContent = 'Create Deck';
+                saveSpinner.classList.add('hidden');
+            }
+        }
+
+        // --- AUTHENTICATION FUNCTIONS ---
+        async function handleEmailLogin() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            if (!email || !password) {
+                showToast('Please enter both email and password.', 'error');
+                return;
+            }
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+            } catch (error) {
+                console.error("Error signing in:", error);
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function handleEmailSignup() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+             if (!email || !password) {
+                showToast('Please enter both email and password.', 'error');
+                return;
+            }
+            try {
+                await createUserWithEmailAndPassword(auth, email, password);
+            } catch (error) {
+                console.error("Error signing up:", error);
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function handleGoogleLogin() {
+            const provider = new GoogleAuthProvider();
+            try {
+                await signInWithPopup(auth, provider);
+            } catch (error) {
+                console.error("Google sign-in error:", error);
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function searchForCard(mode, deckId = null) {
+            console.log(`[Function: searchForCard] Initiating search in mode: ${mode}`);
+            currentSearchContext = { mode, deckId };
+            const input = document.getElementById(mode === 'commander' ? 'commander-search-input' : 'card-search-input');
+            const query = input.value.trim();
+            if (query.length < 3) {
+                showToast("Please enter at least 3 characters to search.", "warning");
+                return;
+            }
+
+            let scryfallQuery = query;
+            if (mode === 'commander') {
+                scryfallQuery += " t:legendary (t:creature or t:planeswalker)";
+            }
+
+            const searchButton = document.getElementById(mode === 'commander' ? 'commander-search-btn' : 'search-card-btn');
+            const searchIcon = document.getElementById('search-icon'); // Assuming only one for now
+            const searchSpinner = document.getElementById('search-spinner');
+            const searchText = document.getElementById('search-text');
+
+            searchButton.disabled = true;
+            if(searchIcon) searchIcon.classList.add('hidden');
+            if(searchSpinner) searchSpinner.classList.remove('hidden');
+            if(searchText) searchText.textContent = 'Searching...';
+
+            try {
+                const response = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(scryfallQuery)}&unique=prints`);
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.details || 'Card not found.');
+                }
+                const data = await response.json();
+                
+                if (mode === 'commander') {
+                   // render results in commander search modal area
+                } else {
+                    renderCardVersions(data.data);
+                    openModal('card-versions-modal');
+                }
+
+            } catch (error) {
+                console.error("Scryfall API error:", error);
+                showToast(error.message, 'error');
+            } finally {
+                searchButton.disabled = false;
+                 if(searchIcon) searchIcon.classList.remove('hidden');
+                if(searchSpinner) searchSpinner.classList.add('hidden');
+                if(searchText) searchText.textContent = 'Search';
+            }
+        }
+        
+        function searchForCommander() { 
+            searchForCard('commander');
+        }
+        
+        function filterCommanderCollectionList() { 
+            const filterText = document.getElementById('commander-collection-filter').value.toLowerCase();
+            const commanders = document.querySelectorAll('#commander-collection-list > div');
+            commanders.forEach(commander => {
+                const name = commander.textContent.toLowerCase();
+                if (name.includes(filterText)) {
+                    commander.style.display = 'flex';
+                } else {
+                    commander.style.display = 'none';
+                }
+            });
+        }
+        
+        function createDeckFromBlueprint() { console.warn('createDeckFromBlueprint is not implemented.'); }
+        function handleAiChat(e) { e.preventDefault(); console.warn('handleAiChat is not implemented.'); }
+        function handleRuleLookup(e) { e.preventDefault(); console.warn('handleRuleLookup is not implemented.'); }
+        function handleMtgChat(e) { e.preventDefault(); console.warn('handleMtgChat is not implemented.'); }
+        function confirmClearAllData() { console.warn('confirmClearAllData is not implemented.'); }
+
+        function renderCollectionCard(card) {
+             const price = card.prices?.usd_foil && card.finish === 'foil' ? card.prices.usd_foil : card.prices?.usd;
+             return `
+                <div class="relative group rounded-lg overflow-hidden shadow-lg transition-transform transform hover:-translate-y-1 hover:shadow-indigo-500/40">
+                    <div class="card-image-container">
+                        <img src="${card.image_uris?.normal}" alt="${card.name}" class="card-image" loading="lazy">
+                    </div>
+                    <div class="absolute top-1 right-1 bg-gray-900/80 text-white text-sm font-bold px-2 py-1 rounded-full">${card.count || 1}</div>
+                     <div class="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/90 to-transparent">
+                        <p class="text-white text-xs font-bold truncate">${card.name}</p>
+                        ${price ? `<p class="text-green-400 text-xs font-semibold">$${price}</p>` : ''}
+                    </div>
+                    <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-2">
+                        <button class="view-card-details-btn bg-white/20 backdrop-blur-sm text-white text-xs font-bold py-2 px-3 rounded-lg w-full" data-card-id="${card.id}">View</button>
+                        <button class="delete-button bg-red-600/50 hover:bg-red-600 backdrop-blur-sm text-white text-xs font-bold py-2 px-3 rounded-lg w-full" data-firestore-id="${card.firestoreId}">Delete</button>
+                    </div>
+                </div>
+             `;
+        }
+
+        function addCollectionCardListeners() {
+             document.querySelectorAll('#collection-content .view-card-details-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const cardId = e.currentTarget.dataset.cardId;
+                    const card = Object.values(localCollection).find(c => c.id === cardId) || Object.values(localDecks).flatMap(d => [d.commander, ...Object.values(d.cards || {})]).find(c => c && c.id === cardId);
+                    if (card) {
+                        renderCardDetailsModal(card);
+                        openModal('card-details-modal');
+                    }
+                });
+             });
+             document.querySelectorAll('#collection-content .delete-button').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const firestoreId = e.currentTarget.dataset.firestoreId;
+                    if (firestoreId) {
+                       await deleteDoc(doc(db, `artifacts/${appId}/users/${userId}/collection`, firestoreId));
+                       showToast('Card removed from collection.', 'success');
+                    }
+                });
+             });
+             document.querySelectorAll('#collection-content .create-deck-from-commander-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const cardId = e.currentTarget.dataset.cardId;
+                    const card = Object.values(localCollection).find(c => c.id === cardId);
+                    if (card) {
+                        openDeckCreationModal(card);
+                    }
+                });
+            });
+        }
+        
+        function addCollectionTableListeners() { 
+            addCollectionCardListeners(); // Re-use the same logic for buttons
+            
+            const table = document.querySelector('#collection-content table');
+            if(!table) return;
+
+            table.querySelectorAll('thead th.sortable').forEach(th => {
+                 th.addEventListener('click', () => {
+                     if(document.body.classList.contains('edit-mode')) return;
+
+                     const column = th.dataset.sort;
+                     table.querySelectorAll('thead th.sortable').forEach(otherTh => {
+                         if (otherTh !== th) otherTh.classList.remove('sort-asc', 'sort-desc');
+                     });
+
+                     if (collectionSortState.column === column) {
+                         collectionSortState.direction = collectionSortState.direction === 'asc' ? 'desc' : 'asc';
+                     } else {
+                         collectionSortState.column = column;
+                         collectionSortState.direction = 'asc';
+                     }
+                     
+                     th.classList.remove('sort-asc', 'sort-desc');
+                     th.classList.add(collectionSortState.direction === 'asc' ? 'sort-asc' : 'sort-desc');
+
+                     renderPaginatedCollection();
+                 });
+            });
+        }
+        
+        function renderDecklist(deckId) {
+            const container = document.getElementById('decklist-container');
+            if (!container) return;
+
+            const deck = localDecks[deckId];
+            if (!deck) return;
+
+            const allCards = Object.values(deck.cards || {});
+            
+            const groupedCards = allCards.reduce((acc, card) => {
+                const mainType = card.type_line.split(" — ")[0];
+                (acc[mainType] = acc[mainType] || []).push(card);
+                return acc;
+            }, {});
+
+            const typeOrder = ['Creature', 'Planeswalker', 'Instant', 'Sorcery', 'Artifact', 'Enchantment', 'Land'];
+            
+            let html = '';
+
+            // Add commander first if it exists
+            if (deck.commander) {
+                html += `<div>
+                    <h4 class="text-lg font-semibold text-indigo-400 mb-2">Commander</h4>
+                    <div class="flex items-center justify-between p-2 rounded-lg hover:bg-gray-700/50">
+                        <span>1 ${deck.commander.name}</span>
+                         <div class="flex items-center gap-2">
+                            <button class="view-card-details-btn p-1 text-gray-400 hover:text-white" data-card-id="${deck.commander.id}"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg></button>
+                        </div>
+                    </div>
+                </div>`;
+            }
+
+            typeOrder.forEach(type => {
+                if (groupedCards[type]) {
+                    const cardsOfType = groupedCards[type].sort((a,b) => a.name.localeCompare(b.name));
+                    const count = cardsOfType.reduce((sum, card) => sum + card.count, 0);
+                    html += `<div>
+                        <h4 class="text-lg font-semibold text-indigo-400 mb-2">${type} (${count})</h4>
+                        ${cardsOfType.map(card => `
+                            <div class="flex items-center justify-between p-2 rounded-lg hover:bg-gray-700/50">
+                                <span>${card.count} ${card.name}</span>
+                                <div class="flex items-center gap-2">
+                                   <button class="view-card-details-btn p-1 text-gray-400 hover:text-white" data-card-id="${card.id}"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg></button>
+                                   <button class="delete-button remove-card-from-deck-btn p-1 text-red-400 hover:text-red-300" data-card-id="${card.id}" data-deck-id="${deckId}"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>`;
+                }
+            });
+
+            container.innerHTML = html;
+            
+            // Attach listeners for newly rendered buttons
+            container.querySelectorAll('.view-card-details-btn').forEach(btn => btn.addEventListener('click', (e) => {
+                const cardId = e.currentTarget.dataset.cardId;
+                const card = allCards.find(c => c.id === cardId) || (deck.commander && deck.commander.id === cardId ? deck.commander : null);
+                if (card) {
+                    renderCardDetailsModal(card);
+                    openModal('card-details-modal');
+                }
+            }));
+
+            container.querySelectorAll('.remove-card-from-deck-btn').forEach(btn => btn.addEventListener('click', async (e) => {
+                const cardId = e.currentTarget.dataset.cardId;
+                const deckId = e.currentTarget.dataset.deckId;
+                const deck = localDecks[deckId];
+                const cardInDeck = deck.cards[cardId];
+                const deckRef = doc(db, `artifacts/${appId}/users/${userId}/decks`, deckId);
+                
+                try {
+                    if (cardInDeck.count > 1) {
+                        await updateDoc(deckRef, {
+                            [`cards.${cardId}.count`]: cardInDeck.count - 1
+                        });
+                    } else {
+                        await updateDoc(deckRef, {
+                            [`cards.${cardId}`]: deleteField()
+                        });
+                    }
+                    showToast(`${cardInDeck.name} removed from deck.`, 'success');
+                } catch (error) {
+                    console.error("Error removing card from deck:", error);
+                    showToast('Failed to remove card from deck.', 'error');
+                }
+            }));
+        }
+
+        function renderManaCurveChart(manaCurveData) {
+            const ctx = document.getElementById('mana-curve-chart')?.getContext('2d');
+            if (!ctx) return;
+
+            const chartId = 'mana-curve-chart';
+            if (deckChartInstances[chartId]) {
+                deckChartInstances[chartId].destroy();
+            }
+
+            const labels = ['0', '1', '2', '3', '4', '5', '6', '7+'];
+            const data = labels.map((label, index) => {
+                const cmc = parseInt(label);
+                if (index < 7) {
+                    return manaCurveData[cmc] || 0;
+                } else {
+                    let sum = 0;
+                    for (let key in manaCurveData) {
+                        if (parseInt(key) >= 7) {
+                            sum += manaCurveData[key];
+                        }
+                    }
+                    return sum;
+                }
+            });
+
+            deckChartInstances[chartId] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Card Count',
+                        data: data,
+                        backgroundColor: 'rgba(79, 70, 229, 0.6)',
+                        borderColor: 'rgba(129, 140, 248, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { color: '#9CA3AF', stepSize: 2 },
+                            grid: { color: '#4B5563' }
+                        },
+                        x: {
+                            ticks: { color: '#9CA3AF' },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        function addSingleDeckListeners(deckId) {
+            document.getElementById('add-cards-to-deck-btn')?.addEventListener('click', () => {
+                const deck = localDecks[deckId];
+                if (!deck) return;
+                showView('collection', { addingToDeck: deck });
+            });
+
+            document.querySelector('#single-deck-view .view-card-details-btn')?.addEventListener('click', (e) => {
+                const cardId = e.currentTarget.dataset.cardId;
+                const deck = localDecks[deckId];
+                if (deck && deck.commander && deck.commander.id === cardId) {
+                     renderCardDetailsModal(deck.commander);
+                     openModal('card-details-modal');
+                }
+            });
+
+            document.getElementById('deck-delete-btn')?.addEventListener('click', (e) => {
+                openDeckDeleteOptions(e.currentTarget.dataset.deckId);
+            });
+            
+            document.getElementById('ai-suggestions-btn')?.addEventListener('click', () => {
+                showToast('AI suggestions are coming soon!', 'info');
+            });
+        }
+
+        function renderCardVersions(cards) {
+            const grid = document.getElementById('card-versions-grid');
+            const loading = document.getElementById('versions-loading');
+            grid.innerHTML = ''; // Clear previous results
+            grid.onclick = null; // Clear old listener
+            loading.classList.remove('hidden');
+
+            grid.innerHTML = cards.map(card => {
+                const price = card.prices?.usd ? `$${card.prices.usd}` : (card.prices?.usd_foil ? `$${card.prices.usd_foil} (Foil)`: 'N/A');
+                return `
+                    <div class="relative group rounded-lg overflow-hidden cursor-pointer card-version-item" data-card-id="${card.id}">
+                        <img src="${card.image_uris?.normal}" alt="${card.name}" class="w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3 text-white">
+                             <p class="font-bold">${card.set_name}</p>
+                             <p class="text-sm">${price}</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            // Event delegation for clicks on the grid
+            grid.onclick = function(event) {
+                const cardItem = event.target.closest('.card-version-item');
+                if (!cardItem) return;
+                
+                const cardId = cardItem.dataset.cardId;
+                const selectedCard = cards.find(c => c.id === cardId);
+                if (selectedCard) {
+                    handleCardSelection(selectedCard);
+                }
+            };
+            
+            loading.classList.add('hidden');
+        }
+
+        // --- UI EVENT LISTENERS ---
+
+        function setupGlobalListeners() {
+          console.log(
+            "[Function: setupGlobalListeners] Setting up global UI listeners. Find in <script> block."
+          );
+
+          // Navigation
+          Object.keys(navLinks).forEach((key) => {
+            navLinks[key].addEventListener("click", () => {
+              if (key === "ruleLookup") {
+                openModal("rule-lookup-modal");
+              } else if (key === "generalChat") {
+                openModal("mtg-chat-modal");
+              } else {
+                showView(key);
+              }
+            });
+          });
+
+          // Header Buttons
+          document
+            .getElementById("edit-mode-toggle")
+            .addEventListener("click", toggleEditMode);
+          document
+            .getElementById("new-player-guide-btn")
+            .addEventListener("click", () =>
+              openModal("new-player-guide-modal")
+            );
+
+          // Collection Search & Filters
+          document
+            .getElementById("search-card-btn")
+            .addEventListener("click", () => searchForCard("collection"));
+          document
+            .getElementById("card-search-input")
+            .addEventListener("keyup", (e) => {
+              if (e.key === "Enter") searchForCard("collection");
+            });
+
+          document
+            .getElementById("filter-text")
+            .addEventListener("input", () => {
+              collectionCurrentPage = 1;
+              renderPaginatedCollection();
+            });
+          document
+            .getElementById("collection-group-by-1")
+            .addEventListener("change", () => {
+              collectionCurrentPage = 1;
+              renderPaginatedCollection();
+            });
+          document
+            .getElementById("collection-group-by-2")
+            .addEventListener("change", () => {
+              collectionCurrentPage = 1;
+              renderPaginatedCollection();
+            });
+          document
+            .getElementById("hide-in-deck-checkbox")
+            .addEventListener("change", () => {
+              collectionCurrentPage = 1;
+              renderPaginatedCollection();
+            });
+
+          document.querySelectorAll(".grid-size-btn").forEach((btn) => {
+            btn.addEventListener("click", () => {
+              document
+                .querySelectorAll(".grid-size-btn")
+                .forEach((b) =>
+                  b.classList.remove("bg-indigo-600", "text-white")
+                );
+              btn.classList.add("bg-indigo-600", "text-white");
+              collectionGridSize = btn.dataset.size;
+              if (collectionViewMode === "grid") renderPaginatedCollection();
+            });
+          });
+
+          document.querySelectorAll(".view-toggle").forEach((btn) => {
+            btn.addEventListener("click", () => {
+              if (btn.id === "view-toggle-grid") {
+                collectionViewMode = "grid";
+                document
+                  .getElementById("view-toggle-table")
+                  .classList.remove("bg-indigo-600", "text-white");
+                btn.classList.add("bg-indigo-600", "text-white");
+              } else {
+                collectionViewMode = "table";
+                document
+                  .getElementById("view-toggle-grid")
+                  .classList.remove("bg-indigo-600", "text-white");
+                btn.classList.add("bg-indigo-600", "text-white");
+              }
+              renderPaginatedCollection();
+            });
+          });
+
+          document
+            .getElementById("reset-filters-btn")
+            .addEventListener("click", () => {
+              console.log("[Event: Click] Reset filters button clicked.");
+              document.getElementById("filter-text").value = "";
+              document.getElementById("collection-group-by-1").value = "";
+              document.getElementById("collection-group-by-2").value = "";
+              document.getElementById("hide-in-deck-checkbox").checked = false;
+              collectionCurrentPage = 1;
+              renderPaginatedCollection();
+            });
+
+          // Modals
+          document.querySelectorAll(".modal-backdrop").forEach((modal) => {
+            modal.addEventListener("click", (e) => {
+              if (e.target === modal) {
+                closeModal(modal.id);
+              }
+            });
+          });
+          document
+            .getElementById("close-versions-modal-btn")
+            .addEventListener("click", () =>
+              closeModal("card-versions-modal")
+            );
+          document
+            .getElementById("close-card-details-btn")
+            .addEventListener("click", () => closeModal("card-details-modal"));
+          document
+            .getElementById("edit-card-details-btn")
+            .addEventListener("click", toggleCardDetailsEditMode);
+
+          // Deck Creation
+          document
+            .getElementById("create-deck-btn")
+            .addEventListener("click", () => openDeckCreationModal());
+          document
+            .getElementById("deck-creation-form")
+            .addEventListener("submit", handleDeckCreationSubmit);
+          document
+            .getElementById("cancel-deck-btn")
+            .addEventListener("click", () => closeModal("deck-creation-modal"));
+          document
+            .getElementById("deck-format-select")
+            .addEventListener("change", (e) => {
+              const container = document.getElementById(
+                "commander-selection-container"
+              );
+              if (e.target.value === "commander") {
+                container.classList.remove("hidden");
+              } else {
+                container.classList.add("hidden");
+              }
+            });
+
+          document
+            .querySelectorAll(".commander-source-btn")
+            .forEach((btn) => {
+              btn.addEventListener("click", (e) => {
+                document
+                  .querySelectorAll(".commander-source-btn")
+                  .forEach((b) => {
+                    b.classList.remove("border-indigo-500", "text-white");
+                    b.classList.add("border-transparent", "text-gray-400");
+                  });
+                e.currentTarget.classList.add("border-indigo-500", "text-white");
+                e.currentTarget.classList.remove(
+                  "border-transparent",
+                  "text-gray-400"
+                );
+
+                if (e.currentTarget.id === "commander-source-collection-btn") {
+                  document
+                    .getElementById("commander-from-collection")
+                    .classList.remove("hidden");
+                  document
+                    .getElementById("commander-from-search")
+                    .classList.add("hidden");
+                } else {
+                  document
+                    .getElementById("commander-from-collection")
+                    .classList.add("hidden");
+                  document
+                    .getElementById("commander-from-search")
+                    .classList.remove("hidden");
+                }
+              });
+            });
+
+          document
+            .getElementById("commander-search-btn")
+            .addEventListener("click", searchForCommander);
+          document
+            .getElementById("commander-search-input")
+            .addEventListener("keyup", (e) => {
+              if (e.key === "Enter") searchForCommander();
+            });
+          document
+            .getElementById("commander-collection-filter")
+            .addEventListener("input", filterCommanderCollectionList);
+
+          // AI Blueprint Modal
+          document
+            .getElementById("close-blueprint-modal-btn")
+            .addEventListener("click", () => closeModal("ai-blueprint-modal"));
+          document
+            .getElementById("cancel-blueprint-btn")
+            .addEventListener("click", () => closeModal("ai-blueprint-modal"));
+          document
+            .getElementById("confirm-blueprint-btn")
+            .addEventListener("click", createDeckFromBlueprint);
+
+          // AI Chat Modals
+          document
+            .getElementById("close-ai-modal-btn")
+            .addEventListener("click", () => closeModal("ai-suggestions-modal"));
+          document
+            .getElementById("ai-chat-form")
+            .addEventListener("submit", handleAiChat);
+          document
+            .getElementById("close-rule-lookup-modal-btn")
+            .addEventListener("click", () => closeModal("rule-lookup-modal"));
+          document
+            .getElementById("rule-lookup-form")
+            .addEventListener("submit", handleRuleLookup);
+          document
+            .getElementById("close-mtg-chat-modal-btn")
+            .addEventListener("click", () => closeModal("mtg-chat-modal"));
+          document
+            .getElementById("mtg-chat-form")
+            .addEventListener("submit", handleMtgChat);
+          document
+            .getElementById("close-new-player-guide-modal-btn")
+            .addEventListener("click", () =>
+              closeModal("new-player-guide-modal")
+            );
+
+          // Confirmation Modals
+          document
+            .getElementById("cancel-action-btn")
+            .addEventListener("click", () => closeModal("confirmation-modal"));
+          document
+            .getElementById("notification-close-btn")
+            .addEventListener("click", () => closeModal("notification-modal"));
+
+          document
+            .getElementById("cancel-delete-deck-btn")
+            .addEventListener("click", () =>
+              closeModal("deck-delete-options-modal")
+            );
+
+          // Settings
+          document
+            .getElementById("logout-btn")
+            .addEventListener("click", () => {
+              signOut(auth);
+              location.reload();
+            });
+          document
+            .getElementById("clear-data-btn")
+            .addEventListener("click", confirmClearAllData);
+
+          // Login
+          document
+            .getElementById("email-login-btn")
+            .addEventListener("click", handleEmailLogin);
+          document
+            .getElementById("signup-btn")
+            .addEventListener("click", handleEmailSignup);
+          document
+            .getElementById("login-with-google-btn")
+            .addEventListener("click", handleGoogleLogin);
+        }
+        setupGlobalListeners();
+      });
+    </script>
+  </body>
+</html>
+

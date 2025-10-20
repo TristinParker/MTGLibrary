@@ -1,0 +1,271 @@
+{
+  "collection": {
+    "HMFBS1R5MhstyIGitgwd": {
+      "firestoreId": "HMFBS1R5MhstyIGitgwd",
+      "set_search_uri": "https://api.scryfall.com/cards/search?order=set&q=e%3Aeoc&unique=prints",
+      "digital": false,
+      "count": 1,
+      "reprint": true,
+      "games": [
+        "paper",
+        "mtgo"
+      ],
+      "multiverse_ids": [],
+      "nonfoil": true,
+      "released_at": "2025-08-01",
+      "set_uri": "https://api.scryfall.com/sets/b6ec8c6b-b4e6-4cb4-84d6-06234ace3b44",
+      "mtgo_id": 142251,
+      "textless": false,
+      "related_uris": {
+        "tcgplayer_infinite_articles": "https://partner.tcgplayer.com/c/4931599/1830156/21018?subId1=api&trafcat=tcgplayer.com%2Fsearch%2Farticles&u=https%3A%2F%2Fwww.tcgplayer.com%2Fsearch%2Farticles%3FproductLineName%3Dmagic%26q%3DSol%2BRing",
+        "tcgplayer_infinite_decks": "https://partner.tcgplayer.com/c/4931599/1830156/21018?subId1=api&trafcat=tcgplayer.com%2Fsearch%2Fdecks&u=https%3A%2F%2Fwww.tcgplayer.com%2Fsearch%2Fdecks%3FproductLineName%3Dmagic%26q%3DSol%2BRing",
+        "edhrec": "https://edhrec.com/route/?cc=Sol+Ring"
+      },
+      "rarity": "uncommon",
+      "frame": "2015",
+      "keywords": [],
+      "game_changer": false,
+      "addedAt": "2025-10-18T22:53:54.665Z",
+      "collector_number": "57",
+      "tcgplayer_id": 642025,
+      "layout": "normal",
+      "preview": {
+        "previewed_at": "2025-07-09",
+        "source_uri": "https://www.youtube.com/watch?v=HxXLWC_JRdM",
+        "source": "The Command Zone"
+      },
+      "booster": false,
+      "full_art": false,
+      "produced_mana": [
+        "C"
+      ],
+      "colors": [],
+      "border_color": "black",
+      "set": "eoc",
+      "color_identity": [],
+      "uri": "https://api.scryfall.com/cards/ee6e5a35-fe21-4dee-b0ef-a8f2841511ad",
+      "purchase_uris": {
+        "cardmarket": "https://www.cardmarket.com/en/Magic/Products?idProduct=834083&referrer=scryfall&utm_campaign=card_prices&utm_medium=text&utm_source=scryfall",
+        "tcgplayer": "https://partner.tcgplayer.com/c/4931599/1830156/21018?subId1=api&u=https%3A%2F%2Fwww.tcgplayer.com%2Fproduct%2F642025%3Fpage%3D1",
+        "cardhoarder": "https://www.cardhoarder.com/cards/142251?affiliate_id=scryfall&ref=card-profile&utm_campaign=affiliate&utm_medium=card&utm_source=scryfall"
+      },
+      "variation": false,
+      "lang": "en",
+      "scryfall_set_uri": "https://scryfall.com/sets/eoc?utm_source=api",
+      "edhrec_rank": 1,
+      "type_line": "Artifact",
+      "cardmarket_id": 834083,
+      "artist": "Steven Belledin",
+      "mana_cost": "{1}",
+      "set_type": "commander",
+      "oracle_text": "{T}: Add {C}{C}.",
+      "set_id": "b6ec8c6b-b4e6-4cb4-84d6-06234ace3b44",
+      "id": "ee6e5a35-fe21-4dee-b0ef-a8f2841511ad",
+      "cmc": 1,
+      "oversized": false,
+      "finishes": [
+        "nonfoil"
+      ],
+      "prints_search_uri": "https://api.scryfall.com/cards/search?order=released&q=oracleid%3A6ad8011d-3471-4369-9d68-b264cc027487&unique=prints",
+      "foil": false,
+      "prices": {
+        "eur": "1.85",
+        "usd": "1.51",
+        "tix": "0.04",
+        "usd_foil": null,
+        "eur_foil": null,
+        "usd_etched": null
+      },
+      "image_uris": {
+        "png": "https://cards.scryfall.io/png/front/e/e/ee6e5a35-fe21-4dee-b0ef-a8f2841511ad.png?1752944480",
+        "normal": "https://cards.scryfall.io/normal/front/e/e/ee6e5a35-fe21-4dee-b0ef-a8f2841511ad.jpg?1752944480",
+        "large": "https://cards.scryfall.io/large/front/e/e/ee6e5a35-fe21-4dee-b0ef-a8f2841511ad.jpg?1752944480",
+        "border_crop": "https://cards.scryfall.io/border_crop/front/e/e/ee6e5a35-fe21-4dee-b0ef-a8f2841511ad.jpg?1752944480",
+        "small": "https://cards.scryfall.io/small/front/e/e/ee6e5a35-fe21-4dee-b0ef-a8f2841511ad.jpg?1752944480",
+        "art_crop": "https://cards.scryfall.io/art_crop/front/e/e/ee6e5a35-fe21-4dee-b0ef-a8f2841511ad.jpg?1752944480"
+      },
+      "reserved": false,
+      "oracle_id": "6ad8011d-3471-4369-9d68-b264cc027487",
+      "rulings_uri": "https://api.scryfall.com/cards/ee6e5a35-fe21-4dee-b0ef-a8f2841511ad/rulings",
+      "finish": "nonfoil",
+      "story_spotlight": false,
+      "card_back_id": "0aeebaf5-8c7d-4636-9e82-8c27447861f7",
+      "illustration_id": "52f089c0-a7d4-44b2-b4cd-0677ae784c73",
+      "image_status": "highres_scan",
+      "set_name": "Edge of Eternities Commander",
+      "name": "Sol Ring",
+      "scryfall_uri": "https://scryfall.com/card/eoc/57/sol-ring?utm_source=api",
+      "legalities": {
+        "pauper": "not_legal",
+        "standardbrawl": "not_legal",
+        "legacy": "banned",
+        "alchemy": "not_legal",
+        "paupercommander": "not_legal",
+        "future": "not_legal",
+        "oldschool": "not_legal",
+        "gladiator": "not_legal",
+        "premodern": "not_legal",
+        "oathbreaker": "banned",
+        "modern": "not_legal",
+        "historic": "not_legal",
+        "duel": "banned",
+        "standard": "not_legal",
+        "vintage": "restricted",
+        "penny": "not_legal",
+        "timeless": "not_legal",
+        "pioneer": "not_legal",
+        "predh": "legal",
+        "commander": "legal",
+        "brawl": "not_legal"
+      },
+      "object": "card",
+      "highres_image": true,
+      "artist_ids": [
+        "f07d73b9-52a0-4fe5-858b-61f7b42174a5"
+      ],
+      "promo": false,
+      "flavor_text": "\"All creation in a single point, the point of all creation in all.\"\n—Sunstar loop-mantra"
+    },
+    "HpMIkQJwWEHUMHyotGRy": {
+      "firestoreId": "HpMIkQJwWEHUMHyotGRy",
+      "object": "card",
+      "id": "4d5edf4f-5695-42fc-9e57-c4faef60fbc3",
+      "oracle_id": "fffaa634-42a0-4038-b027-24f28754fec7",
+      "multiverse_ids": [
+        571548
+      ],
+      "mtgo_id": 101914,
+      "tcgplayer_id": 276869,
+      "cardmarket_id": 665173,
+      "name": "Firesong and Sunspeaker",
+      "lang": "en",
+      "released_at": "2022-07-08",
+      "uri": "https://api.scryfall.com/cards/4d5edf4f-5695-42fc-9e57-c4faef60fbc3",
+      "scryfall_uri": "https://scryfall.com/card/2x2/215/firesong-and-sunspeaker?utm_source=api",
+      "layout": "normal",
+      "highres_image": true,
+      "image_status": "highres_scan",
+      "image_uris": {
+        "small": "https://cards.scryfall.io/small/front/4/d/4d5edf4f-5695-42fc-9e57-c4faef60fbc3.jpg?1673148634",
+        "normal": "https://cards.scryfall.io/normal/front/4/d/4d5edf4f-5695-42fc-9e57-c4faef60fbc3.jpg?1673148634",
+        "large": "https://cards.scryfall.io/large/front/4/d/4d5edf4f-5695-42fc-9e57-c4faef60fbc3.jpg?1673148634",
+        "png": "https://cards.scryfall.io/png/front/4/d/4d5edf4f-5695-42fc-9e57-c4faef60fbc3.png?1673148634",
+        "art_crop": "https://cards.scryfall.io/art_crop/front/4/d/4d5edf4f-5695-42fc-9e57-c4faef60fbc3.jpg?1673148634",
+        "border_crop": "https://cards.scryfall.io/border_crop/front/4/d/4d5edf4f-5695-42fc-9e57-c4faef60fbc3.jpg?1673148634"
+      },
+      "mana_cost": "{4}{R}{W}",
+      "cmc": 6,
+      "type_line": "Legendary Creature — Minotaur Cleric",
+      "oracle_text": "Red instant and sorcery spells you control have lifelink.\nWhenever a white instant or sorcery spell causes you to gain life, Firesong and Sunspeaker deals 3 damage to target creature or player.",
+      "power": "4",
+      "toughness": "6",
+      "colors": [
+        "R",
+        "W"
+      ],
+      "color_identity": [
+        "R",
+        "W"
+      ],
+      "keywords": [],
+      "legalities": {
+        "standard": "not_legal",
+        "future": "not_legal",
+        "historic": "legal",
+        "timeless": "legal",
+        "gladiator": "legal",
+        "pioneer": "legal",
+        "modern": "legal",
+        "legacy": "legal",
+        "pauper": "not_legal",
+        "vintage": "legal",
+        "penny": "legal",
+        "commander": "legal",
+        "oathbreaker": "legal",
+        "standardbrawl": "not_legal",
+        "brawl": "legal",
+        "alchemy": "not_legal",
+        "paupercommander": "not_legal",
+        "duel": "legal",
+        "oldschool": "not_legal",
+        "premodern": "not_legal",
+        "predh": "not_legal"
+      },
+      "games": [
+        "paper",
+        "mtgo"
+      ],
+      "reserved": false,
+      "game_changer": false,
+      "foil": true,
+      "nonfoil": true,
+      "finishes": [
+        "nonfoil",
+        "foil"
+      ],
+      "oversized": false,
+      "promo": false,
+      "reprint": true,
+      "variation": false,
+      "set_id": "5a645837-b050-449f-ac90-1e7ccbf45031",
+      "set": "2x2",
+      "set_name": "Double Masters 2022",
+      "set_type": "masters",
+      "set_uri": "https://api.scryfall.com/sets/5a645837-b050-449f-ac90-1e7ccbf45031",
+      "set_search_uri": "https://api.scryfall.com/cards/search?order=set&q=e%3A2x2&unique=prints",
+      "scryfall_set_uri": "https://scryfall.com/sets/2x2?utm_source=api",
+      "rulings_uri": "https://api.scryfall.com/cards/4d5edf4f-5695-42fc-9e57-c4faef60fbc3/rulings",
+      "prints_search_uri": "https://api.scryfall.com/cards/search?order=released&q=oracleid%3Afffaa634-42a0-4038-b027-24f28754fec7&unique=prints",
+      "collector_number": "215",
+      "digital": false,
+      "rarity": "rare",
+      "flavor_text": "The peaks of Hurloon never fall silent.",
+      "card_back_id": "0aeebaf5-8c7d-4636-9e82-8c27447861f7",
+      "artist": "Zoltan Boros",
+      "artist_ids": [
+        "1885e6cb-c827-4896-994e-3d0a027d602f"
+      ],
+      "illustration_id": "27ff1cb8-aaf8-4534-80ce-a4312e692bfe",
+      "border_color": "black",
+      "frame": "2015",
+      "frame_effects": [
+        "legendary"
+      ],
+      "security_stamp": "oval",
+      "full_art": false,
+      "textless": false,
+      "booster": true,
+      "story_spotlight": false,
+      "edhrec_rank": 10803,
+      "preview": {
+        "source": "Wizards of the Coast",
+        "source_uri": "https://cafe.naver.com/mtgkr?iframe_url_utf8=%2FArticleRead.nhn%253Fclubid%3D30250607%2526articleid%3D10198%2526referrerAllArticles%3Dtrue",
+        "previewed_at": "2022-06-22"
+      },
+      "prices": {
+        "usd": "0.24",
+        "usd_foil": "0.25",
+        "usd_etched": null,
+        "eur": "0.17",
+        "eur_foil": "0.41",
+        "tix": "0.02"
+      },
+      "related_uris": {
+        "gatherer": "https://gatherer.wizards.com/Pages/Card/Details.aspx?multiverseid=571548&printed=false",
+        "tcgplayer_infinite_articles": "https://partner.tcgplayer.com/c/4931599/1830156/21018?subId1=api&trafcat=tcgplayer.com%2Fsearch%2Farticles&u=https%3A%2F%2Fwww.tcgplayer.com%2Fsearch%2Farticles%3FproductLineName%3Dmagic%26q%3DFiresong%2Band%2BSunspeaker",
+        "tcgplayer_infinite_decks": "https://partner.tcgplayer.com/c/4931599/1830156/21018?subId1=api&trafcat=tcgplayer.com%2Fsearch%2Fdecks&u=https%3A%2F%2Fwww.tcgplayer.com%2Fsearch%2Fdecks%3FproductLineName%3Dmagic%26q%3DFiresong%2Band%2BSunspeaker",
+        "edhrec": "https://edhrec.com/route/?cc=Firesong+and+Sunspeaker"
+      },
+      "purchase_uris": {
+        "tcgplayer": "https://partner.tcgplayer.com/c/4931599/1830156/21018?subId1=api&u=https%3A%2F%2Fwww.tcgplayer.com%2Fproduct%2F276869%3Fpage%3D1",
+        "cardmarket": "https://www.cardmarket.com/en/Magic/Products?idProduct=665173&referrer=scryfall&utm_campaign=card_prices&utm_medium=text&utm_source=scryfall",
+        "cardhoarder": "https://www.cardhoarder.com/cards/101914?affiliate_id=scryfall&ref=card-profile&utm_campaign=affiliate&utm_medium=card&utm_source=scryfall"
+      },
+      "count": 1,
+      "finish": "nonfoil",
+      "addedAt": "2025-10-18T22:54:09.463Z"
+    }
+  },
+  "decks": {},
+  "exportedAt": "2025-10-18T22:54:17.078Z"
+}
