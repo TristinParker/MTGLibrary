@@ -143,3 +143,150 @@ details > summary { list-style: none; cursor: pointer; }
 details > summary::-webkit-details-marker { display: none; }
 details summary:before { content: "+"; margin-right: 0.5rem; font-weight: bold; }
 details[open] summary:before { content: "-"; }
+
+/* -----------------------------
+   Mobile / Responsive overrides
+   (Left pull-out nav drawer)
+   -----------------------------
+   These rules implement a left-side compact nav bar that stays narrow
+   by default and expands when hovered or focused (via :hover / :focus-within).
+   No HTML changes required. On small screens the nav overlays content when
+   expanded and the main content reserves space for the collapsed bar.
+*/
+@media (max-width: 768px) {
+  /* Keep main layout row-based; the nav becomes a fixed left drawer */
+  #app-wrapper { flex-direction: row; height: auto; min-height: 100vh; }
+
+  /* hide the native checkbox visually but keep it accessible */
+  #nav-toggle { position: absolute; left: -9999px; }
+
+  nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 220px; /* expanded width */
+    overflow: auto;
+    z-index: 9999; /* ensure nav is above content and scrollbars */
+    transition: transform 240ms ease, box-shadow 220ms ease;
+    transform: translateX(-100%); /* hide off-screen by default */
+    box-shadow: 2px 0 6px rgba(0,0,0,0.4);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0.75rem 1rem;
+    background-color: #1f2937; /* preserve dark background */
+  }
+
+  /* Slide in when checkbox is checked (or on focus-within for keyboard) */
+  #nav-toggle:checked + nav,
+  nav:focus-within { transform: translateX(0); }
+
+  /* Nav title hidden when collapsed; reveal when expanded */
+  nav h1 { display: none; }
+  nav:hover h1, nav:focus-within h1, #nav-toggle:checked + nav h1 { display: block; }
+
+  /* Compact icon-only buttons when collapsed; show labels when expanded */
+  .nav-link {
+    display: flex !important;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    width: 100%;
+    justify-content: flex-start;
+    font-size: 0; /* hide text nodes when collapsed */
+  }
+  .nav-link svg { width: 20px; height: 20px; }
+  nav:hover .nav-link,
+  nav:focus-within .nav-link,
+  #nav-toggle:checked + nav .nav-link { font-size: 1rem; }
+
+  /* Do not reserve space when hidden; content uses full width
+    (nav overlays content when opened) */
+  #app-wrapper > :not(nav) { margin-left: 0; width: 100%; }
+
+  /* Toggle label inside nav (hamburger) */
+  /* Fixed handle visible even when nav is hidden; placed at left edge near bottom */
+  .nav-toggle-label {
+    position: fixed;
+    left: 8px;
+    bottom: 12px;
+    display: inline-flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 44px;
+    height: 12px;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    padding: 8px 6px;
+    z-index: 10001;
+    background: rgba(255,255,255,0.03);
+    border-radius: 8px;
+    -webkit-tap-highlight-color: rgba(0,0,0,0);
+    touch-action: manipulation;
+    pointer-events: auto;
+  }
+  .nav-toggle-label .bar {
+    display: block;
+    width: 18px;
+    height: 2px;
+    background: #cbd5e1; /* gray-300 */
+    border-radius: 2px;
+    transition: transform 180ms ease, opacity 180ms ease;
+  }
+  /* Visual change when open */
+  /* Transform the fixed handle bars to an X when open */
+  /* Transform the handle bars to an X when open */
+  #nav-toggle:checked + nav .nav-toggle-label .bar:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+  #nav-toggle:checked + nav .nav-toggle-label .bar:nth-child(2) { opacity: 0; }
+  #nav-toggle:checked + nav .nav-toggle-label .bar:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+
+  /* Accessibility helper */
+  .sr-only { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+  /* Keep group-header offset as original header height (if present) */
+  .group-header { top: 72px; }
+
+  /* Make collection/deck grids fluid and card-friendly */
+  #collection-content .grid,
+  #decks-list,
+  #collection-content .grid.grid-cols-1,
+  #collection-content .grid.grid-cols-2,
+  #collection-content .grid.grid-cols-3 {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)) !important;
+    grid-auto-rows: auto;
+    gap: 0.5rem !important;
+  }
+
+  /* Keep card aspect ratios reasonable on small screens */
+  .card-image-container,
+  .collection-card-item,
+  .card-version-item { aspect-ratio: 2 / 3; }
+  .collection-card-item { border-radius: 0.35rem; }
+
+  /* Improve layout of stacked panels */
+  .bg-gray-800.p-4.rounded-lg .flex { flex-direction: column; gap: 0.5rem; }
+
+  /* Toasts should sit comfortably above bottom edge and be full width */
+  #toast-container { right: 0.5rem; left: 0.5rem; bottom: 1rem; align-items: center; }
+  .toast { min-width: unset; width: 100%; max-width: unset; transform: translateX(0); animation: none; }
+
+  /* Login modal should be nearly full width on phones */
+  #login-screen .max-w-sm { max-width: 95%; padding: 1rem; }
+
+  /* Make tables horizontally scrollable on tiny screens */
+  #collection-content table { width: 100%; display: block; overflow-x: auto; }
+
+  /* Slightly larger touch targets */
+  button, .nav-link, .collection-card-item { touch-action: manipulation; -webkit-tap-highlight-color: rgba(0,0,0,0); }
+}
+
+@media (max-width: 420px) {
+  /* Slightly narrower collapsed width on very small screens */
+  nav { width: 48px; }
+  #app-wrapper > :not(nav) { margin-left: 48px; width: calc(100% - 48px); }
+  .nav-link { min-height: 44px; }
+  .group-header { font-size: 1.05rem; padding: 0.6rem 1rem; }
+}
