@@ -119,10 +119,22 @@ export function initAppListeners() {
     try {
       if (authUser) {
         currentUserId = authUser.uid;
+        try { window.userId = currentUserId; } catch (e) {}
         console.log('[App] User signed in', currentUserId);
         setupListenersForUser(currentUserId);
+        // Ensure saved views are loaded for this user and UI updated
+        try {
+          if (typeof window.loadSavedViewsFromFirestore === 'function') {
+            await window.loadSavedViewsFromFirestore(currentUserId);
+            try { if (typeof window.renderSavedViewsSelect === 'function') window.renderSavedViewsSelect(); } catch(e){}
+            try { if (typeof window.renderSettingsSavedViews === 'function') window.renderSettingsSavedViews(); } catch(e){}
+            // If a default/active view was set in settings, ask the settings module to apply it
+            try { if (window.activeViewId && typeof window.setActiveViewById === 'function') window.setActiveViewById(window.activeViewId); } catch(e){}
+          }
+        } catch (e) { console.debug('[App] loadSavedViewsFromFirestore after sign-in failed', e); }
       } else {
         console.log('[App] No user signed in');
+        try { window.userId = null; } catch (e) {}
         // will wait for inline script to handle anonymous/custom token sign-in if present
       }
     } catch (innerErr) {

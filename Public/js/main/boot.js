@@ -7,6 +7,64 @@ export function bootApp() {
   initCollectionModule();
   initDecksModule();
   initSingleDeckModule();
+  // Attempt to load saved views for the signed-in user so the Saved Views
+  // dropdown is populated and any active view can be applied early.
+  try {
+    if (typeof window !== 'undefined' && window.userId && typeof window.loadSavedViewsFromFirestore === 'function') {
+      window.loadSavedViewsFromFirestore(window.userId).then((views) => {
+        // if there's an active view in settings, apply it via setActiveViewById
+        try {
+          if (typeof window.setActiveViewById === 'function') {
+            // window.settings module will set activeViewId when loaded; try to use its value
+            const active = window.activeViewId || null;
+            if (active) window.setActiveViewById(active);
+          }
+        } catch (err) { console.debug('[Boot] apply active saved view failed', err); }
+        // After saved views load, apply any persisted UI preferences (grid size, view mode, hide-in-deck)
+        try {
+          const applyPrefs = () => {
+            try {
+              if (typeof window.uiPreferences !== 'undefined') {
+                const prefs = window.uiPreferences || {};
+                // Grid size
+                const size = prefs.gridSize || window.collectionGridSize || 'md';
+                const btn = document.querySelector(`.grid-size-btn[data-size="${size}"]`);
+                if (btn) {
+                  document.querySelectorAll('.grid-size-btn').forEach((b) => b.classList.remove('bg-indigo-600','text-white'));
+                  btn.classList.add('bg-indigo-600','text-white');
+                  window.collectionGridSize = size;
+                }
+                // View mode
+                const mode = prefs.viewMode || window.collectionViewMode || 'grid';
+                if (mode === 'grid') {
+                  const g = document.getElementById('view-toggle-grid');
+                  const t = document.getElementById('view-toggle-table');
+                  if (t) t.classList.remove('bg-indigo-600','text-white');
+                  if (g) g.classList.add('bg-indigo-600','text-white');
+                  window.collectionViewMode = 'grid';
+                } else {
+                  const g = document.getElementById('view-toggle-grid');
+                  const t = document.getElementById('view-toggle-table');
+                  if (g) g.classList.remove('bg-indigo-600','text-white');
+                  if (t) t.classList.add('bg-indigo-600','text-white');
+                  window.collectionViewMode = 'table';
+                }
+                // hide in decks
+                try {
+                  const hid = document.getElementById('hide-in-deck-checkbox');
+                  if (hid && typeof prefs.hideInDecks !== 'undefined') hid.checked = !!prefs.hideInDecks;
+                } catch (e) {}
+                // Trigger initial render so UI reflects preferences
+                if (typeof window.renderPaginatedCollection === 'function') window.renderPaginatedCollection();
+              }
+            } catch (e) { console.debug('[Boot] applyUIPreferences failed', e); }
+          };
+          // Delay slightly to allow any other init handlers to finish mounting UI
+          setTimeout(applyPrefs, 50);
+        } catch (e) { console.debug('[Boot] apply uiPreferences skipped', e); }
+      }).catch(err => { console.debug('[Boot] loadSavedViewsFromFirestore failed', err); });
+    }
+  } catch (e) { console.debug('[Boot] saved views auto-load skipped', e); }
   // Attach global DOM listeners (idempotent)
   try {
     if (!window.__global_listeners_installed) {
@@ -80,7 +138,7 @@ export function setupGlobalListeners() {
       }
       if (navSettings) {
   navSettings.style.pointerEvents = 'auto';
-  navSettings.onclick = (e) => { try { console.debug('[Boot][FB] nav-settings onclick fallback'); if (typeof window.showView === 'function') window.showView('settings'); else renderSettings(); } catch (err) { console.error('[Boot][FB] nav-settings onclick error', err); } };
+  navSettings.onclick = (e) => { try { console.debug('[Boot][FB] nav-settings onclick fallback'); if (typeof window.showView === 'function') window.showView('settings'); else renderSettings(); if (typeof window.renderSettingsSavedViews === 'function') window.renderSettingsSavedViews(); } catch (err) { console.error('[Boot][FB] nav-settings onclick error', err); } };
   console.debug('[Boot][FB] nav-settings fallback onclick installed');
       }
     } catch (err) { console.error('[Boot][FB] nav fallback install error', err); }
@@ -105,6 +163,11 @@ export function setupGlobalListeners() {
           if (id === 'filter-text' && typeof window.applyCollectionFilter === 'function') {
             window.applyCollectionFilter(e.target.value || '');
           }
+          // persist hide-in-deck preference
+          if (id === 'hide-in-deck-checkbox') {
+            try { if (typeof window.uiPreferences !== 'undefined') window.uiPreferences.hideInDecks = !!e.target.checked; } catch (pe) {}
+            try { if (window.userId && typeof window.persistSettingsForUser === 'function') window.persistSettingsForUser(window.userId); } catch(pe) {}
+          }
           if (typeof window.renderPaginatedCollection === 'function') { window.renderPaginatedCollection(); }
         } catch (err) { console.error('[Boot][ERR] filter change handler threw', err); }
       });
@@ -112,6 +175,11 @@ export function setupGlobalListeners() {
         try {
           if (id === 'filter-text' && typeof window.applyCollectionFilter === 'function') {
             window.applyCollectionFilter(e.target.value || '');
+          }
+          // persist hide-in-deck preference for input events as well
+          if (id === 'hide-in-deck-checkbox') {
+            try { if (typeof window.uiPreferences !== 'undefined') window.uiPreferences.hideInDecks = !!e.target.checked; } catch (pe) {}
+            try { if (window.userId && typeof window.persistSettingsForUser === 'function') window.persistSettingsForUser(window.userId); } catch(pe) {}
           }
           if (typeof window.renderPaginatedCollection === 'function') { window.renderPaginatedCollection(); }
         } catch (err) { console.error('[Boot][ERR] filter input handler threw', err); }
@@ -148,6 +216,8 @@ export function setupGlobalListeners() {
         document.querySelectorAll('.grid-size-btn').forEach((b) => b.classList.remove('bg-indigo-600','text-white'));
         btn.classList.add('bg-indigo-600','text-white');
         if (btn.dataset && btn.dataset.size) window.collectionGridSize = btn.dataset.size;
+        try { if (typeof window.uiPreferences !== 'undefined') window.uiPreferences.gridSize = window.collectionGridSize; } catch(e){}
+        try { if (window.userId && typeof window.persistSettingsForUser === 'function') window.persistSettingsForUser(window.userId); } catch(e){}
         if (typeof window.renderPaginatedCollection === 'function' && window.collectionViewMode === 'grid') window.renderPaginatedCollection();
       });
     });
@@ -164,6 +234,8 @@ export function setupGlobalListeners() {
           const other = document.getElementById('view-toggle-grid'); if (other) other.classList.remove('bg-indigo-600','text-white');
           btn.classList.add('bg-indigo-600','text-white');
         }
+        try { if (typeof window.uiPreferences !== 'undefined') window.uiPreferences.viewMode = window.collectionViewMode; } catch(e){}
+        try { if (window.userId && typeof window.persistSettingsForUser === 'function') window.persistSettingsForUser(window.userId); } catch(e){}
         if (typeof window.renderPaginatedCollection === 'function') window.renderPaginatedCollection();
       });
     });
@@ -244,10 +316,121 @@ export function setupGlobalListeners() {
 
     // Settings & Data Management
     const logoutBtn = document.getElementById('logout-btn'); if (logoutBtn) logoutBtn.addEventListener('click', () => { if (typeof window.signOut === 'function') { window.signOut(window.auth).then(() => { location.reload(); }).catch(() => { location.reload(); }); } else { location.reload(); } });
-    const clearDataBtn = document.getElementById('clear-data-btn'); if (clearDataBtn) clearDataBtn.addEventListener('click', () => { if (typeof window.confirmClearAllData === 'function') window.confirmClearAllData(); });
+    const clearDataBtn = document.getElementById('clear-data-btn'); if (clearDataBtn) clearDataBtn.addEventListener('click', () => {
+      // Prefer the new centralized data API if available
+      if (typeof window.clearAllUserData === 'function' && window.userId) {
+        // Ask inline confirmation first to preserve UX
+        if (confirm && confirm('This will permanently delete all your account data. Continue?')) {
+          window.clearAllUserData(window.userId).then(ok => { if (ok) { try { if (typeof window.renderPaginatedCollection === 'function') window.renderPaginatedCollection(); } catch(e){} } });
+        }
+        return;
+      }
+      if (typeof window.confirmClearAllData === 'function') window.confirmClearAllData();
+    });
     const exportBtn = document.getElementById('export-all-data-btn'); if (exportBtn) exportBtn.addEventListener('click', () => { if (typeof window.exportAllData === 'function') window.exportAllData(); });
     const importAllInput = document.getElementById('import-all-data-input'); if (importAllInput) importAllInput.addEventListener('change', (e) => { if (typeof window.handleImportAllData === 'function') window.handleImportAllData(e); });
     const importDeckInput = document.getElementById('import-deck-data-input'); if (importDeckInput) importDeckInput.addEventListener('change', (e) => { if (typeof window.handleImportDeckData === 'function') window.handleImportDeckData(e); });
+
+    // Manage Saved Views modal wiring
+    try {
+      const manageBtn = document.getElementById('manage-views-btn');
+      const manageModal = document.getElementById('manage-views-modal');
+      const manageList = document.getElementById('manage-views-list');
+      const closeManageBtn = document.getElementById('close-manage-views-modal-btn');
+
+      const openModal = (id) => {
+        if (typeof window.openModal === 'function') return window.openModal(id);
+        const m = document.getElementById(id); if (!m) return; m.classList.remove('hidden');
+      };
+      const closeModal = (id) => {
+        if (typeof window.closeModal === 'function') return window.closeModal(id);
+        const m = document.getElementById(id); if (!m) return; m.classList.add('hidden');
+      };
+
+          async function renderManageViews() {
+        try {
+              // Ensure saved views are loaded (support local fallback even without userId)
+              if ((!window.savedViews || !window.savedViews.length) && typeof window.loadSavedViewsFromFirestore === 'function') {
+                await window.loadSavedViewsFromFirestore(window.userId);
+              }
+          const views = window.savedViews || [];
+          if (!manageList) return;
+          if (views.length === 0) {
+            manageList.innerHTML = '<div class="text-sm text-gray-400">No saved views</div>';
+            return;
+          }
+          manageList.innerHTML = views.map(v => `
+            <div class="flex items-center justify-between bg-gray-900 p-2 rounded">
+              <div class="flex items-center gap-2">
+                <strong class="manage-view-name">${v.name}</strong>
+              </div>
+              <div class="flex items-center gap-2">
+                <button data-id="${v.id}" class="apply-view-btn bg-indigo-600 text-white px-2 py-1 rounded text-sm">Apply</button>
+                <button data-id="${v.id}" class="rename-view-btn bg-gray-600 text-white px-2 py-1 rounded text-sm">Rename</button>
+                <button data-id="${v.id}" class="delete-view-btn bg-red-700 text-white px-2 py-1 rounded text-sm">Delete</button>
+              </div>
+            </div>
+          `).join('');
+
+          // Wire buttons
+          manageList.querySelectorAll('.apply-view-btn').forEach(btn => btn.addEventListener('click', (e) => {
+            const id = e.currentTarget.dataset.id; if (!id) return; try { if (typeof window.setActiveViewById === 'function') window.setActiveViewById(id); } catch (err) { console.debug('apply view failed', err); }
+          }));
+
+          manageList.querySelectorAll('.delete-view-btn').forEach(btn => btn.addEventListener('click', async (e) => {
+            const id = e.currentTarget.dataset.id; if (!id) return;
+            if (!confirm('Delete this saved view?')) return;
+            try {
+              if (typeof window.deleteViewFromFirestore === 'function') {
+                await window.deleteViewFromFirestore(window.userId, id);
+              } else {
+                window.savedViews = (window.savedViews||[]).filter(v=>v.id !== id);
+                if (typeof window.persistSavedViewsToFirestore === 'function') await window.persistSavedViewsToFirestore(window.userId);
+              }
+              await renderManageViews();
+              if (typeof window.renderSavedViewsSelect === 'function') window.renderSavedViewsSelect(window.savedViews||[]);
+            } catch (err) { console.error('delete saved view failed', err); }
+          }));
+
+          manageList.querySelectorAll('.rename-view-btn').forEach(btn => btn.addEventListener('click', (e) => {
+            const id = e.currentTarget.dataset.id; if (!id) return;
+            // find the nearest ancestor that contains the .manage-view-name element
+            let cur = e.currentTarget.parentElement;
+            while (cur && !cur.querySelector('.manage-view-name')) cur = cur.parentElement;
+            const nameNode = cur ? cur.querySelector('.manage-view-name') : null;
+            const oldName = nameNode ? nameNode.textContent : '';
+            // Replace name with input + save/cancel
+            const input = document.createElement('input'); input.type = 'text'; input.value = oldName; input.className = 'bg-gray-700 border border-gray-600 px-2 py-1 rounded text-sm';
+            const saveBtn = document.createElement('button'); saveBtn.textContent = 'Save'; saveBtn.className = 'bg-green-600 text-white px-2 py-1 rounded text-sm ml-2';
+            const cancelBtn = document.createElement('button'); cancelBtn.textContent = 'Cancel'; cancelBtn.className = 'bg-gray-600 text-white px-2 py-1 rounded text-sm ml-2';
+            const container = nameNode ? nameNode.parentElement : null;
+            container.innerHTML = '';
+            container.appendChild(input); container.appendChild(saveBtn); container.appendChild(cancelBtn);
+
+            saveBtn.addEventListener('click', async () => {
+              const newName = input.value || oldName;
+              try {
+                const vIdx = (window.savedViews||[]).findIndex(x => x.id === id);
+                if (vIdx >= 0) {
+                  window.savedViews[vIdx].name = newName;
+                  // Persist change (allow settings module to handle local fallback)
+                  if (typeof window.persistSavedViewsToFirestore === 'function') {
+                    await window.persistSavedViewsToFirestore(window.userId);
+                  }
+                  if (typeof window.renderSavedViewsSelect === 'function') window.renderSavedViewsSelect(window.savedViews||[]);
+                }
+              } catch (err) { console.error('rename save failed', err); }
+              await renderManageViews();
+            });
+            cancelBtn.addEventListener('click', () => { renderManageViews(); });
+          }));
+
+        } catch (err) { console.error('renderManageViews failed', err); }
+      }
+
+      manageBtn?.addEventListener('click', async () => { openModal('manage-views-modal'); await renderManageViews(); });
+      closeManageBtn?.addEventListener('click', () => { closeModal('manage-views-modal'); });
+    } catch (err) { console.debug('[Boot] manage views wiring failed', err); }
 
     // Data import modal actions
     const cancelImportBtn = document.getElementById('cancel-import-btn'); if (cancelImportBtn) cancelImportBtn.addEventListener('click', () => { if (typeof window.closeModal === 'function') window.closeModal('data-import-options-modal'); });

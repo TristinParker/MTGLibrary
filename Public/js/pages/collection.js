@@ -1,10 +1,10 @@
 import { showToast } from '../lib/ui.js';
 import { localCollection, cardDeckAssignments, updateCardAssignments } from '../lib/data.js';
 
-// Local view state
-let collectionViewMode = 'grid';
-let collectionGridSize = 'md';
-let collectionSortState = { column: 'name', direction: 'asc' };
+// Local view state (seed from shared window state when available)
+let collectionViewMode = (typeof window !== 'undefined' && window.collectionViewMode) ? window.collectionViewMode : 'grid';
+let collectionGridSize = (typeof window !== 'undefined' && window.collectionGridSize) ? window.collectionGridSize : 'md';
+let collectionSortState = (typeof window !== 'undefined' && window.collectionSortState) ? window.collectionSortState : { column: 'name', direction: 'asc' };
 let collectionCurrentPage = 1;
 const COLLECTION_PAGE_SIZE = 100;
 
@@ -122,6 +122,19 @@ export function renderPaginatedCollection() {
   const paginationDiv = document.getElementById('collection-pagination');
   const noCardsMsg = document.getElementById('no-cards-msg');
   if (!contentDiv) return;
+  // synchronize view state from the global window so toolbar controls (which
+  // mutate window.*) take effect immediately when they call renderPaginatedCollection
+  try {
+    if (typeof window !== 'undefined') {
+      if (typeof window.collectionViewMode !== 'undefined') collectionViewMode = window.collectionViewMode;
+      if (typeof window.collectionGridSize !== 'undefined') collectionGridSize = window.collectionGridSize;
+      // ensure a canonical sort state exists on window and prefer it if present
+      if (typeof window.collectionSortState !== 'undefined') collectionSortState = window.collectionSortState;
+      else window.collectionSortState = collectionSortState;
+    }
+  } catch (syncErr) {
+    console.warn('[Collection] failed to sync window state before render', syncErr);
+  }
   let cards = Object.values(localCollection || {});
   if (document.getElementById('hide-in-deck-checkbox')?.checked) {
     cards = cards.filter(card => !cardDeckAssignments[card.firestoreId]);
@@ -142,28 +155,36 @@ export function renderPaginatedCollection() {
 
   const groupByKeys = [document.getElementById('collection-group-by-1')?.value, document.getElementById('collection-group-by-2')?.value].filter(Boolean);
 
-    if (groupByKeys.length > 0) {
+  if (groupByKeys.length > 0) {
+    // Delegate grouped rendering to the more capable grid/table renderers
     paginationDiv && (paginationDiv.innerHTML = '');
-    const grouped = groupCardsRecursively(cards, groupByKeys);
-    // Use a fallback grid layout that doesn't rely on Tailwind utilities
-    contentDiv.innerHTML = `<div style="display:block;padding:16px">${Object.keys(grouped).map(k => {
-      const content = grouped[k];
-      const counts = computeGroupCounts(content);
-      const cardsHtml = (Array.isArray(content) ? content.map(renderCollectionCard).join('') : '');
-      return `<details style="margin-top:24px"><summary class="group-header">${k} <span style="color:#9CA3AF;margin-left:12px;font-size:0.9em">(${counts.unique} items, ${counts.copies} total)</span></summary><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px;padding:16px">${cardsHtml}</div></details>`;
-    }).join('')}</div>`;
+    if (collectionViewMode === 'grid') {
+      // renderCollectionGrid will handle nested groups correctly
+      renderCollectionGrid(cards, groupByKeys);
+    } else {
+      // table view supports grouped rows
+      renderCollectionTable(cards, groupByKeys);
+    }
   } else {
+    // No grouping: respect the selected view mode (grid or table) and paginate
     cards = sortCards(cards);
-    const totalPages = Math.ceil(cards.length / COLLECTION_PAGE_SIZE);
+    const totalPages = Math.ceil(cards.length / COLLECTION_PAGE_SIZE) || 1;
+    const start = (collectionCurrentPage - 1) * COLLECTION_PAGE_SIZE;
+    const end = start + COLLECTION_PAGE_SIZE;
+    const paginatedCards = totalPages > 1 ? cards.slice(start, end) : cards;
+
     if (totalPages > 1) {
-      const start = (collectionCurrentPage - 1) * COLLECTION_PAGE_SIZE;
-      const end = start + COLLECTION_PAGE_SIZE;
-      const paginatedCards = cards.slice(start, end);
       renderPaginationControls(totalPages);
-      contentDiv.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px;padding:16px">${paginatedCards.map(renderCollectionCard).join('')}</div>`;
     } else {
       paginationDiv && (paginationDiv.innerHTML = '');
-      contentDiv.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px;padding:16px">${cards.map(renderCollectionCard).join('')}</div>`;
+    }
+
+    if (collectionViewMode === 'table') {
+      // Render a table for the current page
+      renderCollectionTable(paginatedCards, []);
+    } else {
+      // Render grid using collectionGridSize
+      renderCollectionGrid(paginatedCards, []);
     }
   }
 
@@ -205,6 +226,68 @@ export function initCollectionModule() {
   window.renderCollectionGrid = renderCollectionGrid;
   window.renderCollectionTable = renderCollectionTable;
   window.computeTableHeaderTop = computeTableHeaderTop;
+  // Seed global window state for legacy boot wiring if not already present
+  try {
+    if (typeof window !== 'undefined') {
+      if (typeof window.collectionViewMode === 'undefined') window.collectionViewMode = collectionViewMode;
+      if (typeof window.collectionGridSize === 'undefined') window.collectionGridSize = collectionGridSize;
+      if (typeof window.collectionSortState === 'undefined') window.collectionSortState = collectionSortState;
+    }
+  } catch (e) {
+    console.warn('[Collection] could not seed window state', e);
+  }
+
+  // Expose an applySavedView helper so the settings module can tell the
+  // collection to apply a saved view's configuration (grid size, view mode,
+  // sorts, groupings). This keeps cross-module wiring minimal.
+  try {
+    if (typeof window !== 'undefined') {
+      window.applySavedView = function(view) {
+        try {
+          if (!view) return;
+          // view may contain: gridSize, viewMode, sorts, filters, groupBy
+          if (view.gridSize) {
+            window.collectionGridSize = view.gridSize;
+            collectionGridSize = view.gridSize;
+            // update visual active state for grid buttons if present
+            document.querySelectorAll('.grid-size-btn').forEach(b => { b.classList.remove('bg-indigo-600','text-white'); if (b.dataset && b.dataset.size === collectionGridSize) b.classList.add('bg-indigo-600','text-white'); });
+          }
+          if (view.viewMode) {
+            window.collectionViewMode = view.viewMode;
+            collectionViewMode = view.viewMode;
+            const gridBtn = document.getElementById('view-toggle-grid');
+            const tableBtn = document.getElementById('view-toggle-table');
+            if (view.viewMode === 'grid') { if (gridBtn) gridBtn.classList.add('bg-indigo-600','text-white'); if (tableBtn) tableBtn.classList.remove('bg-indigo-600','text-white'); }
+            else { if (tableBtn) tableBtn.classList.add('bg-indigo-600','text-white'); if (gridBtn) gridBtn.classList.remove('bg-indigo-600','text-white'); }
+          }
+          // apply sorts if present
+          if (Array.isArray(view.sorts) && view.sorts.length) {
+            // store canonical sort state as the first sort rule
+            const s = view.sorts[0];
+            window.collectionSortState = { column: s.column || 'name', direction: s.direction || 'asc' };
+            collectionSortState = window.collectionSortState;
+          }
+          // apply group-by selection UI if present
+          try {
+            if (Array.isArray(view.groupBy) && view.groupBy.length) {
+              const g1 = view.groupBy[0] || '';
+              const g2 = view.groupBy[1] || '';
+              const el1 = document.getElementById('collection-group-by-1');
+              const el2 = document.getElementById('collection-group-by-2');
+              if (el1) el1.value = g1;
+              if (el2) el2.value = g2;
+            }
+          } catch (e) { /* ignore */ }
+
+          // update saved-views-select active value if present
+          try { const sel = document.getElementById('saved-views-select'); if (sel && view.id) sel.value = view.id; } catch (e) {}
+
+          // finally, re-render
+          if (typeof window.renderPaginatedCollection === 'function') window.renderPaginatedCollection();
+        } catch (err) { console.warn('[applySavedView] error', err); }
+      };
+    }
+  } catch (e) { console.debug('[Collection] could not expose applySavedView', e); }
   // Provide a default KPI toggle handler so clicks never silently fail
   if (!window.toggleKpiMetric) {
     window.toggleKpiMetric = function(metric) {
@@ -482,32 +565,35 @@ function renderCollectionGrid(cards, groupByKeys) {
     return Object.keys(groups).sort().map((groupName) => {
       const content = groups[groupName];
       const uid = `group-${groupUidCounter++}`;
-      if (Array.isArray(content)) {
-        const counts = computeGroupCounts(content);
-        const headerHtml = `
-          <details id="${uid}" class="col-span-full" ${level === 0 ? '' : 'open'}>
-            <summary class="group-header" style="padding-left: ${1.5 + level}rem;">
-              ${groupName} <span class="text-sm text-gray-400 ml-3">(${counts.unique} items, ${counts.copies} total)</span>
+      // render caret + title with indentation; top-level groups open by default,
+      // deeper subgroups start closed for a cleaner UX
+      const counts = computeGroupCounts(content);
+      const isLeaf = Array.isArray(content);
+      const openAttr = level === 0 ? 'open' : '';
+      const padding = `${1.5 + level}rem`;
+      // include data-level so styling can target nested depth
+      if (isLeaf) {
+        return `
+          <details id="${uid}" class="col-span-full collection-group level-${level}" data-level="${level}" ${openAttr}>
+            <summary class="group-header" style="padding-left: ${padding}; display:flex; align-items:center; gap:0.5rem;">
+              <span class="caret" aria-hidden="true">▾</span>
+              <span class="group-title">${groupName}</span>
+              <span class="counts">(${counts.unique} items, ${counts.copies} total)</span>
             </summary>
-            <div class="grid ${gridClass} gap-4 p-4">
-              ${sortGroupContent(content).map(renderCollectionCard).join('')}
-            </div>
+            <div class="grid ${gridClass} gap-4 p-4 group-content level-content-${level}">${sortGroupContent(content).map(renderCollectionCard).join('')}</div>
           </details>
         `;
-        return headerHtml;
       } else {
-        const counts = computeGroupCounts(content);
-        const subgroupHtml = `
-          <details id="${uid}" class="col-span-full" ${level === 0 ? '' : 'open'}>
-            <summary class="group-header" style="padding-left: ${1.5 + level}rem;">
-              ${groupName} <span class="text-sm text-gray-400 ml-3">(${counts.unique} items, ${counts.copies} total)</span>
+        return `
+          <details id="${uid}" class="col-span-full collection-group level-${level}" data-level="${level}" ${openAttr}>
+            <summary class="group-header" style="padding-left: ${padding}; display:flex; align-items:center; gap:0.5rem;">
+              <span class="caret" aria-hidden="true">▾</span>
+              <span class="group-title">${groupName}</span>
+              <span class="counts">(${counts.unique} items, ${counts.copies} total)</span>
             </summary>
-            <div class="col-span-full">
-              ${renderRecursiveGroups(content, level + 1)}
-            </div>
+            <div class="col-span-full group-content level-content-${level}">${renderRecursiveGroups(content, level + 1)}</div>
           </details>
         `;
-        return subgroupHtml;
       }
     }).join('');
   }
@@ -515,7 +601,34 @@ function renderCollectionGrid(cards, groupByKeys) {
   if (groupByKeys && groupByKeys.length > 0) {
     const groupedCards = groupCardsRecursively(cards, groupByKeys);
     groupUidCounter = 0;
-    contentDiv.innerHTML = `<div class="grid ${gridClass} gap-4 p-4">${renderRecursiveGroups(groupedCards, 0)}</div>`;
+    // enhanced nested-level styles: alternating tones, left connector, badges
+    contentDiv.innerHTML = `
+      <style>
+        .collection-group { margin: 0.5rem 0; }
+        .collection-group summary.group-header {
+          display:flex; align-items:center; gap:0.75rem;
+          padding: 0.5rem 0.75rem;
+          border-radius: 8px;
+          transition: background 0.12s ease, transform 0.06s ease;
+        }
+        .collection-group summary.group-header:hover { background: rgba(255,255,255,0.02); }
+        /* level-based backgrounds for better hierarchy recognition */
+        .collection-group.level-0 summary.group-header { background: linear-gradient(180deg, rgba(99,102,241,0.06), rgba(99,102,241,0.03)); border:1px solid rgba(99,102,241,0.12); }
+        .collection-group.level-1 summary.group-header { background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border:1px solid rgba(255,255,255,0.02); }
+        .collection-group.level-2 summary.group-header { background: linear-gradient(180deg, rgba(0,0,0,0.02), rgba(0,0,0,0.01)); border:1px solid rgba(255,255,255,0.01); }
+        .collection-group .caret { transition: transform 0.18s ease; display:inline-flex; align-items:center; justify-content:center; width:1.1rem; height:1.1rem; border-radius:4px; background: rgba(255,255,255,0.03); color:#fff; }
+        .collection-group:not([open]) .caret { transform: rotate(-90deg); }
+        .collection-group[open] .caret { transform: rotate(0deg); }
+        .group-title { font-weight:600; color:#EDF2FF; }
+        .collection-group summary .counts { color:#9CA3AF; margin-left:auto; font-size:0.9rem; padding:0.15rem 0.45rem; background: rgba(0,0,0,0.12); border-radius:999px; }
+        /* left connector line for nested groups */
+        .group-content { margin-top:0.5rem; }
+        .group-content.level-content-1 { border-left: 2px solid rgba(99,102,241,0.08); padding-left: 0.75rem; }
+        .group-content.level-content-2 { border-left: 2px solid rgba(99,102,241,0.05); padding-left: 0.75rem; }
+        .group-content.level-content-3 { border-left: 2px dashed rgba(99,102,241,0.04); padding-left: 0.75rem; }
+      </style>
+      <div class="grid ${gridClass} gap-4 p-4">${renderRecursiveGroups(groupedCards, 0)}</div>`;
+    // add keyboard handlers for toggling details
     contentDiv.querySelectorAll('details summary').forEach(summary => {
       summary.tabIndex = 0;
       summary.addEventListener('keydown', (e) => {
@@ -548,8 +661,10 @@ function computeTableHeaderTop(container) {
     }
     topOffset = Math.max(0, topOffset);
     container.querySelectorAll('table thead').forEach(thead => { thead.style.top = `${topOffset}px`; });
+    return topOffset;
   } catch (err) {
     console.error('[computeTableHeaderTop] error', err);
+    return 0;
   }
 }
 
@@ -623,56 +738,147 @@ function renderCollectionTable(cards, groupByKeys) {
 
   if (groupByKeys && groupByKeys.length > 0) {
     const groupedCards = groupCardsRecursively(cards, groupByKeys);
-    contentDiv.innerHTML = `
-      <div class="table-area w-full">
-        <div class="floating-header-wrapper bg-gray-800"></div>
-        <div class="overflow-x-auto body-scroll bg-gray-800 rounded-b-lg">
-          <table class="w-full text-sm text-left text-gray-300 body-table">
-            <tbody>${renderRecursiveRows(groupedCards,0)}</tbody>
-          </table>
-        </div>
-      </div>
-    `;
 
-    (function setupFloatingHeader() {
-      try {
-        const area = contentDiv.querySelector('.table-area');
-        const floatingWrapper = area.querySelector('.floating-header-wrapper');
-        const bodyScroll = area.querySelector('.body-scroll');
-        const bodyTable = area.querySelector('.body-table');
+    // Build one table per (sub)group so each group has its own sticky header
+    function renderGroupTables(groups, level) {
+      return Object.keys(groups).sort().map((groupName) => {
+        const content = groups[groupName];
+        const counts = computeGroupCounts(content);
+        const titlePadding = `${1 + level}rem`;
+        if (Array.isArray(content)) {
+          // table for this leaf group
+          return `
+            <div class="group-table-wrapper mb-4" data-open="true">
+              <div class="group-table-title px-4 py-2 rounded-t flex items-center justify-between" style="padding-left:${titlePadding}; background:linear-gradient(180deg, rgba(0,0,0,0.04), transparent);">
+                <div class="flex items-center gap-3">
+                  <button type="button" class="group-toggle-btn text-sm text-gray-300" aria-expanded="true" aria-label="Toggle group ${groupName}">▾</button>
+                  <strong class="text-lg">${groupName}</strong>
+                  <span class="ml-2 text-sm text-gray-400">(${counts.unique} items, ${counts.copies} total)</span>
+                </div>
+                <div class="group-title-actions"></div>
+              </div>
+              <div class="group-table-body overflow-x-auto bg-gray-800 rounded-b-lg">
+                <table class="w-full text-sm text-left text-gray-300">
+                  ${tableHeader}
+                  <tbody>
+                    ${renderTableRows(content)}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          `;
+        } else {
+          // nested groups: render title then nested group tables
+          return `
+            <div class="group-nest-wrapper mb-4" data-open="true">
+              <div class="group-table-title px-4 py-2 rounded-t flex items-center justify-between" style="padding-left:${titlePadding}; background:linear-gradient(180deg, rgba(0,0,0,0.02), transparent);">
+                <div class="flex items-center gap-3">
+                  <button type="button" class="group-toggle-btn text-sm text-gray-300" aria-expanded="true" aria-label="Toggle group ${groupName}">▾</button>
+                  <strong class="text-lg">${groupName}</strong>
+                  <span class="ml-2 text-sm text-gray-400">(${counts.unique} items, ${counts.copies} total)</span>
+                </div>
+                <div class="group-title-actions"></div>
+              </div>
+              <div class="group-nested-tables" style="padding-left:0.5rem">
+                ${renderGroupTables(content, level + 1)}
+              </div>
+            </div>
+          `;
+        }
+      }).join('');
+    }
 
-        const headerTable = document.createElement('table');
-        headerTable.className = 'w-full text-sm text-left text-gray-300 header-table';
-        headerTable.innerHTML = `${tableHeader}`;
-        floatingWrapper.appendChild(headerTable);
+    contentDiv.innerHTML = `<div class="grouped-tables w-full p-2">${renderGroupTables(groupedCards, 0)}</div>`;
 
-        floatingWrapper.style.position = 'sticky';
-        floatingWrapper.style.top = '0px';
-        floatingWrapper.style.zIndex = 8;
-
-        bodyScroll.addEventListener('scroll', () => { floatingWrapper.scrollLeft = bodyScroll.scrollLeft; });
-
-        const syncWidths = () => {
-          const firstRow = bodyTable.querySelector('tbody tr');
-          if (!firstRow) return;
-          const bodyCells = Array.from(firstRow.children);
-          const headerCells = Array.from(headerTable.querySelectorAll('thead th'));
-          headerTable.style.tableLayout = 'fixed';
-          bodyTable.style.tableLayout = 'fixed';
-          const widths = bodyCells.map(td => td.getBoundingClientRect().width);
-          headerTable.style.width = `${bodyTable.getBoundingClientRect().width}px`;
-          headerCells.forEach((th, i) => { if (widths[i]) th.style.width = `${widths[i]}px`; });
-        };
-
-        syncWidths();
-        setTimeout(syncWidths, 250);
-        window.addEventListener('resize', syncWidths);
-      } catch (err) {
-        console.error('[FloatingHeader] error', err);
+    // After DOM insertion, compute correct sticky header top offsets
+    try {
+      const top = computeTableHeaderTop(contentDiv);
+      // Create or update floating group label overlay
+      let overlay = document.getElementById('collection-group-overlay');
+      if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'collection-group-overlay';
+        overlay.style.position = 'fixed';
+        overlay.style.left = '0';
+        overlay.style.right = '0';
+        overlay.style.zIndex = '40';
+        overlay.style.pointerEvents = 'none';
+        overlay.style.display = 'flex';
+        overlay.style.alignItems = 'center';
+        overlay.style.padding = '6px 16px';
+        overlay.style.gap = '12px';
+        overlay.innerHTML = `<div id="collection-group-overlay-content" style="margin-left:1rem;color:#E6EEF8;font-weight:600;"></div>`;
+        document.body.appendChild(overlay);
       }
-    })();
+      overlay.style.top = `${top}px`;
+
+      // Update overlay based on scroll position inside the collection content
+      const updateOverlay = () => {
+        try {
+          const wrappers = Array.from(contentDiv.querySelectorAll('.group-table-wrapper, .group-nest-wrapper'));
+          const viewportTop = window.scrollY + top + 2; // slight offset inside
+          let currentTitle = '';
+          let currentSub = '';
+          for (const w of wrappers) {
+            const rect = w.getBoundingClientRect();
+            const absTop = window.scrollY + rect.top;
+            if (absTop <= viewportTop) {
+              const titleEl = w.querySelector('.group-table-title strong');
+              if (titleEl) currentTitle = titleEl.textContent.trim();
+              // if nested, find immediate child group header under this wrapper
+              const subEl = w.querySelector('.group-nested-tables .group-table-title strong');
+              if (subEl) currentSub = subEl.textContent.trim();
+            }
+          }
+          const content = document.getElementById('collection-group-overlay-content');
+          if (content) content.textContent = currentTitle + (currentSub ? (' — ' + currentSub) : '');
+          overlay.style.display = currentTitle ? 'flex' : 'none';
+        } catch (err) { console.debug('[Collection] updateOverlay error', err); }
+      };
+
+      // Wire scroll and resize updates (debounced)
+      let ovTimer = null;
+      const ovHandler = () => { clearTimeout(ovTimer); ovTimer = setTimeout(updateOverlay, 60); };
+      window.removeEventListener('scroll', window.__collection_group_overlay_handler || (() => {}));
+      window.__collection_group_overlay_handler = ovHandler;
+      window.addEventListener('scroll', ovHandler, { passive: true });
+      window.addEventListener('resize', ovHandler);
+      // initial update
+      updateOverlay();
+
+      // Wire group collapse/expand toggle buttons
+      try {
+        contentDiv.querySelectorAll('.group-toggle-btn').forEach(btn => {
+          btn.removeEventListener('click', btn._groupToggleHandler || (() => {}));
+          const handler = (e) => {
+            const wrapper = e.currentTarget.closest('.group-table-wrapper, .group-nest-wrapper');
+            if (!wrapper) return;
+            const body = wrapper.querySelector('.group-table-body, .group-nested-tables');
+            const isOpen = wrapper.getAttribute('data-open') !== 'false';
+            if (isOpen) {
+              wrapper.setAttribute('data-open', 'false');
+              if (body) body.style.display = 'none';
+              e.currentTarget.setAttribute('aria-expanded', 'false');
+              e.currentTarget.textContent = '▸';
+            } else {
+              wrapper.setAttribute('data-open', 'true');
+              if (body) body.style.display = '';
+              e.currentTarget.setAttribute('aria-expanded', 'true');
+              e.currentTarget.textContent = '▾';
+            }
+            // recompute overlay and header offsets after collapse change
+            try { const top = computeTableHeaderTop(contentDiv); overlay.style.top = `${top}px`; ovHandler(); } catch (err) { console.debug('group toggle recompute failed', err); }
+          };
+          btn.addEventListener('click', handler);
+          btn._groupToggleHandler = handler;
+          // keyboard accessibility
+          btn.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); btn._groupToggleHandler(e); } });
+        });
+      } catch (err) { console.debug('[Collection] wire group-toggle-btn failed', err); }
+    } catch (err) { console.debug('[Collection] computeTableHeaderTop failed after grouped table render', err); }
   } else {
     contentDiv.innerHTML = `<div class="overflow-x-auto bg-gray-800 rounded-lg"><table class="w-full text-sm text-left text-gray-300">${tableHeader}<tbody>${renderTableRows(cards)}</tbody></table></div>`;
+    try { computeTableHeaderTop(contentDiv); } catch (err) { console.debug('[Collection] computeTableHeaderTop failed after table render', err); }
   }
 
   addCollectionTableListeners();
@@ -763,7 +969,8 @@ export async function saveCardDetails(firestoreId) {
     }
     const cardRef = doc(window.db, `artifacts/${appId}/users/${userId}/collection`, firestoreId);
 
-    const newCount = modalVisibilitySettings.count ? (parseInt(document.getElementById('modal-edit-count')?.value, 10) || 0) : (localCollection[firestoreId]?.count || 0);
+  const modalVisibility = (typeof window !== 'undefined' && window.modalVisibilitySettings) ? window.modalVisibilitySettings : { count: true, finish: true, condition: true, purchasePrice: true, notes: true };
+  const newCount = modalVisibility.count ? (parseInt(document.getElementById('modal-edit-count')?.value, 10) || 0) : (localCollection[firestoreId]?.count || 0);
     if (newCount <= 0) {
       await deleteDoc(cardRef);
       showToast && showToast('Card removed from collection as count was set to 0.', 'success');
@@ -772,10 +979,10 @@ export async function saveCardDetails(firestoreId) {
     }
 
     const updatedData = { count: newCount };
-    if (modalVisibilitySettings.finish) updatedData.finish = document.getElementById('modal-edit-finish')?.value;
-    if (modalVisibilitySettings.condition) updatedData.condition = document.getElementById('modal-edit-condition')?.value.trim() || null;
-    if (modalVisibilitySettings.purchasePrice) updatedData.purchasePrice = parseFloat(document.getElementById('modal-edit-purchasePrice')?.value) || null;
-    if (modalVisibilitySettings.notes) updatedData.notes = document.getElementById('modal-edit-notes')?.value.trim() || null;
+  if (modalVisibility.finish) updatedData.finish = document.getElementById('modal-edit-finish')?.value;
+  if (modalVisibility.condition) updatedData.condition = document.getElementById('modal-edit-condition')?.value.trim() || null;
+  if (modalVisibility.purchasePrice) updatedData.purchasePrice = parseFloat(document.getElementById('modal-edit-purchasePrice')?.value) || null;
+  if (modalVisibility.notes) updatedData.notes = document.getElementById('modal-edit-notes')?.value.trim() || null;
 
     await updateDoc(cardRef, updatedData);
     showToast && showToast('Card details saved!', 'success');
@@ -795,6 +1002,7 @@ export function renderCardDetailsModal(card) {
     wrapper.dataset.firestoreId = card.firestoreId;
     wrapper.classList.remove('card-modal-edit-mode');
     const assignments = (cardDeckAssignments || {})[card.firestoreId] || [];
+    const modalVisibility = (typeof window !== 'undefined' && window.modalVisibilitySettings) ? window.modalVisibilitySettings : { count: true, finish: true, condition: true, purchasePrice: true, notes: true };
 
     contentDiv.innerHTML = `
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -810,13 +1018,13 @@ export function renderCardDetailsModal(card) {
           <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
             <p><strong>Set:</strong> ${card.set_name} (${(card.set||'').toUpperCase()})</p>
             <p><strong>Rarity:</strong> ${card.rarity || ''}</p>
-            ${modalVisibilitySettings.count ? `<div><strong>Count:</strong><span class="card-modal-value-display">${card.count || 1}</span><input id="modal-edit-count" type="number" value="${card.count || 1}" min="0" class="card-modal-value-input mt-1 w-full bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm"></div>` : ''}
-            ${modalVisibilitySettings.finish ? `<div><strong>Finish:</strong><span class="card-modal-value-display">${card.finish || 'nonfoil'}</span><select id="modal-edit-finish" class="card-modal-value-input mt-1 w-full bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm"><option value="nonfoil" ${card.finish === 'nonfoil' ? 'selected' : ''}>Non-Foil</option><option value="foil" ${card.finish === 'foil' ? 'selected' : ''}>Foil</option><option value="etched" ${card.finish === 'etched' ? 'selected' : ''}>Etched</option></select></div>` : ''}
-            ${modalVisibilitySettings.condition ? `<div><strong>Condition:</strong><span class="card-modal-value-display">${card.condition || 'Not Set'}</span><input id="modal-edit-condition" type="text" value="${card.condition || ''}" placeholder="e.g., Near Mint" class="card-modal-value-input mt-1 w-full bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm"></div>` : ''}
-            ${modalVisibilitySettings.purchasePrice ? `<div><strong>Purchase Price:</strong><span class="card-modal-value-display">$${(card.purchasePrice || 0).toFixed(2)}</span><input id="modal-edit-purchasePrice" type="number" value="${card.purchasePrice || ''}" step="0.01" placeholder="e.g., 4.99" class="card-modal-value-input mt-1 w-full bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm"></div>` : ''}
+            ${modalVisibility.count ? `<div><strong>Count:</strong><span class="card-modal-value-display">${card.count || 1}</span><input id="modal-edit-count" type="number" value="${card.count || 1}" min="0" class="card-modal-value-input mt-1 w-full bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm"></div>` : ''}
+            ${modalVisibility.finish ? `<div><strong>Finish:</strong><span class="card-modal-value-display">${card.finish || 'nonfoil'}</span><select id="modal-edit-finish" class="card-modal-value-input mt-1 w-full bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm"><option value="nonfoil" ${card.finish === 'nonfoil' ? 'selected' : ''}>Non-Foil</option><option value="foil" ${card.finish === 'foil' ? 'selected' : ''}>Foil</option><option value="etched" ${card.finish === 'etched' ? 'selected' : ''}>Etched</option></select></div>` : ''}
+            ${modalVisibility.condition ? `<div><strong>Condition:</strong><span class="card-modal-value-display">${card.condition || 'Not Set'}</span><input id="modal-edit-condition" type="text" value="${card.condition || ''}" placeholder="e.g., Near Mint" class="card-modal-value-input mt-1 w-full bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm"></div>` : ''}
+            ${modalVisibility.purchasePrice ? `<div><strong>Purchase Price:</strong><span class="card-modal-value-display">$${(card.purchasePrice || 0).toFixed(2)}</span><input id="modal-edit-purchasePrice" type="number" value="${card.purchasePrice || ''}" step="0.01" placeholder="e.g., 4.99" class="card-modal-value-input mt-1 w-full bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm"></div>` : ''}
           </div>
-          ${modalVisibilitySettings.notes ? `<div class="col-span-2"><strong>Notes:</strong><p class="card-modal-value-display text-gray-400 whitespace-pre-wrap">${card.notes || 'No notes.'}</p><textarea id="modal-edit-notes" placeholder="Add notes here..." class="card-modal-value-input mt-1 w-full bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm h-24">${card.notes || ''}</textarea></div>` : ''}
-          ${modalVisibilitySettings.deckAssignments && assignments.length > 0 ? `<div class="col-span-2"><hr class="border-gray-600 my-2"><p><strong>In Decks:</strong></p><ul class="list-disc list-inside text-gray-400">${assignments.map(a => `<li>${a.deckName}</li>`).join('')}</ul></div>` : ''}
+          ${modalVisibility.notes ? `<div class="col-span-2"><strong>Notes:</strong><p class="card-modal-value-display text-gray-400 whitespace-pre-wrap">${card.notes || 'No notes.'}</p><textarea id="modal-edit-notes" placeholder="Add notes here..." class="card-modal-value-input mt-1 w-full bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm h-24">${card.notes || ''}</textarea></div>` : ''}
+          ${modalVisibility.deckAssignments && assignments.length > 0 ? `<div class="col-span-2"><hr class="border-gray-600 my-2"><p><strong>In Decks:</strong></p><ul class="list-disc list-inside text-gray-400">${assignments.map(a => `<li>${a.deckName}</li>`).join('')}</ul></div>` : ''}
         </div>
       </div>
     `;
@@ -934,12 +1142,13 @@ export function addCollectionTableListeners() {
     addCollectionCardListeners();
 
     const table = document.querySelector('#collection-content table');
-    if (!table) return;
+      if (!table) return;
 
-    table.querySelectorAll('thead th.sortable').forEach(th => {
-      th.removeEventListener('click', handleTableHeaderSortClick);
-      th.addEventListener('click', handleTableHeaderSortClick);
-    });
+      // attach to all tables inside the collection content area
+      document.querySelectorAll('#collection-content table thead th.sortable').forEach(th => {
+        th.removeEventListener('click', handleTableHeaderSortClick);
+        th.addEventListener('click', handleTableHeaderSortClick);
+      });
   } catch (err) {
     console.warn('[Collection.addCollectionTableListeners] error', err);
   }
@@ -956,10 +1165,14 @@ function handleTableHeaderSortClick(e) {
 
   if (window.collectionSortState && window.collectionSortState.column === column) {
     window.collectionSortState.direction = window.collectionSortState.direction === 'asc' ? 'desc' : 'asc';
+    // mirror into module state
+    collectionSortState = window.collectionSortState;
   } else {
     window.collectionSortState = window.collectionSortState || { column: 'name', direction: 'asc' };
     window.collectionSortState.column = column;
     window.collectionSortState.direction = 'asc';
+    // mirror into module state
+    collectionSortState = window.collectionSortState;
   }
 
   th.classList.remove('sort-asc','sort-desc');

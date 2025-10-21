@@ -1,0 +1,360 @@
+{
+  "url": "http://localhost:8080/index-dev.html",
+  "status": 200,
+  "ok": true,
+  "collectionExists": true,
+  "gridResults": [],
+  "viewMode": "table",
+  "hidePref": true,
+  "savedViewApplied": true,
+  "console": [
+    {
+      "type": "warn",
+      "text": "cdn.tailwindcss.com should not be used in production. To use Tailwind CSS in production, install it as a PostCSS plugin or use the Tailwind CLI: https://tailwindcss.com/docs/installation",
+      "args": [
+        "JSHandle:cdn.tailwindcss.com should not be used in production. To use Tailwind CSS in production, install it as a PostCSS plugin or use the Tailwind CLI: https://tailwindcss.com/docs/installation"
+      ]
+    },
+    {
+      "type": "log",
+      "text": "[Config] App ID set to: mtg-forge-default",
+      "args": [
+        "JSHandle:[Config] App ID set to: mtg-forge-default"
+      ]
+    },
+    {
+      "type": "log",
+      "text": "[Firebase] Initialized and exported db/auth/app.",
+      "args": [
+        "JSHandle:[Firebase] Initialized and exported db/auth/app."
+      ]
+    },
+    {
+      "type": "log",
+      "text": "[Auth] Auth module loaded.",
+      "args": [
+        "JSHandle:[Auth] Auth module loaded."
+      ]
+    },
+    {
+      "type": "log",
+      "text": "[Settings] Module loaded.",
+      "args": [
+        "JSHandle:[Settings] Module loaded."
+      ]
+    },
+    {
+      "type": "log",
+      "text": "[Settings] Module initialized",
+      "args": [
+        "JSHandle:[Settings] Module initialized"
+      ]
+    },
+    {
+      "type": "log",
+      "text": "[Main] Entry module loaded. Firebase/auth/settings available.",
+      "args": [
+        "JSHandle:[Main] Entry module loaded. Firebase/auth/settings available."
+      ]
+    },
+    {
+      "type": "log",
+      "text": "[DOMContentLoaded] Event fired. App is initializing. Find in <script> block.",
+      "args": [
+        "JSHandle:[DOMContentLoaded] Event fired. App is initializing. Find in <script> block."
+      ]
+    },
+    {
+      "type": "log",
+      "text": "[Config] App ID set to: mtg-forge-default",
+      "args": [
+        "JSHandle:[Config] App ID set to: mtg-forge-default"
+      ]
+    },
+    {
+      "type": "log",
+      "text": "[Config] Firebase config loaded.",
+      "args": [
+        "JSHandle:[Config] Firebase config loaded."
+      ]
+    },
+    {
+      "type": "log",
+      "text": "[Config] Gemini API URL configured.",
+      "args": [
+        "JSHandle:[Config] Gemini API URL configured."
+      ]
+    },
+    {
+      "type": "log",
+      "text": "[State] Initial application state variables declared.",
+      "args": [
+        "JSHandle:[State] Initial application state variables declared."
+      ]
+    },
+    {
+      "type": "log",
+      "text": "[Auth] No user signed in. Showing login UI (email/password).",
+      "args": [
+        "JSHandle:[Auth] No user signed in. Showing login UI (email/password)."
+      ]
+    },
+    {
+      "type": "verbose",
+      "text": "[DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o",
+      "args": []
+    },
+    {
+      "type": "verbose",
+      "text": "[DOM] Input elements should have autocomplete attributes (suggested: \"current-password\"): (More info: https://goo.gl/9p2vKq) %o",
+      "args": []
+    },
+    {
+      "type": "log",
+      "text": "[Collection] Module initialized. window.renderPaginatedCollection present= true",
+      "args": [
+        "JSHandle:[Collection] Module initialized. window.renderPaginatedCollection present=",
+        "JSHandle:true"
+      ]
+    },
+    {
+      "type": "log",
+      "text": "[Decks] Module ready.",
+      "args": [
+        "JSHandle:[Decks] Module ready."
+      ]
+    },
+    {
+      "type": "log",
+      "text": "[SingleDeck] Module initialized.",
+      "args": [
+        "JSHandle:[SingleDeck] Module initialized."
+      ]
+    },
+    {
+      "type": "debug",
+      "text": "[Boot] Calling setupGlobalListeners(). window.renderPaginatedCollection= true",
+      "args": [
+        "JSHandle:[Boot] Calling setupGlobalListeners(). window.renderPaginatedCollection=",
+        "JSHandle:true"
+      ]
+    },
+    {
+      "type": "debug",
+      "text": "[Boot] setupGlobalListeners() start. window.renderPaginatedCollection= true",
+      "args": [
+        "JSHandle:[Boot] setupGlobalListeners() start. window.renderPaginatedCollection=",
+        "JSHandle:true"
+      ]
+    },
+    {
+      "type": "debug",
+      "text": "[Boot] Installing global UI listeners",
+      "args": [
+        "JSHandle:[Boot] Installing global UI listeners"
+      ]
+    },
+    {
+      "type": "debug",
+      "text": "[Boot][FB] nav-decks fallback onclick installed",
+      "args": [
+        "JSHandle:[Boot][FB] nav-decks fallback onclick installed"
+      ]
+    },
+    {
+      "type": "debug",
+      "text": "[Boot][FB] nav-settings fallback onclick installed",
+      "args": [
+        "JSHandle:[Boot][FB] nav-settings fallback onclick installed"
+      ]
+    },
+    {
+      "type": "debug",
+      "text": "[Boot] Application modules initialized.",
+      "args": [
+        "JSHandle:[Boot] Application modules initialized."
+      ]
+    },
+    {
+      "type": "log",
+      "text": "[BootShim] window.bootApp invoked",
+      "args": [
+        "JSHandle:[BootShim] window.bootApp invoked"
+      ]
+    },
+    {
+      "type": "log",
+      "text": "[Settings] Module initialized",
+      "args": [
+        "JSHandle:[Settings] Module initialized"
+      ]
+    },
+    {
+      "type": "debug",
+      "text": "[Settings] loadSavedViewsFromFirestore called for userId= ",
+      "args": [
+        "JSHandle:[Settings] loadSavedViewsFromFirestore called for userId=",
+        "JSHandle:null"
+      ]
+    },
+    {
+      "type": "debug",
+      "text": "[Settings] loadSavedViewsFromFirestore skipped: no userId (saved views are Firestore-only)",
+      "args": [
+        "JSHandle:[Settings] loadSavedViewsFromFirestore skipped: no userId (saved views are Firestore-only)"
+      ]
+    },
+    {
+      "type": "log",
+      "text": "[Firebase] Auth persistence set to LOCAL.",
+      "args": [
+        "JSHandle:[Firebase] Auth persistence set to LOCAL."
+      ]
+    },
+    {
+      "type": "log",
+      "text": "[App] No user signed in",
+      "args": [
+        "JSHandle:[App] No user signed in"
+      ]
+    },
+    {
+      "type": "log",
+      "text": "[BootShim] window.initAppListeners invoked (deferred)",
+      "args": [
+        "JSHandle:[BootShim] window.initAppListeners invoked (deferred)"
+      ]
+    }
+  ],
+  "pageErrors": [],
+  "requests": [
+    {
+      "url": "http://localhost:8080/index-dev.html",
+      "status": "finished",
+      "statusCode": 200,
+      "statusText": "OK"
+    },
+    {
+      "url": "http://localhost:8080/styles.css",
+      "status": "finished",
+      "statusCode": 200,
+      "statusText": "OK"
+    },
+    {
+      "url": "http://localhost:8080/js/main/index.js",
+      "status": "finished",
+      "statusCode": 200,
+      "statusText": "OK"
+    },
+    {
+      "url": "http://localhost:8080/js/lib/ui.js",
+      "status": "finished",
+      "statusCode": 200,
+      "statusText": "OK"
+    },
+    {
+      "url": "http://localhost:8080/js/lib/data.js",
+      "status": "finished",
+      "statusCode": 200,
+      "statusText": "OK"
+    },
+    {
+      "url": "http://localhost:8080/js/pages/collection.js",
+      "status": "finished",
+      "statusCode": 200,
+      "statusText": "OK"
+    },
+    {
+      "url": "http://localhost:8080/js/pages/decks.js",
+      "status": "finished",
+      "statusCode": 200,
+      "statusText": "OK"
+    },
+    {
+      "url": "http://localhost:8080/js/pages/singleDeck.js",
+      "status": "finished",
+      "statusCode": 200,
+      "statusText": "OK"
+    },
+    {
+      "url": "http://localhost:8080/js/main/app.js",
+      "status": "finished",
+      "statusCode": 200,
+      "statusText": "OK"
+    },
+    {
+      "url": "http://localhost:8080/js/main/boot.js",
+      "status": "finished",
+      "statusCode": 200,
+      "statusText": "OK"
+    },
+    {
+      "url": "https://cdn.tailwindcss.com/",
+      "status": "finished",
+      "statusCode": 302,
+      "statusText": ""
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
+      "status": "finished",
+      "statusCode": 200,
+      "statusText": ""
+    },
+    {
+      "url": "https://cdn.jsdelivr.net/npm/chart.js",
+      "status": "finished",
+      "statusCode": 200,
+      "statusText": ""
+    },
+    {
+      "url": "https://cdn.tailwindcss.com/3.4.17",
+      "status": "finished",
+      "statusCode": 200,
+      "statusText": ""
+    },
+    {
+      "url": "http://localhost:8080/js/firebase/init.js",
+      "status": "finished",
+      "statusCode": 200,
+      "statusText": "OK"
+    },
+    {
+      "url": "http://localhost:8080/js/firebase/auth.js",
+      "status": "finished",
+      "statusCode": 200,
+      "statusText": "OK"
+    },
+    {
+      "url": "http://localhost:8080/js/settings/settings.js",
+      "status": "finished",
+      "statusCode": 200,
+      "statusText": "OK"
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2",
+      "status": "finished",
+      "statusCode": 200,
+      "statusText": ""
+    },
+    {
+      "url": "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js",
+      "status": "finished",
+      "statusCode": 200,
+      "statusText": ""
+    },
+    {
+      "url": "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js",
+      "status": "finished",
+      "statusCode": 200,
+      "statusText": ""
+    },
+    {
+      "url": "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js",
+      "status": "finished",
+      "statusCode": 200,
+      "statusText": ""
+    }
+  ],
+  "screenshot": "Public\\tests\\ui-controls-screenshot.png",
+  "timestamp": "2025-10-21T23:08:30.743Z"
+}

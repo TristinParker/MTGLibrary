@@ -424,126 +424,16 @@
                   </select>
                 </div>
               </div>
-              <!-- Advanced View Builder -->
-              <div id="advanced-view-builder" class="w-full bg-gray-800 p-3 rounded-lg">
-                <div class="flex items-center justify-between gap-2">
-                  <div class="flex items-center gap-2">
-                    <label class="text-sm text-gray-400">Saved Views</label>
-                    <select id="saved-views-select" class="bg-gray-700 border border-gray-600 rounded-lg px-3 py-1 text-sm">
-                      <option value="">(Default)</option>
-                    </select>
-                    <button id="manage-views-btn" class="text-sm text-indigo-400 underline ml-2" type="button">Manage</button>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <button id="open-view-builder-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold py-1 px-3 rounded" type="button">Edit View</button>
-    <!-- Manage Views Modal -->
-    <div id="manage-views-modal" class="fixed inset-0 z-[90] hidden items-center justify-center p-4 modal-backdrop">
-      <div class="bg-gray-800 rounded-lg shadow-2xl max-w-md w-full">
-        <div class="p-6 text-center">
-          <h3 class="text-xl font-bold mb-2">Manage Saved Views</h3>
-          <div id="manage-views-list" class="space-y-2 mb-4">
-            <!-- List of views with delete buttons will be injected here -->
-          </div>
-          <button id="close-manage-views-modal-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded-lg">Close</button>
-        </div>
-      </div>
-    </div>
-                    <button id="save-view-btn" class="bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-1 px-3 rounded hidden">Save View</button>
-                  </div>
-                </div>
-                <div id="view-builder-panel" class="mt-3 hidden">
-                  <div id="filters-list" class="space-y-2">
-                    <!-- Filter rules will be appended here -->
-                  </div>
-                  <div class="flex gap-2 mt-2">
-                    <select id="filter-column-select" class="bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm">
-                      <option value="name">Name</option>
-                      <option value="type_line">Type</option>
-                      <option value="rarity">Rarity</option>
-                      <option value="color_identity">Color Identity</option>
-                      <option value="cmc">Mana Value</option>
-                      <option value="set_name">Set</option>
-                      <option value="count">Count</option>
-                      <option value="deck">Deck</option>
-                    </select>
-                    <select id="filter-op-select" class="bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm">
-                      <option value="contains">contains</option>
-                      <option value="equals">equals</option>
-                      <option value="gt">&gt;</option>
-                      <option value="lt">&lt;</option>
-                    </select>
-                    <input id="filter-value-input" class="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm" placeholder="value">
-                    <button id="add-filter-rule-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold py-1 px-3 rounded">Add</button>
-                  </div>
-                  <div class="mt-4">
-                    <label class="text-sm text-gray-400">Sort Rules (top priority first)</label>
-                    <div id="sorts-list" class="space-y-2 mt-2"></div>
-                    <div class="flex gap-2 mt-2">
-                      <select id="sort-column-select" class="bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm">
-                        <option value="name">Name</option>
-                        <option value="count">Count</option>
-                        <option value="cmc">Mana Value</option>
-                        <option value="rarity">Rarity</option>
-                        <option value="price">Price</option>
-                      </select>
-                      <select id="sort-dir-select" class="bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm">
-                        <option value="asc">asc</option>
-                        <option value="desc">desc</option>
-                      </select>
-                      <button id="add-sort-rule-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold py-1 px-3 rounded">Add</button>
-                    </div>
-                  </div>
-                  <div class="mt-4 flex items-center gap-2">
-                    <label class="text-sm text-gray-400">Group By</label>
-                    <select id="view-group-by-1" class="bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm">
-                      <option value="">None</option>
-                      <option value="type_line">Type</option>
-                      <option value="rarity">Rarity</option>
-                      <option value="color_identity">Color</option>
-                      <option value="cmc">Mana Value</option>
-                      <option value="set_name">Set</option>
-                      <option value="deck">Deck</option>
-                    </select>
-                    <select id="view-group-by-2" class="bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm">
-                      <option value="">None</option>
-                      <option value="type_line">Type</option>
-                      <option value="rarity">Rarity</option>
-                      <option value="color_identity">Color</option>
-                      <option value="cmc">Mana Value</option>
-                      <option value="set_name">Set</option>
-                      <option value="deck">Deck</option>
-                    </select>
-                    <label class="text-sm text-gray-400 ml-4">Hide In Decks</label>
-                    <input type="checkbox" id="view-hide-in-deck">
-                  </div>
-                  <div class="mt-4 flex items-center gap-2">
-                    <input id="view-name-input" placeholder="View name" class="bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm">
-                    <label class="text-sm text-gray-400 flex items-center gap-2"><input type="checkbox" id="view-default-checkbox"> Set as default</label>
-                  </div>
-                  <div class="mt-3 flex items-center gap-4">
-                    <div>
-                      <label class="text-sm text-gray-400 block">View Mode</label>
-                      <select id="view-view-mode" class="bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm">
-                        <option value="grid">Grid</option>
-                        <option value="table">Table</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label class="text-sm text-gray-400 block">Grid Size</label>
-                      <select id="view-grid-size" class="bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm">
-                        <option value="sm">Small</option>
-                        <option value="md">Medium</option>
-                        <option value="lg">Large</option>
-                      </select>
-                    </div>
-                    <div class="flex-1 text-right">
-                      <button id="save-view-confirm-btn" class="bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-1 px-3 rounded">Save</button>
-                      <button id="cancel-view-builder-btn" class="bg-gray-600 hover:bg-gray-700 text-white text-sm font-bold py-1 px-3 rounded ml-2">Cancel</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <!-- Saved Views dropdown lives in the filters header; full management is in Settings -->
               <div class="flex items-center space-x-2">
+                <!-- Compact Saved Views dropdown for Collection header -->
+                <div class="flex items-center gap-2">
+                  <label for="saved-views-select" class="text-sm text-gray-400">Saved View</label>
+                  <select id="saved-views-select" class="bg-gray-700 border border-gray-600 rounded-lg px-3 py-1 text-sm">
+                    <option value="">(none)</option>
+                  </select>
+                  <button id="manage-views-btn" class="text-sm text-indigo-300 underline ml-2" type="button">Manage</button>
+                </div>
                 <input
                   type="checkbox"
                   id="hide-in-deck-checkbox"
@@ -717,13 +607,100 @@
               <h2
                 class="text-2xl font-semibold mb-4 border-b border-gray-700 pb-2"
               >
-                Card Modal Display
+                Saved Views
               </h2>
-              <div
-                id="modal-visibility-settings"
-                class="grid grid-cols-2 sm:grid-cols-3 gap-4"
-              >
-                <!-- Checkboxes will be injected here -->
+              <div id="settings-saved-views" class="space-y-4">
+                <div id="settings-saved-views-list"></div>
+                <!-- builder panel will appear below when editing/creating -->
+                <div id="view-builder-panel" class="mt-3 hidden bg-gray-900 p-4 rounded">
+                  <div id="filters-list" class="space-y-2"></div>
+                  <div class="flex gap-2 mt-2">
+                    <select id="filter-column-select" class="bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm">
+                      <option value="name">Name</option>
+                      <option value="type_line">Type</option>
+                      <option value="rarity">Rarity</option>
+                      <option value="color_identity">Color Identity</option>
+                      <option value="cmc">Mana Value</option>
+                      <option value="set_name">Set</option>
+                      <option value="count">Count</option>
+                      <option value="deck">Deck</option>
+                    </select>
+                    <select id="filter-op-select" class="bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm">
+                      <option value="contains">contains</option>
+                      <option value="equals">equals</option>
+                      <option value="gt">&gt;</option>
+                      <option value="lt">&lt;</option>
+                    </select>
+                    <input id="filter-value-input" class="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm" placeholder="value">
+                    <button id="add-filter-rule-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold py-1 px-3 rounded">Add</button>
+                  </div>
+                  <div class="mt-4">
+                    <label class="text-sm text-gray-400">Sort Rules (top priority first)</label>
+                    <div id="sorts-list" class="space-y-2 mt-2"></div>
+                    <div class="flex gap-2 mt-2">
+                      <select id="sort-column-select" class="bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm">
+                        <option value="name">Name</option>
+                        <option value="count">Count</option>
+                        <option value="cmc">Mana Value</option>
+                        <option value="rarity">Rarity</option>
+                        <option value="price">Price</option>
+                      </select>
+                      <select id="sort-dir-select" class="bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm">
+                        <option value="asc">asc</option>
+                        <option value="desc">desc</option>
+                      </select>
+                      <button id="add-sort-rule-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold py-1 px-3 rounded">Add</button>
+                    </div>
+                  </div>
+                  <div class="mt-4 flex items-center gap-2">
+                    <label class="text-sm text-gray-400">Group By</label>
+                    <select id="view-group-by-1" class="bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm">
+                      <option value="">None</option>
+                      <option value="type_line">Type</option>
+                      <option value="rarity">Rarity</option>
+                      <option value="color_identity">Color</option>
+                      <option value="cmc">Mana Value</option>
+                      <option value="set_name">Set</option>
+                      <option value="deck">Deck</option>
+                    </select>
+                    <select id="view-group-by-2" class="bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm">
+                      <option value="">None</option>
+                      <option value="type_line">Type</option>
+                      <option value="rarity">Rarity</option>
+                      <option value="color_identity">Color</option>
+                      <option value="cmc">Mana Value</option>
+                      <option value="set_name">Set</option>
+                      <option value="deck">Deck</option>
+                    </select>
+                    <label class="text-sm text-gray-400 ml-4">Hide In Decks</label>
+                    <input type="checkbox" id="view-hide-in-deck">
+                  </div>
+                  <div class="mt-4 flex items-center gap-2">
+                    <input id="view-name-input" placeholder="View name" class="bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm">
+                    <label class="text-sm text-gray-400 flex items-center gap-2"><input type="checkbox" id="view-default-checkbox"> Set as default</label>
+                  </div>
+                  <div class="mt-3 flex items-center gap-4">
+                    <div>
+                      <label class="text-sm text-gray-400 block">View Mode</label>
+                      <select id="view-view-mode" class="bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm">
+                        <option value="grid">Grid</option>
+                        <option value="table">Table</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label class="text-sm text-gray-400 block">Grid Size</label>
+                      <select id="view-grid-size" class="bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm">
+                        <option value="sm">Small</option>
+                        <option value="md">Medium</option>
+                        <option value="lg">Large</option>
+                      </select>
+                    </div>
+                    <div class="flex-1 text-right">
+                      <button id="save-view-confirm-btn" class="bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-1 px-3 rounded">Save</button>
+                      <button id="cancel-view-builder-btn" class="bg-gray-600 hover:bg-gray-700 text-white text-sm font-bold py-1 px-3 rounded ml-2">Cancel</button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
             <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
@@ -1699,6 +1676,30 @@
         setupCollapsibleSection('toggle-add-card-section', 'add-card-section', 'add-card-section-chevron');
         setupCollapsibleSection('toggle-kpi-bar', 'collection-kpi-bar', 'kpi-bar-chevron');
         setupCollapsibleSection('toggle-filters-bar', 'collection-filters-bar', 'filters-bar-chevron');
+        // Manage Saved Views button should navigate to Settings and focus the Saved Views widget
+        const manageBtn = document.getElementById('manage-views-btn');
+        if (manageBtn) {
+          manageBtn.addEventListener('click', (e) => {
+            try {
+              if (typeof window.showView === 'function') {
+                window.showView('settings');
+                setTimeout(() => {
+                  const el = document.getElementById('settings-saved-views'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  if (typeof window.renderSettingsSavedViews === 'function') window.renderSettingsSavedViews();
+                }, 120);
+              } else {
+                // fallback: toggle view visibility manually
+                const settingsView = document.getElementById('settings-view');
+                const collectionView = document.getElementById('collection-view');
+                if (settingsView && collectionView) {
+                  collectionView.classList.add('hidden'); settingsView.classList.remove('hidden');
+                  const el = document.getElementById('settings-saved-views'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  if (typeof window.renderSettingsSavedViews === 'function') window.renderSettingsSavedViews();
+                }
+              }
+            } catch (err) { console.debug('manage-views btn handler failed', err); }
+          });
+        }
       });
       // Use the local firebase wrappers to avoid creating duplicate SDK instances
       import { app as firebaseApp, db as firebaseDb, auth as firebaseAuth, appId as initAppId } from './js/firebase/init.js';
@@ -1729,69 +1730,9 @@
             console.warn('[Firebase] Multiple auth instances detected (window.__firebase_auth differs from local firebaseAuth).');
           }
         } catch (e) { /* best-effort check */ }
-        // --- Advanced View Builder Button Event Listeners ---
-        // --- Advanced View Builder Button Logic ---
-        const openViewBuilderBtn = document.getElementById('open-view-builder-btn');
-        const saveViewConfirmBtn = document.getElementById('save-view-confirm-btn');
-        const cancelViewBuilderBtn = document.getElementById('cancel-view-builder-btn');
-        const addFilterRuleBtn = document.getElementById('add-filter-rule-btn');
-        const addSortRuleBtn = document.getElementById('add-sort-rule-btn');
-        const viewBuilderPanel = document.getElementById('view-builder-panel');
+        // View builder management lives in Settings page now. Collection keeps only the dropdown.
 
-        // Show the view builder panel
-        openViewBuilderBtn?.addEventListener('click', () => {
-          viewBuilderPanel.classList.remove('hidden');
-        });
-
-        // Cancel editing view
-        cancelViewBuilderBtn?.addEventListener('click', () => {
-          viewBuilderPanel.classList.add('hidden');
-        });
-
-        // Add filter rule
-        addFilterRuleBtn?.addEventListener('click', () => {
-          const col = document.getElementById('filter-column-select').value;
-          const op = document.getElementById('filter-op-select').value;
-          const val = document.getElementById('filter-value-input').value;
-          if (!col || !op || !val) return;
-          window.viewFilterRules.push({ column: col, operator: op, value: val });
-          document.getElementById('filter-value-input').value = '';
-          if (typeof renderViewBuilderLists === 'function') renderViewBuilderLists();
-        });
-
-        // Add sort rule
-        addSortRuleBtn?.addEventListener('click', () => {
-          const col = document.getElementById('sort-column-select').value;
-          const dir = document.getElementById('sort-dir-select').value;
-          if (!col || !dir) return;
-          window.viewSortRules.push({ column: col, direction: dir });
-          if (typeof renderViewBuilderLists === 'function') renderViewBuilderLists();
-        });
-
-        // Save view
-        saveViewConfirmBtn?.addEventListener('click', async () => {
-          const name = document.getElementById('view-name-input').value || 'Untitled View';
-          const groupBy1 = document.getElementById('view-group-by-1').value;
-          const groupBy2 = document.getElementById('view-group-by-2').value;
-          const groupBy = [groupBy1, groupBy2].filter(Boolean);
-          const hideInDecks = document.getElementById('view-hide-in-deck').checked;
-          const viewMode = document.getElementById('view-view-mode').value;
-          const gridSize = document.getElementById('view-grid-size').value;
-          const isDefault = document.getElementById('view-default-checkbox').checked;
-          const view = {
-            id: `view_${Date.now()}`,
-            name,
-            filters: window.viewFilterRules || [],
-            sorts: window.viewSortRules || [],
-            groupBy,
-            hideInDecks,
-            viewMode,
-            gridSize,
-            isDefault
-          };
-          await saveViewToFirestore(view);
-          viewBuilderPanel.classList.add('hidden');
-        });
+        // Saved view actions moved to Settings page; collection view no longer wires save handler here.
 
         // Remove filter/sort rule handlers (delegated in renderViewBuilderLists)
         window.renderViewBuilderLists = function() {
@@ -1866,6 +1807,7 @@
         let currentCommanderForAdd = null;
         let tempAiBlueprint = null;
         let localCollection = {};
+  let tempImportedData = null;
         let localDecks = {};
         let cardDeckAssignments = {};
         let deckChartInstances = {};
@@ -2039,6 +1981,18 @@
             }
           }
         });
+
+        // Load settings module (saved views) and render dropdown + settings list (local fallback)
+        (function loadSettingsModuleFallback() {
+          try {
+            import('./js/settings/settings.js').then(mod => {
+              // expose module methods to window if they didn't auto-init
+              if (typeof mod.initSettingsModule === 'function') mod.initSettingsModule();
+              const uid = window.userId || null;
+              try { mod.loadSavedViewsFromFirestore(uid).then(() => { if (typeof mod.renderSavedViewsSelect === 'function') mod.renderSavedViewsSelect(); if (typeof mod.renderSettingsSavedViews === 'function') mod.renderSettingsSavedViews(); }).catch(() => { if (typeof mod.renderSavedViewsSelect === 'function') mod.renderSavedViewsSelect(); if (typeof mod.renderSettingsSavedViews === 'function') mod.renderSettingsSavedViews(); }); } catch (e) { console.debug('[Init] render saved views fallback failed', e); }
+            }).catch(err => { console.debug('[Init] settings module import failed', err); });
+          } catch (e) { console.debug('[Init] settings module load skipped', e); }
+        })();
 
         // --- DATA FUNCTIONS ---
 
@@ -2471,6 +2425,9 @@
         function renderSettings() {
              console.log('[Function: renderSettings] Rendering settings view. Find in <script> block.');
              renderModalVisibilitySettings();
+                 // Ensure saved views UI is refreshed when entering the Settings view
+                 try { if (typeof window.renderSettingsSavedViews === 'function') window.renderSettingsSavedViews(); } catch(e) { console.debug('[RenderSettings] renderSettingsSavedViews call failed', e); }
+                 try { if (typeof window.renderSavedViewsSelect === 'function') window.renderSavedViewsSelect(window.savedViews || []); } catch(e) { console.debug('[RenderSettings] renderSavedViewsSelect call failed', e); }
              const deckListContainer = document.getElementById('settings-deck-list');
              const decks = Object.values(localDecks);
              if (decks.length > 0) {

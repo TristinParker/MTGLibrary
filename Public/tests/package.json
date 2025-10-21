@@ -3,7 +3,9 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "smoke": "node smokeTest.js"
+    "smoke": "node smokeTest.js",
+    "import-export": "node importExportTest.js",
+    "ui-controls": "node uiControlsSmoke.js"
   },
   "dependencies": {
     "puppeteer": "^23.0.0"

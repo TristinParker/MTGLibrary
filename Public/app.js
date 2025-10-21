@@ -85,38 +85,16 @@ import {
 
 document.addEventListener("DOMContentLoaded", () => {
   // --- Advanced View Builder Button Event Listeners ---
-  const openViewBuilderBtn = document.getElementById('open-view-builder-btn');
-  const saveViewConfirmBtn = document.getElementById('save-view-confirm-btn');
-  const cancelViewBuilderBtn = document.getElementById('cancel-view-builder-btn');
-  const addFilterRuleBtn = document.getElementById('add-filter-rule-btn');
-  const addSortRuleBtn = document.getElementById('add-sort-rule-btn');
-  const viewBuilderPanel = document.getElementById('view-builder-panel');
-
-  openViewBuilderBtn?.addEventListener('click', () => {
-    viewBuilderPanel.classList.remove('hidden');
-  });
-
-  cancelViewBuilderBtn?.addEventListener('click', () => {
-    viewBuilderPanel.classList.add('hidden');
-  });
-
-  addFilterRuleBtn?.addEventListener('click', () => {
-    const col = document.getElementById('filter-column-select').value;
-    const op = document.getElementById('filter-op-select').value;
-    const val = document.getElementById('filter-value-input').value;
-    if (!col || !op || !val) return;
-    window.viewFilterRules.push({ column: col, operator: op, value: val });
-    document.getElementById('filter-value-input').value = '';
-    if (typeof renderViewBuilderLists === 'function') renderViewBuilderLists();
-  });
-
-  addSortRuleBtn?.addEventListener('click', () => {
-    const col = document.getElementById('sort-column-select').value;
-    const dir = document.getElementById('sort-dir-select').value;
-    if (!col || !dir) return;
-    window.viewSortRules.push({ column: col, direction: dir });
-    if (typeof renderViewBuilderLists === 'function') renderViewBuilderLists();
-  });
+  // Saved Views dropdown wiring — delegated to settings module for management UI.
+  const savedViewsSelect = document.getElementById('saved-views-select');
+  if (savedViewsSelect) {
+    savedViewsSelect.addEventListener('change', (e) => {
+      const id = e.target.value || null;
+      if (typeof window.setActiveViewById === 'function') {
+        window.setActiveViewById(id);
+      }
+    });
+  }
 
   saveViewConfirmBtn?.addEventListener('click', async () => {
     const name = document.getElementById('view-name-input').value || 'Untitled View';
@@ -207,64 +185,37 @@ document.addEventListener("DOMContentLoaded", () => {
   window.viewSortRules = window.viewSortRules || [];
   console.log("[State] Initial application state variables declared.");
 
+  // Saved views: delegate to centralized settings module when available.
   function renderSavedViewsSelect() {
+    if (typeof window.renderSavedViewsSelect === 'function') return window.renderSavedViewsSelect(savedViews || []);
     const select = document.getElementById('saved-views-select');
     if (!select) return;
-    select.innerHTML = '<option value="">(Default)</option>' + savedViews.map(v => {
-      const mode = v.viewMode ? `, ${v.viewMode}` : '';
-      const size = v.gridSize ? `, ${v.gridSize.toUpperCase()}` : '';
-      return `<option value="${v.id}">${v.name}${v.isDefault ? ' (Default)' : ''}${mode}${size}</option>`;
-    }).join('');
+    select.innerHTML = '<option value="">(Default)</option>' + (savedViews||[]).map(v => `<option value="${v.id}">${v.name}${v.isDefault ? ' (Default)' : ''}</option>`).join('');
     select.value = activeViewId || '';
   }
 
   async function loadSavedViewsFromFirestore() {
-    if (!userId) return;
-    try {
-      const userDocRef = doc(db, `artifacts/${appId}/users/${userId}`);
-      const userDoc = await getDoc(userDocRef);
-      if (userDoc.exists()) {
-        const settings = (userDoc.data().settings) || {};
-        savedViews = settings.savedViews || [];
-        activeViewId = settings.activeViewId || null;
-      } else {
-        savedViews = [];
-        activeViewId = null;
+    if (typeof window.loadSavedViewsFromFirestore === 'function') {
+      try {
+        const views = await window.loadSavedViewsFromFirestore(userId);
+        savedViews = views || [];
+        // allow the settings module to manage activeViewId/uiPreferences; keep local sync
+        try { activeViewId = window.activeViewId || activeViewId; } catch (e) {}
+        renderSavedViewsSelect();
+        if (typeof window.setActiveViewById === 'function') window.setActiveViewById(activeViewId);
+        return views;
+      } catch (e) {
+        console.error('[App] delegated loadSavedViewsFromFirestore failed', e);
       }
-    } catch (e) {
-      console.error('Error loading saved views:', e);
-      savedViews = [];
-      activeViewId = null;
     }
-    renderSavedViewsSelect();
-    if (!activeViewId) {
-      const def = savedViews.find(v => v.isDefault);
-      if (def) activeViewId = def.id;
-    }
-    setActiveViewById(activeViewId);
-    document.addEventListener('DOMContentLoaded', () => {
-      const select = document.getElementById('saved-views-select');
-      if (select) {
-        select.addEventListener('change', (e) => {
-          const viewId = e.target.value || null;
-          setActiveViewById(viewId);
-        });
-      }
-    });
+    // fallback: no-op when no settings module available
+    return [];
   }
 
   async function persistSavedViewsToFirestore() {
-    if (!userId) return;
-    try {
-      const userDocRef = doc(db, `artifacts/${appId}/users/${userId}`);
-      await setDoc(userDocRef, { settings: { ...( (await getDoc(userDocRef)).data()?.settings || {} ), savedViews, activeViewId } }, { merge: true });
-      showToast('Views saved.', 'success');
-    } catch (e) {
-      console.error('Error saving views:', e);
-      showToast('Failed to save view settings.', 'error');
-    }
+    if (typeof window.persistSavedViewsToFirestore === 'function') return window.persistSavedViewsToFirestore(userId);
+    // fallback: do nothing
   }
-
   function buildFilterPredicate(rule) {
     return (card) => {
       const col = rule.column;
@@ -316,6 +267,15 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function saveViewToFirestore(view) {
+    if (typeof window.saveViewToFirestore === 'function') {
+      const saved = await window.saveViewToFirestore(userId || null, view);
+      // sync local cache
+      try { savedViews = window.savedViews || savedViews; } catch (e) {}
+      try { activeViewId = window.activeViewId || activeViewId; } catch (e) {}
+      renderSavedViewsSelect();
+      return saved;
+    }
+    // fallback: mimic previous behaviour
     if (!view.id) view.id = `view_${Date.now()}`;
     const existingIndex = savedViews.findIndex(v => v.id === view.id);
     if (existingIndex >= 0) savedViews[existingIndex] = view; else savedViews.push(view);
@@ -324,71 +284,39 @@ document.addEventListener("DOMContentLoaded", () => {
     await persistSavedViewsToFirestore();
     renderSavedViewsSelect();
     showToast(`View "${view.name}" saved.`, 'success');
+    return view;
   }
 
   async function deleteViewFromFirestore(viewId) {
+    if (typeof window.deleteViewFromFirestore === 'function') {
+      const ok = await window.deleteViewFromFirestore(userId || null, viewId);
+      try { savedViews = window.savedViews || savedViews; } catch (e) {}
+      try { activeViewId = window.activeViewId || activeViewId; } catch (e) {}
+      renderSavedViewsSelect();
+      return ok;
+    }
     savedViews = savedViews.filter(v => v.id !== viewId);
     if (activeViewId === viewId) activeViewId = null;
     await persistSavedViewsToFirestore();
     renderSavedViewsSelect();
     showToast('View deleted.', 'success');
+    return true;
   }
 
   function setActiveViewById(viewId) {
+    if (typeof window.setActiveViewById === 'function') return window.setActiveViewById(viewId);
     activeViewId = viewId || null;
+    // fallback behaviour: attempt to apply view locally
     const view = savedViews.find(v => v.id === viewId);
-    if (view) {
-      viewFilterRules = (view.filters || []).map(f => ({...f}));
-      viewSortRules = (view.sorts || []).map(s => ({...s}));
-      if (document.getElementById('view-group-by-1')) document.getElementById('view-group-by-1').value = (view.groupBy && view.groupBy[0]) || '';
-      if (document.getElementById('view-group-by-2')) document.getElementById('view-group-by-2').value = (view.groupBy && view.groupBy[1]) || '';
-      if (document.getElementById('view-hide-in-deck')) document.getElementById('view-hide-in-deck').checked = !!view.hideInDecks;
-      if (document.getElementById('view-name-input')) document.getElementById('view-name-input').value = view.name || '';
-      if (document.getElementById('view-view-mode')) document.getElementById('view-view-mode').value = view.viewMode || collectionViewMode;
-      if (document.getElementById('view-grid-size')) document.getElementById('view-grid-size').value = view.gridSize || collectionGridSize;
-      try {
-        const g1 = document.getElementById('collection-group-by-1');
-        const g2 = document.getElementById('collection-group-by-2');
-        if (g1) g1.value = (view.groupBy && view.groupBy[0]) || '';
-        if (g2) g2.value = (view.groupBy && view.groupBy[1]) || '';
-        const hideCheckbox = document.getElementById('hide-in-deck-checkbox');
-        if (hideCheckbox) hideCheckbox.checked = !!view.hideInDecks;
-        if (view.viewMode) {
-          collectionViewMode = view.viewMode;
-          const gridBtn = document.getElementById('view-toggle-grid');
-          const tableBtn = document.getElementById('view-toggle-table');
-          if (gridBtn && tableBtn) {
-            if (collectionViewMode === 'grid') {
-              gridBtn.classList.add('bg-indigo-600','text-white');
-              tableBtn.classList.remove('bg-indigo-600','text-white');
-            } else {
-              tableBtn.classList.add('bg-indigo-600','text-white');
-              gridBtn.classList.remove('bg-indigo-600','text-white');
-            }
-          }
-        }
-        if (view.gridSize) {
-          collectionGridSize = view.gridSize;
-          document.querySelectorAll('.grid-size-btn').forEach(b => { b.classList.remove('bg-indigo-600','text-white'); if (b.dataset.size === collectionGridSize) b.classList.add('bg-indigo-600','text-white'); });
-        }
-        if (Array.isArray(view.sorts) && view.sorts.length > 0) {
-          const primary = view.sorts[0];
-          collectionSortState = { column: primary.column, direction: primary.direction };
-          document.querySelectorAll('.sortable').forEach(th => { th.classList.remove('sorted-asc','sorted-desc'); if (th.dataset.sort === collectionSortState.column) th.classList.add(collectionSortState.direction === 'asc' ? 'sorted-asc' : 'sorted-desc'); });
-        }
-      } catch (err) { console.warn('Could not apply saved view to live UI controls', err); }
-    } else {
-      viewFilterRules = [];
-      viewSortRules = [];
-      if (document.getElementById('view-group-by-1')) document.getElementById('view-group-by-1').value = '';
-      if (document.getElementById('view-group-by-2')) document.getElementById('view-group-by-2').value = '';
-      if (document.getElementById('view-hide-in-deck')) document.getElementById('view-hide-in-deck').checked = false;
-      if (document.getElementById('view-name-input')) document.getElementById('view-name-input').value = '';
+    if (view && typeof window.applySavedView === 'function') {
+      window.applySavedView(view);
+      try { if (typeof window.persistSettingsForUser === 'function' && userId) window.persistSettingsForUser(userId); } catch (e) {}
+      renderSavedViewsSelect();
+      return;
     }
-    if (typeof renderViewBuilderLists === 'function') renderViewBuilderLists();
+    // last-resort: trigger re-render
     renderSavedViewsSelect();
     renderPaginatedCollection();
-    if (view && view.name) showToast(`Applied view: ${view.name}`, 'success');
   }
 
   const views = {
