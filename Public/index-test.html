@@ -42,186 +42,6 @@
         object-fit: cover;
         display: block;
       }
-
-      /* Commander search thumbnails: absolute fill to keep layout stable */
-      .commander-search-img {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        display: block;
-      }
-
-      /* Card versions grid item sizing (search results). Use aspect-ratio so
-         the height flows naturally and images are fully visible. Make the
-         item a block-level element and absolutely position the image so the
-         grid cell never collapses or allows layering/overlap during image
-         load. */
-      .card-version-item {
-        position: relative;
-        display: block; /* let grid control placement */
-        aspect-ratio: 2 / 3; /* portrait card */
-        width: 100%;
-        overflow: hidden;
-        border-radius: 0.5rem;
-        box-sizing: border-box; /* ensure padding/border don't affect size */
-        align-self: start; /* avoid stretching that can cause overlap */
-      }
-
-      /* Make the image fill the card cell without affecting layout size */
-      .card-version-item img {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-        object-fit: contain; /* show whole card without cropping */
-        display: block; /* avoid inline whitespace issues */
-      }
-
-      /* Explicit class for images injected by JS renderer */
-      .card-version-img {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-        display: block;
-      }
-
-      /* Force consistent row sizing for the versions grid to avoid overlap.
-         Use 'auto' so rows size to the card item (which has an aspect-ratio).
-         Using fractional rows (1fr) can make rows smaller than the item and
-         cause visual stacking/overflow. */
-      #card-versions-grid {
-        grid-auto-rows: auto;
-        align-items: start;
-        align-content: start;
-      }
-
-      /* Collection grid: ensure items don't stretch rows vertically and
-         that content aligns to the top of each row. This avoids overlap
-         when images load or when items have different internal content. */
-      #collection-content .grid {
-        align-items: start;
-        align-content: start;
-      }
-
-    /* Ensure modal content (child of the backdrop) receives pointer events
-      and is above the backdrop so clicks reach interactive elements. */
-    .modal-backdrop > div {
-      pointer-events: auto;
-      z-index: 2;
-    }
-
-    /* Z-index ordering inside a version item: image at base (z-0), overlay
-      sits above it for hover text (z-10). This keeps layering predictable
-      and avoids other modals or elements capturing clicks unexpectedly. */
-    .card-version-item { z-index: 0; }
-    .card-version-item img { z-index: 0; }
-    .card-version-item > div.absolute { z-index: 10; }
-
-    /* Make commander selection buttons explicitly pointer-enabled */
-    .select-commander-from-collection-btn { pointer-events: auto; }
-    .commander-select-btn {
-      z-index: 50;
-      pointer-events: auto;
-    }
-      .select-commander-from-search-btn:focus,
-      .select-commander-from-search-btn:active,
-      .select-commander-from-collection-btn:focus,
-      .select-commander-from-collection-btn:active {
-        outline: 3px solid rgba(99,102,241,0.7); /* indigo-500 */
-        outline-offset: 4px;
-      }
-
-      /* Fallback for browsers that don't support aspect-ratio: use padding-top
-         pseudo-element to enforce height based on width (height = width * 3/2). */
-      @supports not (aspect-ratio: 1/1) {
-        .card-version-item::before,
-        .collection-card-item::before,
-        .select-commander-from-search-btn::before {
-          content: "";
-          display: block;
-          width: 100%;
-          padding-top: 150%; /* height = 150% of width for 2/3 aspect ratio */
-        }
-      }
-      .card-image {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-      }
-      .modal-backdrop {
-        background-color: rgba(0, 0, 0, 0.75);
-      }
-      /* Hide scrollbar for webkit */
-      .no-scrollbar::-webkit-scrollbar {
-        display: none;
-      }
-      /* Hide scrollbar for IE, Edge and Firefox */
-      .no-scrollbar {
-        -ms-overflow-style: none; /* IE and Edge */
-        scrollbar-width: none; /* Firefox */
-      }
-      /* Master Delete Button Logic */
-      .delete-button {
-        display: none;
-      }
-      .edit-mode .delete-button {
-        display: inline-flex; /* Use flex to align icon and text */
-      }
-
-      .group-header {
-        background-color: #374151; /* gray-700 */
-        color: #d1d5db; /* gray-300 */
-        padding: 0.75rem 1.5rem;
-        font-weight: bold;
-        font-size: 1.25rem;
-        margin-top: 1.5rem;
-        border-bottom: 3px solid #4f46e5; /* indigo-600 */
-        position: sticky;
-        top: 72px; /* Height of header */
-        z-index: 5;
-      }
-      /* For Table Sorting */
-      .sortable {
-        cursor: pointer;
-      }
-      .sortable:hover {
-        color: #a78bfa;
-      }
-      .edit-mode .sortable {
-        cursor: default;
-      }
-      .edit-mode .sortable:hover {
-        color: inherit;
-      }
-      .sort-asc::after {
-        content: " ▲";
-        font-size: 0.8em;
-      }
-      .sort-desc::after {
-        content: " ▼";
-        font-size: 0.8em;
-      }
-      /* Card Modal Edit Mode */
-      .card-modal-value-display {
-        display: block;
-      }
-      .card-modal-value-input {
-        display: none;
-      }
-      .card-modal-edit-mode .card-modal-value-display {
-        display: none;
-      }
-      .card-modal-edit-mode .card-modal-value-input {
-        display: block;
-      }
-
       .oracle-text-truncate {
         overflow: hidden;
         display: -webkit-box;
@@ -585,83 +405,28 @@
           <!-- Collection View -->
           <div id="collection-view">
             <!-- Add Card Section -->
-
-            <section id="add-card-section-wrapper">
-              <button id="toggle-add-card-section" aria-expanded="true" aria-controls="add-card-section" class="w-full flex items-center gap-2 justify-between bg-gray-800 hover:bg-gray-700 text-gray-100 font-semibold px-4 py-2 border-b border-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 rounded-t-2xl">
-                <span class="flex items-center gap-2"><svg class="w-5 h-5 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>Add Card to Collection</span>
-                <span id="add-card-section-chevron" aria-hidden="true">▼</span>
-              </button>
-              <div id="add-card-section" class="bg-gray-900 p-4 border-b border-gray-700">
-                <div class="flex flex-col md:flex-row gap-4">
+              <div id="add-card-section-wrapper">
+                <div class="bg-gray-900/80 p-4 rounded-2xl shadow-lg mb-4 flex flex-col sm:flex-row items-center gap-4">
                   <input
                     type="text"
                     id="card-search-input"
-                    class="flex-grow bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    placeholder="Enter card name (e.g., Sol Ring)"
+                    class="flex-grow bg-gray-800 border border-gray-700 rounded-xl px-5 py-3 text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-gray-400"
+                    placeholder="Add card by name (e.g., Sol Ring)"
                   />
                   <button
                     id="search-card-btn"
-                    class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 flex items-center justify-center"
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-3 rounded-xl flex items-center gap-2 shadow-md transition"
+                    aria-label="Add Card"
                   >
-                    <svg
-                      id="search-icon"
-                      class="w-5 h-5 mr-2"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                      ></path>
-                    </svg>
-                    <span id="search-text">Search</span>
-                    <div
-                      id="search-spinner"
-                      class="hidden animate-spin rounded-full h-5 w-5 border-b-2 border-white"
-                    ></div>
+                    <svg id="search-icon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                    <span id="search-text" class="hidden sm:inline">Add Card</span>
+                    <div id="search-spinner" class="hidden animate-spin rounded-full h-6 w-6 border-b-2 border-white ml-2"></div>
                   </button>
                 </div>
               </div>
-            </section>
 
-            <!-- KPI Bar: Collection Stats -->
-            <section id="collection-kpi-bar-section">
-              <button id="toggle-kpi-bar" aria-expanded="true" aria-controls="collection-kpi-bar" class="w-full flex items-center gap-2 justify-between bg-gray-800 hover:bg-gray-700 text-gray-100 font-semibold px-4 py-2 border-b border-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-200">
-                <span class="flex items-center gap-2"><svg class="w-5 h-5 text-pink-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01"/></svg>Collection KPIs</span>
-                <span id="kpi-bar-chevron" aria-hidden="true">▼</span>
-              </button>
-              <div id="collection-kpi-bar" class="flex flex-wrap gap-4 items-center bg-gray-900 p-4 border-b border-gray-700">
-              <div class="flex flex-col items-center flex-1 min-w-[120px]">
-                <span class="text-xs text-gray-400">Total Cards</span>
-                <span id="kpi-total-cards" class="text-2xl font-bold text-indigo-400">0</span>
-                <span class="text-xs text-gray-500">(all copies)</span>
-              </div>
-              <div class="flex flex-col items-center flex-1 min-w-[120px]">
-                <span class="text-xs text-gray-400">Unique Cards</span>
-                <span id="kpi-unique-cards" class="text-2xl font-bold text-pink-400">0</span>
-                <span class="text-xs text-gray-500">(distinct names)</span>
-              </div>
-              <div class="flex flex-col items-center flex-1 min-w-[120px]">
-                <span class="text-xs text-gray-400">Total Price</span>
-                <span id="kpi-total-price" class="text-2xl font-bold text-green-400">$0.00</span>
-                <span class="text-xs text-gray-500">(USD)</span>
-              </div>
-              <div class="flex flex-col items-center flex-1 min-w-[120px]">
-                <span class="text-xs text-gray-400">Filtered</span>
-                <span id="kpi-filtered-summary" class="text-lg font-semibold text-gray-300">0/0</span>
-                <span class="text-xs text-gray-500">(showing/total)</span>
-              </div>
-            </div>
             <!-- Collection Filters & Grouping -->
-            <section id="collection-filters-section">
-              <button id="toggle-filters-bar" aria-expanded="true" aria-controls="collection-filters-bar" class="w-full flex items-center gap-2 justify-between bg-gray-800 hover:bg-gray-700 text-gray-100 font-semibold px-4 py-2 border-b border-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-200 rounded-b-2xl">
-                <span class="flex items-center gap-2"><svg class="w-5 h-5 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v16a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm4 4h8v8H7V8z"/></svg>Search, Filter & Group</span>
-                <span id="filters-bar-chevron" aria-hidden="true">▼</span>
-              </button>
-              <div id="collection-filters-bar" class="bg-gray-900 p-4 flex flex-col sm:flex-row gap-4 items-center rounded-b-2xl">
+            <div class="bg-gray-900/80 p-4 rounded-2xl shadow-lg mb-6 flex flex-col sm:flex-row gap-4 items-center">
               <div class="flex-grow min-w-[180px]">
                 <label for="filter-text" class="text-sm text-gray-400 mb-2 block">Quick Filter</label>
                 <input
@@ -711,22 +476,10 @@
                     <select id="saved-views-select" class="bg-gray-700 border border-gray-600 rounded-lg px-3 py-1 text-sm">
                       <option value="">(Default)</option>
                     </select>
-                    <button id="manage-views-btn" class="text-sm text-indigo-400 underline ml-2" type="button">Manage</button>
+                    <button id="manage-views-btn" class="text-sm text-indigo-400 underline ml-2">Manage</button>
                   </div>
                   <div class="flex items-center gap-2">
-                    <button id="open-view-builder-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold py-1 px-3 rounded" type="button">Edit View</button>
-    <!-- Manage Views Modal -->
-    <div id="manage-views-modal" class="fixed inset-0 z-[90] hidden items-center justify-center p-4 modal-backdrop">
-      <div class="bg-gray-800 rounded-lg shadow-2xl max-w-md w-full">
-        <div class="p-6 text-center">
-          <h3 class="text-xl font-bold mb-2">Manage Saved Views</h3>
-          <div id="manage-views-list" class="space-y-2 mb-4">
-            <!-- List of views with delete buttons will be injected here -->
-          </div>
-          <button id="close-manage-views-modal-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded-lg">Close</button>
-        </div>
-      </div>
-    </div>
+                    <button id="open-view-builder-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold py-1 px-3 rounded">Edit View</button>
                     <button id="save-view-btn" class="bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-1 px-3 rounded hidden">Save View</button>
                   </div>
                 </div>
@@ -754,6 +507,7 @@
                     <input id="filter-value-input" class="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm" placeholder="value">
                     <button id="add-filter-rule-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold py-1 px-3 rounded">Add</button>
                   </div>
+
                   <div class="mt-4">
                     <label class="text-sm text-gray-400">Sort Rules (top priority first)</label>
                     <div id="sorts-list" class="space-y-2 mt-2"></div>
@@ -907,8 +661,7 @@
               >
                 Reset
               </button>
-              </div>
-            </section>
+            </div>
 
             <!-- Collection Content -->
             <div id="collection-content">
@@ -1150,67 +903,125 @@
           </button>
         </div>
         <div
-          id="card-versions-grid"
-          class="p-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-6 overflow-y-auto no-scrollbar"
-        >
-          <!-- Card versions will be injected here -->
-        </div>
-        <div
-          id="versions-loading"
-          class="flex-grow flex items-center justify-center"
-        >
-          <div
-            class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-400"
-          ></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Card Add Confirmation Modal -->
-    <div
-      id="card-confirmation-modal"
-      class="fixed inset-0 z-[70] hidden items-center justify-center p-4 modal-backdrop"
-    >
-      <div class="bg-gray-800 rounded-lg shadow-2xl max-w-6xl w-full">
-        <div
-          id="card-confirmation-content"
-          class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 items-center"
-        >
-          <!-- Content injected by JS -->
-        </div>
-      </div>
-    </div>
-
-    <!-- Card Details Modal -->
-    <div
-      id="card-details-modal"
-      class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop overflow-y-auto"
-    >
-      <div
-        id="card-details-modal-content-wrapper"
-        class="bg-gray-800 rounded-lg shadow-2xl max-w-4xl w-full my-8 relative"
-      >
-        <div class="absolute top-2 right-4 flex items-center gap-4 z-10">
-          <button
-            id="edit-card-details-btn"
-            class="text-gray-400 hover:text-white"
-          >
-            <svg
-              class="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-              ></path>
-            </svg>
-          </button>
-          <button
-            id="close-card-details-btn"
+              <!-- Combined Add Card + Filter/Group Row -->
+              <div id="collection-toolbar" class="bg-gray-900/80 p-4 rounded-2xl shadow-lg mb-6 flex flex-col md:flex-row items-center gap-4">
+                <!-- Add Card -->
+                <div class="flex flex-col md:flex-row items-center gap-3 flex-1">
+                  <input
+                    type="text"
+                    id="card-search-input"
+                    class="flex-grow bg-gray-800 border border-gray-700 rounded-xl px-5 py-3 text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-gray-400"
+                    placeholder="Add card by name (e.g., Sol Ring)"
+                  />
+                  <button
+                    id="search-card-btn"
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-3 rounded-xl flex items-center gap-2 shadow-md transition"
+                    aria-label="Add Card"
+                  >
+                    <svg id="search-icon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                    <span id="search-text" class="hidden sm:inline">Add Card</span>
+                    <div id="search-spinner" class="hidden animate-spin rounded-full h-6 w-6 border-b-2 border-white ml-2"></div>
+                  </button>
+                </div>
+                <!-- Filter/Group Controls -->
+                <div class="flex flex-col md:flex-row items-center gap-3 flex-1">
+                  <div class="flex flex-col md:flex-row gap-3 flex-1">
+                    <div class="flex flex-col">
+                      <label for="filter-text" class="text-sm text-gray-400 mb-2 block">Quick Filter</label>
+                      <input
+                        type="text"
+                        id="filter-text"
+                        class="w-full bg-gray-800 border border-gray-700 rounded-xl px-5 py-3 text-base focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-gray-400"
+                        placeholder="e.g., Goblin, Instant..."
+                      />
+                    </div>
+                    <div class="flex flex-col">
+                      <label for="collection-group-by-1" class="text-sm text-gray-400 mb-2 block">Group By</label>
+                      <select
+                        id="collection-group-by-1"
+                        class="collection-group-select w-full bg-gray-800 border border-gray-700 rounded-xl px-5 py-3 text-base focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      >
+                        <option value="">None</option>
+                        <option value="type_line">Type</option>
+                        <option value="rarity">Rarity</option>
+                        <option value="color_identity">Color</option>
+                        <option value="cmc">Mana Value</option>
+                        <option value="set_name">Set</option>
+                        <option value="deck">Deck</option>
+                      </select>
+                    </div>
+                    <div class="flex flex-col">
+                      <label for="collection-group-by-2" class="text-sm text-gray-400 mb-2 block">Then By</label>
+                      <select
+                        id="collection-group-by-2"
+                        class="collection-group-select w-full bg-gray-800 border border-gray-700 rounded-xl px-5 py-3 text-base focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      >
+                        <option value="">None</option>
+                        <option value="type_line">Type</option>
+                        <option value="rarity">Rarity</option>
+                        <option value="color_identity">Color</option>
+                        <option value="cmc">Mana Value</option>
+                        <option value="set_name">Set</option>
+                        <option value="deck">Deck</option>
+                      </select>
+                    </div>
+                  </div>
+                  <!-- Saved Views Row -->
+                  <div class="flex flex-row items-center gap-2">
+                    <label for="saved-views-select" class="text-sm text-gray-400">Saved Views</label>
+                    <select id="saved-views-select" class="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                      <!-- Options populated dynamically -->
+                    </select>
+                    <a href="#" id="manage-views-link" class="text-indigo-400 hover:underline text-sm" onclick="openViewSettingsModal(event)">Manage</a>
+                    <button id="edit-view-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg text-sm font-bold">Edit View</button>
+                    <button id="save-view-btn" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm font-bold">Save View</button>
+                    <!-- Advanced settings popover -->
+                    <div class="relative group">
+                      <button class="ml-2 px-2 py-2 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700" aria-label="Show advanced settings">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 6h.01" /></svg>
+                      </button>
+                      <div class="absolute z-10 right-0 mt-2 w-max bg-gray-900 border border-gray-700 rounded-xl shadow-lg p-4 hidden group-hover:block">
+                        <label class="flex items-center gap-2 text-sm text-gray-400 mb-2">
+                          <input type="checkbox" id="hide-cards-in-decks" class="form-checkbox" /> Hide Cards in Decks
+                        </label>
+                        <div class="flex items-center gap-2 mb-2">
+                          <span class="text-sm text-gray-400">Grid Size</span>
+                          <button id="grid-size-s" class="px-2 py-1 rounded-lg bg-gray-800 text-indigo-400">S</button>
+                          <button id="grid-size-m" class="px-2 py-1 rounded-lg bg-indigo-600 text-white">M</button>
+                          <button id="grid-size-l" class="px-2 py-1 rounded-lg bg-gray-800 text-indigo-400">L</button>
+                        </div>
+                        <div class="flex items-center gap-2 mb-2">
+                          <span class="text-sm text-gray-400">View</span>
+                          <button id="view-mode-grid" class="px-2 py-1 rounded-lg bg-indigo-600 text-white"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" /></svg></button>
+                          <button id="view-mode-list" class="px-2 py-1 rounded-lg bg-gray-800 text-indigo-400"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="8" rx="2" /></svg></button>
+                        </div>
+                        <button id="reset-view-btn" class="bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded-lg text-sm font-bold">Reset</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- Modal for View Settings -->
+              <div id="view-settings-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 hidden">
+                <div class="bg-gray-900 rounded-2xl shadow-2xl p-8 w-full max-w-lg relative">
+                  <button onclick="closeViewSettingsModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button>
+                  <h2 class="text-xl font-bold text-white mb-4">View Settings</h2>
+                  <div class="mb-4">
+                    <label for="modal-saved-views-select" class="text-sm text-gray-400 mb-2 block">Select Saved View</label>
+                    <select id="modal-saved-views-select" class="w-full bg-gray-800 border border-gray-700 rounded-xl px-5 py-3 text-base focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                      <!-- Options populated dynamically -->
+                    </select>
+                  </div>
+                  <!-- Advanced settings inside modal -->
+                  <div id="modal-advanced-settings">
+                    <!-- Place advanced settings here if needed -->
+                  </div>
+                  <div class="flex justify-end gap-2 mt-6">
+                    <button onclick="closeViewSettingsModal()" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg">Cancel</button>
+                    <button id="modal-save-view-btn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-bold">Save</button>
+                  </div>
+                </div>
+              </div>
             class="text-gray-400 hover:text-white text-4xl font-bold"
           >
             &times;
@@ -1839,59 +1650,7 @@
     </div>
 
     <!-- Firebase and App Logic -->
-
-  <script type="module">
-      // --- Modal Visibility Settings Global ---
-
-      // --- Saved Views State (global, for advanced view builder) ---
-      window.savedViews = window.savedViews || [];
-      window.activeViewId = typeof window.activeViewId !== 'undefined' ? window.activeViewId : null;
-      window.modalVisibilitySettings = window.modalVisibilitySettings || {
-        count: true,
-        finish: true,
-        condition: true,
-        purchasePrice: true,
-        notes: true
-      };
-
-      // --- Edit View Button Logic ---
-      document.addEventListener('DOMContentLoaded', () => {
-        const editBtn = document.getElementById('open-view-builder-btn');
-        const viewBuilderPanel = document.getElementById('view-builder-panel');
-        if (editBtn && viewBuilderPanel) {
-          editBtn.addEventListener('click', () => {
-            viewBuilderPanel.classList.remove('hidden');
-            // Optionally scroll into view
-            viewBuilderPanel.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          });
-        }
-      });
-
-      // --- Collapsible UI for Add Card, KPI, and Filters bars ---
-      function setupCollapsibleSection(toggleBtnId, sectionId, chevronId) {
-        const btn = document.getElementById(toggleBtnId);
-        const section = document.getElementById(sectionId);
-        const chevron = document.getElementById(chevronId);
-        if (!btn || !section || !chevron) return;
-        btn.addEventListener('click', () => {
-          const expanded = btn.getAttribute('aria-expanded') === 'true';
-          btn.setAttribute('aria-expanded', String(!expanded));
-          section.style.display = expanded ? 'none' : '';
-          chevron.textContent = expanded ? '►' : '▼';
-        });
-        // Keyboard accessibility: toggle on Enter/Space
-        btn.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            btn.click();
-          }
-        });
-      }
-      document.addEventListener('DOMContentLoaded', () => {
-        setupCollapsibleSection('toggle-add-card-section', 'add-card-section', 'add-card-section-chevron');
-        setupCollapsibleSection('toggle-kpi-bar', 'collection-kpi-bar', 'kpi-bar-chevron');
-        setupCollapsibleSection('toggle-filters-bar', 'collection-filters-bar', 'filters-bar-chevron');
-      });
+    <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
       import {
         getAuth,
@@ -1920,92 +1679,58 @@
         runTransaction,
       } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-  document.addEventListener("DOMContentLoaded", () => {
-        // --- Advanced View Builder Button Event Listeners ---
-        // --- Advanced View Builder Button Logic ---
-        const openViewBuilderBtn = document.getElementById('open-view-builder-btn');
-        const saveViewConfirmBtn = document.getElementById('save-view-confirm-btn');
-        const cancelViewBuilderBtn = document.getElementById('cancel-view-builder-btn');
-        const addFilterRuleBtn = document.getElementById('add-filter-rule-btn');
-        const addSortRuleBtn = document.getElementById('add-sort-rule-btn');
-        const viewBuilderPanel = document.getElementById('view-builder-panel');
-
-        // Show the view builder panel
-        openViewBuilderBtn?.addEventListener('click', () => {
-          viewBuilderPanel.classList.remove('hidden');
-        });
-
-        // Cancel editing view
-        cancelViewBuilderBtn?.addEventListener('click', () => {
-          viewBuilderPanel.classList.add('hidden');
-        });
-
-        // Add filter rule
-        addFilterRuleBtn?.addEventListener('click', () => {
-          const col = document.getElementById('filter-column-select').value;
-          const op = document.getElementById('filter-op-select').value;
-          const val = document.getElementById('filter-value-input').value;
-          if (!col || !op || !val) return;
-          window.viewFilterRules.push({ column: col, operator: op, value: val });
-          document.getElementById('filter-value-input').value = '';
-          if (typeof renderViewBuilderLists === 'function') renderViewBuilderLists();
-        });
-
-        // Add sort rule
-        addSortRuleBtn?.addEventListener('click', () => {
-          const col = document.getElementById('sort-column-select').value;
-          const dir = document.getElementById('sort-dir-select').value;
-          if (!col || !dir) return;
-          window.viewSortRules.push({ column: col, direction: dir });
-          if (typeof renderViewBuilderLists === 'function') renderViewBuilderLists();
-        });
-
-        // Save view
-        saveViewConfirmBtn?.addEventListener('click', async () => {
-          const name = document.getElementById('view-name-input').value || 'Untitled View';
-          const groupBy1 = document.getElementById('view-group-by-1').value;
-          const groupBy2 = document.getElementById('view-group-by-2').value;
-          const groupBy = [groupBy1, groupBy2].filter(Boolean);
-          const hideInDecks = document.getElementById('view-hide-in-deck').checked;
-          const viewMode = document.getElementById('view-view-mode').value;
-          const gridSize = document.getElementById('view-grid-size').value;
-          const isDefault = document.getElementById('view-default-checkbox').checked;
-          const view = {
-            id: `view_${Date.now()}`,
-            name,
-            filters: window.viewFilterRules || [],
-            sorts: window.viewSortRules || [],
-            groupBy,
-            hideInDecks,
-            viewMode,
-            gridSize,
-            isDefault
-          };
-          await saveViewToFirestore(view);
-          viewBuilderPanel.classList.add('hidden');
-        });
-
-        // Remove filter/sort rule handlers (delegated in renderViewBuilderLists)
-        window.renderViewBuilderLists = function() {
-          const filtersList = document.getElementById('filters-list');
-          const sortsList = document.getElementById('sorts-list');
-          filtersList.innerHTML = (window.viewFilterRules||[]).map((r, i) => `<div class="flex items-center gap-2"><span class="text-sm text-gray-200">${r.column} ${r.operator} \"${r.value}\"</span><button data-i="${i}" class="remove-filter-btn text-sm text-red-400 ml-2">Remove</button></div>`).join('') || '<div class="text-sm text-gray-500">No filters</div>';
-          sortsList.innerHTML = (window.viewSortRules||[]).map((s, i) => `<div class="flex items-center gap-2"><span class="text-sm text-gray-200">${i+1}. ${s.column} ${s.direction}</span><button data-i="${i}" class="remove-sort-btn text-sm text-red-400 ml-2">Remove</button></div>`).join('') || '<div class="text-sm text-gray-500">No sorts</div>';
-          document.querySelectorAll('.remove-filter-btn').forEach(btn => btn.addEventListener('click', (e) => {
-            const idx = parseInt(btn.dataset.i);
-            window.viewFilterRules.splice(idx, 1);
-            window.renderViewBuilderLists();
-          }));
-          document.querySelectorAll('.remove-sort-btn').forEach(btn => btn.addEventListener('click', (e) => {
-            const idx = parseInt(btn.dataset.i);
-            window.viewSortRules.splice(idx, 1);
-            window.renderViewBuilderLists();
-          }));
-        };
-        if (typeof renderViewBuilderLists === 'function') renderViewBuilderLists();
+      document.addEventListener("DOMContentLoaded", () => {
         console.log(
           "[DOMContentLoaded] Event fired. App is initializing. Find in <script> block."
         );
+
+        // Robust helper: compute and apply the appropriate top offset for sticky table headers.
+        function computeTableHeaderTop(container) {
+          try {
+            const appHeader = document.querySelector('header');
+            // compute top offset relative to the container so sticky works inside scroller
+            const containerRect = container.getBoundingClientRect();
+            let topOffset = 0;
+            if (appHeader) {
+              const rect = appHeader.getBoundingClientRect();
+              // distance from container top to app header bottom
+              topOffset = Math.max(0, Math.ceil(rect.bottom - containerRect.top));
+            }
+            const banner = document.querySelector('.page-banner');
+            if (banner) {
+              const bRect = banner.getBoundingClientRect();
+              topOffset = Math.max(topOffset, Math.ceil(bRect.bottom - containerRect.top));
+            }
+            // safety clamp in case container is small
+            topOffset = Math.max(0, topOffset);
+            container.querySelectorAll('table thead').forEach(thead => {
+              thead.style.top = `${topOffset}px`;
+            });
+          } catch (err) {
+            console.error('[computeTableHeaderTop] error', err);
+          }
+        }
+
+        // Attach a debounced resize/scroll handler so table header offsets update when layout changes
+        (function attachTableHeaderResizeHandler() {
+          let timer = null;
+          const handler = () => {
+            document.querySelectorAll('.overflow-x-auto').forEach(container => {
+              computeTableHeaderTop(container);
+            });
+          };
+          window.addEventListener('resize', () => {
+            clearTimeout(timer);
+            timer = setTimeout(handler, 120);
+          });
+          window.addEventListener('scroll', () => {
+            if (timer) return;
+            timer = setTimeout(() => {
+              handler();
+              timer = null;
+            }, 150);
+          }, { passive: true });
+        })();
 
         // --- FIREBASE & APP CONFIG ---
         let db, auth;
@@ -2058,240 +1783,20 @@
           mode: "collection",
           deckId: null,
         };
-        // --- Advanced View System ---
-        window.viewFilterRules = window.viewFilterRules || [];
-        window.viewSortRules = window.viewSortRules || [];
-  // --- Advanced View System ---
-  // (duplicate state block removed)
-  console.log("[State] Initial application state variables declared.");
-        // --- Saved Views / Advanced Filters ---
-
-        function renderSavedViewsSelect() {
-          const select = document.getElementById('saved-views-select');
-          if (!select) return;
-          select.innerHTML = '<option value="">(Default)</option>' + savedViews.map(v => {
-            const mode = v.viewMode ? `, ${v.viewMode}` : '';
-            const size = v.gridSize ? `, ${v.gridSize.toUpperCase()}` : '';
-            return `<option value="${v.id}">${v.name}${v.isDefault ? ' (Default)' : ''}${mode}${size}</option>`;
-          }).join('');
-          select.value = activeViewId || '';
-        }
-
-        async function loadSavedViewsFromFirestore() {
-          if (!userId) return;
-          try {
-            const userDocRef = doc(db, `artifacts/${appId}/users/${userId}`);
-            const userDoc = await getDoc(userDocRef);
-            if (userDoc.exists()) {
-              const settings = (userDoc.data().settings) || {};
-              savedViews = settings.savedViews || [];
-              activeViewId = settings.activeViewId || null;
-            } else {
-              savedViews = [];
-              activeViewId = null;
-            }
-          } catch (e) {
-            console.error('Error loading saved views:', e);
-            savedViews = [];
-            activeViewId = null;
-          }
-          renderSavedViewsSelect();
-          // If no activeViewId but a saved default exists, use it
-          if (!activeViewId) {
-            const def = savedViews.find(v => v.isDefault);
-            if (def) {
-              activeViewId = def.id;
-            }
-          }
-          // Always call setActiveViewById to hydrate UI and state
-          setActiveViewById(activeViewId);
-        // --- Saved Views Dropdown Change Handler ---
-        document.addEventListener('DOMContentLoaded', () => {
-          const select = document.getElementById('saved-views-select');
-          if (select) {
-            select.addEventListener('change', (e) => {
-              const viewId = e.target.value || null;
-              setActiveViewById(viewId);
-            });
-          }
-        });
-        }
-
-        async function persistSavedViewsToFirestore() {
-          if (!userId) return;
-          try {
-            const userDocRef = doc(db, `artifacts/${appId}/users/${userId}`);
-            await setDoc(userDocRef, { settings: { ...( (await getDoc(userDocRef)).data()?.settings || {} ), savedViews, activeViewId } }, { merge: true });
-            showToast('Views saved.', 'success');
-          } catch (e) {
-            console.error('Error saving views:', e);
-            showToast('Failed to save view settings.', 'error');
-          }
-        }
-
-        function buildFilterPredicate(rule) {
-          // rule: {column, operator, value}
-          return (card) => {
-            const col = rule.column;
-            const val = rule.value;
-            const op = rule.operator;
-            let cardVal = card[col];
-            if (col === 'color_identity') cardVal = (card.color_identity || []).join('');
-            if (col === 'type_line') cardVal = (card.type_line || '').split(' — ')[0];
-            if (col === 'deck') {
-              const assignment = (cardDeckAssignments[card.firestoreId] || [])[0];
-              cardVal = assignment ? assignment.deckName : 'Not in a Deck';
-            }
-            if (cardVal === undefined || cardVal === null) cardVal = '';
-            cardVal = (typeof cardVal === 'string') ? cardVal.toLowerCase() : cardVal;
-            const cmp = (v) => (typeof v === 'string' ? v.toLowerCase() : v);
-            switch(op) {
-              case 'contains':
-                return String(cardVal).includes(String(val).toLowerCase());
-              case 'equals':
-                return String(cardVal) === String(val).toLowerCase();
-              case 'gt':
-                return Number(cardVal) > Number(val);
-              case 'lt':
-                return Number(cardVal) < Number(val);
-              default:
-                return true;
-            }
-          };
-        }
-
-        function applySavedViewToCards(cardsArr) {
-          // returns a filtered/sorted array based on viewFilterRules and viewSortRules
-          let result = [...cardsArr];
-          // Apply filters
-          for (const rule of viewFilterRules) {
-            const pred = buildFilterPredicate(rule);
-            result = result.filter(pred);
-          }
-          // Apply sorts: sorts are applied as chained comparisons using reduce
-          if (viewSortRules.length > 0) {
-            result.sort((a,b) => {
-              for (const s of viewSortRules) {
-                const col = s.column;
-                const dir = s.direction === 'asc' ? 1 : -1;
-                let valA = a[col] ?? '';
-                let valB = b[col] ?? '';
-                if (col === 'price') { valA = parseFloat(a.prices?.usd||0); valB = parseFloat(b.prices?.usd||0); }
-                if (col === 'count') { valA = a.count||1; valB = b.count||1; }
-                if (typeof valA === 'string') valA = valA.toLowerCase();
-                if (typeof valB === 'string') valB = valB.toLowerCase();
-                if (valA < valB) return -1 * dir;
-                if (valA > valB) return 1 * dir;
-              }
-              return 0;
-            });
-          }
-          return result;
-        }
-
-        async function saveViewToFirestore(view) {
-          // view: { id, name, filters, sorts, groupBy, hideInDecks, viewMode, gridSize, isDefault }
-          if (!view.id) view.id = `view_${Date.now()}`;
-          const existingIndex = savedViews.findIndex(v => v.id === view.id);
-          if (existingIndex >= 0) savedViews[existingIndex] = view; else savedViews.push(view);
-          // If marked default, unset others
-          if (view.isDefault) {
-            savedViews.forEach(v => { if (v.id !== view.id) v.isDefault = false; });
-            activeViewId = view.id;
-          }
-          await persistSavedViewsToFirestore();
-          renderSavedViewsSelect();
-          showToast(`View "${view.name}" saved.`, 'success');
-        }
-
-        async function deleteViewFromFirestore(viewId) {
-          savedViews = savedViews.filter(v => v.id !== viewId);
-          if (activeViewId === viewId) activeViewId = null;
-          await persistSavedViewsToFirestore();
-          renderSavedViewsSelect();
-          showToast('View deleted.', 'success');
-        }
-
-        function setActiveViewById(viewId) {
-          activeViewId = viewId || null;
-          // load view into working editor
-          const view = savedViews.find(v => v.id === viewId);
-          if (view) {
-            viewFilterRules = (view.filters || []).map(f => ({...f}));
-            viewSortRules = (view.sorts || []).map(s => ({...s}));
-            // Populate builder fields
-            if (document.getElementById('view-group-by-1')) document.getElementById('view-group-by-1').value = (view.groupBy && view.groupBy[0]) || '';
-            if (document.getElementById('view-group-by-2')) document.getElementById('view-group-by-2').value = (view.groupBy && view.groupBy[1]) || '';
-            if (document.getElementById('view-hide-in-deck')) document.getElementById('view-hide-in-deck').checked = !!view.hideInDecks;
-            if (document.getElementById('view-name-input')) document.getElementById('view-name-input').value = view.name || '';
-            // Populate builder's view-mode and grid-size controls if present
-            if (document.getElementById('view-view-mode')) document.getElementById('view-view-mode').value = view.viewMode || collectionViewMode;
-            if (document.getElementById('view-grid-size')) document.getElementById('view-grid-size').value = view.gridSize || collectionGridSize;
-
-            // Apply view to the live UI controls so visuals update immediately
-            try {
-              // Group selects used by the main render
-              const g1 = document.getElementById('collection-group-by-1');
-              const g2 = document.getElementById('collection-group-by-2');
-              if (g1) g1.value = (view.groupBy && view.groupBy[0]) || '';
-              if (g2) g2.value = (view.groupBy && view.groupBy[1]) || '';
-
-              // Hide-in-deck checkbox used by the main render
-              const hideCheckbox = document.getElementById('hide-in-deck-checkbox');
-              if (hideCheckbox) hideCheckbox.checked = !!view.hideInDecks;
-
-              // Apply view mode and grid size
-              if (view.viewMode) {
-                collectionViewMode = view.viewMode;
-                const gridBtn = document.getElementById('view-toggle-grid');
-                const tableBtn = document.getElementById('view-toggle-table');
-                if (gridBtn && tableBtn) {
-                  if (collectionViewMode === 'grid') {
-                    gridBtn.classList.add('bg-indigo-600','text-white');
-                    tableBtn.classList.remove('bg-indigo-600','text-white');
-                  } else {
-                    tableBtn.classList.add('bg-indigo-600','text-white');
-                    gridBtn.classList.remove('bg-indigo-600','text-white');
-                  }
-                }
-              }
-              if (view.gridSize) {
-                collectionGridSize = view.gridSize;
-                document.querySelectorAll('.grid-size-btn').forEach(b => {
-                  b.classList.remove('bg-indigo-600','text-white');
-                  if (b.dataset.size === collectionGridSize) b.classList.add('bg-indigo-600','text-white');
-                });
-              }
-
-              // If view defines sorts, apply primary sort to global collectionSortState so table header sorting reflects it
-              if (Array.isArray(view.sorts) && view.sorts.length > 0) {
-                const primary = view.sorts[0];
-                collectionSortState = { column: primary.column, direction: primary.direction };
-                // update sortable header UI classes if present
-                document.querySelectorAll('.sortable').forEach(th => {
-                  th.classList.remove('sorted-asc','sorted-desc');
-                  if (th.dataset.sort === collectionSortState.column) th.classList.add(collectionSortState.direction === 'asc' ? 'sorted-asc' : 'sorted-desc');
-                });
-              }
-            } catch (err) {
-              console.warn('Could not apply saved view to live UI controls', err);
-            }
-          } else {
-            viewFilterRules = [];
-            viewSortRules = [];
-            if (document.getElementById('view-group-by-1')) document.getElementById('view-group-by-1').value = '';
-            if (document.getElementById('view-group-by-2')) document.getElementById('view-group-by-2').value = '';
-            if (document.getElementById('view-hide-in-deck')) document.getElementById('view-hide-in-deck').checked = false;
-            if (document.getElementById('view-name-input')) document.getElementById('view-name-input').value = '';
-          }
-          if (typeof renderViewBuilderLists === 'function') renderViewBuilderLists();
-          renderSavedViewsSelect();
-          // Trigger a re-render of collection
-          // Use renderPaginatedCollection which is the canonical entry for collection rendering
-          renderPaginatedCollection();
-          // Inform user the saved view was applied (useful for programmatic switches)
-          if (view && view.name) showToast(`Applied view: ${view.name}`, 'success');
-        }
+        // Counter used to generate unique IDs for group toggle elements
+        let groupUidCounter = 0;
+  // Saved view templates (loaded/saved to Firestore under user settings)
+  let savedViews = []; // array of view objects { id, name, filters, sorts, groupBy, hideInDecks, viewMode, gridSize, isDefault }
+  let activeViewId = null; // id of currently selected saved view
+  // Working lists for the advanced builder
+  let viewFilterRules = []; // [{column, operator, value}]
+  let viewSortRules = []; // [{column, direction}]
+        let modalVisibilitySettings = {};
+        let activeAiChatHistory = [];
+        let ruleLookupHistory = [];
+        let mtgChatHistory = [];
+        let tempImportedData = null; // Used to hold data for import confirmation
+        console.log("[State] Initial application state variables declared.");
 
         // --- DOM ELEMENTS ---
         const views = {
@@ -2321,6 +1826,8 @@
             document.getElementById("app-wrapper").classList.remove("hidden");
             await loadSettings(); // Ensure settings are loaded before first render
             setupListeners();
+            // Load user saved views after listeners and settings are ready
+            await loadSavedViewsFromFirestore();
           } else {
             console.log(
               "[Auth] No user signed in. Attempting custom token or anonymous sign-in."
@@ -2457,6 +1964,262 @@
           renderModalVisibilitySettings();
         }
 
+        // --- Saved Views / Advanced Filters ---
+
+        function renderSavedViewsSelect() {
+          const select = document.getElementById('saved-views-select');
+          if (!select) return;
+          select.innerHTML = '<option value="">(Default)</option>' + savedViews.map(v => {
+            const mode = v.viewMode ? `, ${v.viewMode}` : '';
+            const size = v.gridSize ? `, ${v.gridSize.toUpperCase()}` : '';
+            return `<option value="${v.id}">${v.name}${v.isDefault ? ' (Default)' : ''}${mode}${size}</option>`;
+          }).join('');
+          select.value = activeViewId || '';
+        }
+
+        async function loadSavedViewsFromFirestore() {
+          if (!userId) return;
+          try {
+            const userDocRef = doc(db, `artifacts/${appId}/users/${userId}`);
+            const userDoc = await getDoc(userDocRef);
+            if (userDoc.exists()) {
+              const settings = (userDoc.data().settings) || {};
+              savedViews = settings.savedViews || [];
+              activeViewId = settings.activeViewId || null;
+            } else {
+              savedViews = [];
+              activeViewId = null;
+            }
+          } catch (e) {
+            console.error('Error loading saved views:', e);
+            savedViews = [];
+            activeViewId = null;
+          }
+          renderSavedViewsSelect();
+          // If no activeViewId but a saved default exists, use it
+          if (!activeViewId) {
+            const def = savedViews.find(v => v.isDefault);
+            if (def) {
+              activeViewId = def.id;
+            }
+          }
+          // If we have an activeViewId, load that view into working state and re-render
+          if (activeViewId) {
+            setActiveViewById(activeViewId);
+          } else {
+            renderSavedViewsSelect();
+          }
+        }
+
+        async function persistSavedViewsToFirestore() {
+          if (!userId) return;
+          try {
+            const userDocRef = doc(db, `artifacts/${appId}/users/${userId}`);
+            await setDoc(userDocRef, { settings: { ...( (await getDoc(userDocRef)).data()?.settings || {} ), savedViews, activeViewId } }, { merge: true });
+            showToast('Views saved.', 'success');
+          } catch (e) {
+            console.error('Error saving views:', e);
+            showToast('Failed to save view settings.', 'error');
+          }
+        }
+
+        function buildFilterPredicate(rule) {
+          // rule: {column, operator, value}
+          return (card) => {
+            const col = rule.column;
+            const val = rule.value;
+            const op = rule.operator;
+            let cardVal = card[col];
+            if (col === 'color_identity') cardVal = (card.color_identity || []).join('');
+            if (col === 'type_line') cardVal = (card.type_line || '').split(' — ')[0];
+            if (col === 'deck') {
+              const assignment = (cardDeckAssignments[card.firestoreId] || [])[0];
+              cardVal = assignment ? assignment.deckName : 'Not in a Deck';
+            }
+            if (cardVal === undefined || cardVal === null) cardVal = '';
+            cardVal = (typeof cardVal === 'string') ? cardVal.toLowerCase() : cardVal;
+            const cmp = (v) => (typeof v === 'string' ? v.toLowerCase() : v);
+            switch(op) {
+              case 'contains':
+                return String(cardVal).includes(String(val).toLowerCase());
+              case 'equals':
+                return String(cardVal) === String(val).toLowerCase();
+              case 'gt':
+                return Number(cardVal) > Number(val);
+              case 'lt':
+                return Number(cardVal) < Number(val);
+              default:
+                return true;
+            }
+          };
+        }
+
+        function applyActiveView(cardsArr) {
+          // returns a filtered/sorted array based on viewFilterRules and viewSortRules
+          let result = [...cardsArr];
+          // Apply filters
+          for (const rule of viewFilterRules) {
+            const pred = buildFilterPredicate(rule);
+            result = result.filter(pred);
+          }
+          // Apply sorts: sorts are applied as chained comparisons using reduce
+          if (viewSortRules.length > 0) {
+            result.sort((a,b) => {
+              for (const s of viewSortRules) {
+                const col = s.column;
+                const dir = s.direction === 'asc' ? 1 : -1;
+                let valA = a[col] ?? '';
+                let valB = b[col] ?? '';
+                if (col === 'price') { valA = parseFloat(a.prices?.usd||0); valB = parseFloat(b.prices?.usd||0); }
+                if (col === 'count') { valA = a.count||1; valB = b.count||1; }
+                if (typeof valA === 'string') valA = valA.toLowerCase();
+                if (typeof valB === 'string') valB = valB.toLowerCase();
+                if (valA < valB) return -1 * dir;
+                if (valA > valB) return 1 * dir;
+              }
+              return 0;
+            });
+          }
+          return result;
+        }
+
+        async function saveViewToFirestore(view) {
+          // view: { id, name, filters, sorts, groupBy, hideInDecks, viewMode, gridSize, isDefault }
+          if (!view.id) view.id = `view_${Date.now()}`;
+          const existingIndex = savedViews.findIndex(v => v.id === view.id);
+          if (existingIndex >= 0) savedViews[existingIndex] = view; else savedViews.push(view);
+          // If marked default, unset others
+          if (view.isDefault) {
+            savedViews.forEach(v => { if (v.id !== view.id) v.isDefault = false; });
+            activeViewId = view.id;
+          }
+          await persistSavedViewsToFirestore();
+          renderSavedViewsSelect();
+          showToast(`View "${view.name}" saved.`, 'success');
+        }
+
+        async function deleteViewFromFirestore(viewId) {
+          savedViews = savedViews.filter(v => v.id !== viewId);
+          if (activeViewId === viewId) activeViewId = null;
+          await persistSavedViewsToFirestore();
+          renderSavedViewsSelect();
+          showToast('View deleted.', 'success');
+        }
+
+        function setActiveViewById(viewId) {
+          activeViewId = viewId || null;
+          // load view into working editor
+          const view = savedViews.find(v => v.id === viewId);
+          if (view) {
+            viewFilterRules = (view.filters || []).map(f => ({...f}));
+            viewSortRules = (view.sorts || []).map(s => ({...s}));
+            // Populate builder fields
+            document.getElementById('view-group-by-1').value = (view.groupBy && view.groupBy[0]) || '';
+            document.getElementById('view-group-by-2').value = (view.groupBy && view.groupBy[1]) || '';
+            document.getElementById('view-hide-in-deck').checked = !!view.hideInDecks;
+            document.getElementById('view-name-input').value = view.name || '';
+            // Populate builder's view-mode and grid-size controls if present
+            if (document.getElementById('view-view-mode')) document.getElementById('view-view-mode').value = view.viewMode || collectionViewMode;
+            if (document.getElementById('view-grid-size')) document.getElementById('view-grid-size').value = view.gridSize || collectionGridSize;
+
+            // Apply view to the live UI controls so visuals update immediately
+            try {
+              // Group selects used by the main render
+              const g1 = document.getElementById('collection-group-by-1');
+              const g2 = document.getElementById('collection-group-by-2');
+              if (g1) g1.value = (view.groupBy && view.groupBy[0]) || '';
+              if (g2) g2.value = (view.groupBy && view.groupBy[1]) || '';
+
+              // Hide-in-deck checkbox used by the main render
+              const hideCheckbox = document.getElementById('hide-in-deck-checkbox');
+              if (hideCheckbox) hideCheckbox.checked = !!view.hideInDecks;
+
+              // Apply view mode and grid size
+              if (view.viewMode) {
+                collectionViewMode = view.viewMode;
+                const gridBtn = document.getElementById('view-toggle-grid');
+                const tableBtn = document.getElementById('view-toggle-table');
+                if (gridBtn && tableBtn) {
+                  if (collectionViewMode === 'grid') {
+                    gridBtn.classList.add('bg-indigo-600','text-white');
+                    tableBtn.classList.remove('bg-indigo-600','text-white');
+                  } else {
+                    tableBtn.classList.add('bg-indigo-600','text-white');
+                    gridBtn.classList.remove('bg-indigo-600','text-white');
+                  }
+                }
+              }
+              if (view.gridSize) {
+                collectionGridSize = view.gridSize;
+                document.querySelectorAll('.grid-size-btn').forEach(b => {
+                  b.classList.remove('bg-indigo-600','text-white');
+                  if (b.dataset.size === collectionGridSize) b.classList.add('bg-indigo-600','text-white');
+                });
+              }
+
+              // If view defines sorts, apply primary sort to global collectionSortState so table header sorting reflects it
+              if (Array.isArray(view.sorts) && view.sorts.length > 0) {
+                const primary = view.sorts[0];
+                collectionSortState = { column: primary.column, direction: primary.direction };
+                // update sortable header UI classes if present
+                document.querySelectorAll('.sortable').forEach(th => {
+                  th.classList.remove('sorted-asc','sorted-desc');
+                  if (th.dataset.sort === collectionSortState.column) th.classList.add(collectionSortState.direction === 'asc' ? 'sorted-asc' : 'sorted-desc');
+                });
+              }
+            } catch (err) {
+              console.warn('Could not apply saved view to live UI controls', err);
+            }
+          } else {
+            viewFilterRules = [];
+            viewSortRules = [];
+            document.getElementById('view-group-by-1').value = '';
+            document.getElementById('view-group-by-2').value = '';
+            document.getElementById('view-hide-in-deck').checked = false;
+            document.getElementById('view-name-input').value = '';
+          }
+          renderViewBuilderLists();
+          renderSavedViewsSelect();
+          // Trigger a re-render of collection
+          // Use renderPaginatedCollection which is the canonical entry for collection rendering
+          renderPaginatedCollection();
+          // Inform user the saved view was applied (useful for programmatic switches)
+          if (view && view.name) showToast(`Applied view: ${view.name}`, 'success');
+        }
+
+        function renderViewBuilderLists() {
+          const filtersList = document.getElementById('filters-list');
+          const sortsList = document.getElementById('sorts-list');
+          filtersList.innerHTML = viewFilterRules.map((r, i) => `<div class="flex items-center gap-2"><span class="text-sm text-gray-200">${r.column} ${r.operator} "${r.value}"</span><button data-i="${i}" class="remove-filter-btn text-sm text-red-400 ml-2">Remove</button></div>`).join('') || '<div class="text-sm text-gray-500">No filters</div>';
+          sortsList.innerHTML = viewSortRules.map((s, i) => `<div class="flex items-center gap-2"><span class="text-sm text-gray-200">${i+1}. ${s.column} ${s.direction}</span><button data-i="${i}" class="remove-sort-btn text-sm text-red-400 ml-2">Remove</button></div>`).join('') || '<div class="text-sm text-gray-500">No sorts</div>';
+
+          // Attach remove handlers
+          document.querySelectorAll('.remove-filter-btn').forEach(btn => btn.addEventListener('click', (e) => {
+            const idx = Number(e.currentTarget.dataset.i);
+            viewFilterRules.splice(idx,1);
+            renderViewBuilderLists();
+          }));
+          document.querySelectorAll('.remove-sort-btn').forEach(btn => btn.addEventListener('click', (e) => {
+            const idx = Number(e.currentTarget.dataset.i);
+            viewSortRules.splice(idx,1);
+            renderViewBuilderLists();
+          }));
+        }
+
+        // Apply active saved view filters/sorts before grouping/pagination in render flow
+        function applySavedViewToCards(cards) {
+          if (!activeViewId) return cards;
+          // If working rules are empty, attempt to hydrate from the savedViews entry (handles load-order race)
+          if ((viewFilterRules.length === 0 && viewSortRules.length === 0)) {
+            const v = savedViews.find(s => s.id === activeViewId);
+            if (v) {
+              viewFilterRules = (v.filters || []).map(f => ({...f}));
+              viewSortRules = (v.sorts || []).map(s => ({...s}));
+            }
+          }
+          return applyActiveView(cards);
+        }
+
         function updateCardAssignments() {
           cardDeckAssignments = {}; // This should be keyed by firestoreId
           Object.values(localDecks).forEach((deck) => {
@@ -2528,10 +2291,12 @@
           return groups;
         }
 
+        // Helper: sort an array of card objects according to collectionSortState
         function sortCards(cards) {
           const { column, direction } = collectionSortState;
           const sorted = [...cards].sort((a, b) => {
             let valA, valB;
+
             if (column === "price") {
               valA = parseFloat(a.prices?.usd || 0);
               valB = parseFloat(b.prices?.usd || 0);
@@ -2542,8 +2307,10 @@
               valA = a[column] ?? "";
               valB = b[column] ?? "";
             }
+
             if (typeof valA === "string") valA = valA.toLowerCase();
             if (typeof valB === "string") valB = valB.toLowerCase();
+
             if (valA < valB) return direction === "asc" ? -1 : 1;
             if (valA > valB) return direction === "asc" ? 1 : -1;
             return 0;
@@ -2551,9 +2318,11 @@
           return sorted;
         }
 
+        // Helper: sort an array according to active view sort rules if present, otherwise fall back to sortCards
         function sortGroupContent(cards) {
-          if (window.viewSortRules && viewSortRules.length > 0) {
-            const sorted = [...cards].sort((a, b) => {
+          if (viewSortRules && viewSortRules.length > 0) {
+            // perform chained sort similar to applyActiveView's sort logic
+            const sorted = [...cards].sort((a,b) => {
               for (const s of viewSortRules) {
                 const col = s.column;
                 const dir = s.direction === 'asc' ? 1 : -1;
@@ -2573,13 +2342,16 @@
           return sortCards(cards);
         }
 
+        // Helper: compute counts for a group (unique items and total copies)
         function computeGroupCounts(items) {
+          // items can be an array of cards or a nested object of groups
           if (!items) return { unique: 0, copies: 0 };
           if (Array.isArray(items)) {
             const unique = items.length;
             const copies = items.reduce((acc, c) => acc + (c.count || 1), 0);
             return { unique, copies };
           }
+          // Nested groups: accumulate counts from children
           let totalUnique = 0;
           let totalCopies = 0;
           for (const key of Object.keys(items)) {
@@ -2605,33 +2377,7 @@
           }
 
           // Apply saved view filters/sorts if a view is active
-          if (typeof applySavedViewToCards === 'function') {
-            cards = applySavedViewToCards(cards);
-          }
-
-
-          // --- KPI BAR LOGIC ---
-          // Compute stats for full collection (before filter)
-          const allCardsArr = Object.values(localCollection);
-          const totalCards = allCardsArr.reduce((sum, c) => sum + (c.count || 1), 0);
-          const uniqueCards = allCardsArr.length;
-          const totalPrice = allCardsArr.reduce((sum, c) => sum + ((c.prices && c.prices.usd ? parseFloat(c.prices.usd) : 0) * (c.count || 1)), 0);
-
-          // Compute stats for filtered view (after filter)
-          const filteredCards = cards;
-          const filteredTotal = filteredCards.reduce((sum, c) => sum + (c.count || 1), 0);
-          const filteredUnique = filteredCards.length;
-          const filteredPrice = filteredCards.reduce((sum, c) => sum + ((c.prices && c.prices.usd ? parseFloat(c.prices.usd) : 0) * (c.count || 1)), 0);
-
-          // Update KPI bar
-          const elTotal = document.getElementById('kpi-total-cards');
-          const elUnique = document.getElementById('kpi-unique-cards');
-          const elPrice = document.getElementById('kpi-total-price');
-          const elFiltered = document.getElementById('kpi-filtered-summary');
-          if (elTotal) elTotal.textContent = totalCards;
-          if (elUnique) elUnique.textContent = uniqueCards;
-          if (elPrice) elPrice.textContent = `$${totalPrice.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}`;
-          if (elFiltered) elFiltered.textContent = `${filteredTotal}/${totalCards}`;
+          cards = applySavedViewToCards(cards);
 
           if (cards.length === 0) {
             contentDiv.innerHTML = "";
@@ -2717,7 +2463,6 @@
           };
           const gridClass = sizeClasses[collectionGridSize] || sizeClasses.md;
 
-          let groupUidCounter = 0;
           function renderRecursiveGroups(groups, level) {
             return Object.keys(groups)
               .sort()
@@ -2759,7 +2504,9 @@
 
           if (groupByKeys.length > 0) {
             console.log(
-              `[renderCollectionGrid] Grouping cards by "${groupByKeys.join(", ")}".`
+              `[renderCollectionGrid] Grouping cards by "${groupByKeys.join(
+                ", "
+              )}".`
             );
             const groupedCards = groupCardsRecursively(cards, groupByKeys);
             // Reset UID counter for stable IDs on re-render
@@ -2787,7 +2534,7 @@
         }
 
         function renderCollectionTable(cards, groupByKeys) {
-            console.log(`[Function: renderCollectionTable] Rendering collection as a table. Card count: ${cards.length}.`);
+            // renderCollectionTable
             const contentDiv = document.getElementById("collection-content");
             const renderTableRows = (cardGroup) =>
                 cardGroup
@@ -2830,25 +2577,52 @@
                 }).join("");
 
             function renderRecursiveRows(groups, level) {
-                return Object.keys(groups).sort().map((groupName) => {
-                    const content = groups[groupName];
-                    const topOffset = 114 + (level * 44);
-                    const headerRow = `
-                    <tr class="bg-gray-700">
-                        <th colspan="8" class="px-6 py-2 text-left text-lg font-bold text-gray-300 sticky bg-gray-700" style="top: ${topOffset}px; padding-left: ${1 + level}rem; z-index: 5;">
-                            ${groupName}
-                        </th>
-                    </tr>`;
-                    if (Array.isArray(content)) {
-                        return headerRow + renderTableRows(content);
-                    } else {
-                        return headerRow + renderRecursiveRows(content, level + 1);
-                    }
-                }).join("");
+        return Object.keys(groups).sort().map((groupName) => {
+          const content = groups[groupName];
+          const uid = `group-${groupUidCounter++}`;
+          if (Array.isArray(content)) {
+            const counts = computeGroupCounts(content);
+            // Render a single row containing a <details> element for the group
+            const headerAndRows = `
+            <tr class="bg-gray-700">
+              <th colspan="8" class="px-6 py-2 text-left text-lg font-bold text-gray-300 bg-gray-700" style="padding-left: ${1 + level}rem; z-index: 3;">
+                <details id="${uid}" ${level === 0 ? "" : "open"}>
+                  <summary style="list-style:none; outline:none;" class="cursor-pointer">${groupName} <span class="text-sm text-gray-400">(${counts.unique} items, ${counts.copies} total)</span></summary>
+                  <div class="mt-2"></div>
+                </details>
+              </th>
+            </tr>
+            <tr class="group-rows-wrapper"><td colspan="8" class="p-0 border-0">
+              <div class="overflow-hidden group-rows" data-group-id="${uid}">
+                <table class="w-full text-sm text-left text-gray-300">
+                  <tbody>
+                  ${renderTableRows(sortGroupContent(content))}
+                  </tbody>
+                </table>
+              </div>
+            </td></tr>
+            `;
+            return headerAndRows;
+          } else {
+            // Subgroup: compute aggregated counts so parent headers reflect totals of nested groups
+            const counts = computeGroupCounts(content);
+            const subgroupHtml = `
+            <tr class="bg-gray-700">
+              <th colspan="8" class="px-6 py-2 text-left text-lg font-bold text-gray-300 bg-gray-700" style="padding-left: ${1 + level}rem; z-index: 3;">
+                <details id="${uid}" ${level === 0 ? "" : "open"}>
+                  <summary style="list-style:none; outline:none;" class="cursor-pointer">${groupName} <span class="text-sm text-gray-400">(${counts.unique} items, ${counts.copies} total)</span></summary>
+                </details>
+              </th>
+            </tr>
+            ${renderRecursiveRows(content, level + 1)}
+            `;
+            return subgroupHtml;
+          }
+        }).join("");
             }
 
             const tableHeader = `
-                <thead class="text-xs text-gray-400 uppercase sticky bg-gray-800" style="top: 72px; z-index: 6;">
+  <thead class="text-xs text-gray-400 uppercase sticky bg-gray-800" style="z-index: 6;">
                     <tr>
                         <th scope="col" class="px-6 py-3 sortable" data-sort="name">Name / Info</th>
                         <th scope="col" class="px-6 py-3 sortable" data-sort="count">#</th>
@@ -2923,68 +2697,104 @@
 
                     // Re-sync on resize
                     window.addEventListener('resize', syncWidths);
+
+                    // Position floating header under the app header
+                    const placeHeader = () => {
+                      const appHeader = document.querySelector('header');
+                      const offset = appHeader ? appHeader.getBoundingClientRect().bottom : 0;
+                      // compute offset relative to viewport for sticky positioning
+                      floatingWrapper.style.top = `${Math.ceil(offset)}px`;
+                    };
+                    placeHeader();
+                    window.addEventListener('resize', placeHeader);
+                    window.addEventListener('scroll', placeHeader, { passive: true });
                   } catch (err) {
-                    console.error('[FloatingHeader] error', err);
+                    console.error('[setupFloatingHeader] error', err);
                   }
                 })();
+        // After inserting, wire up details toggle behavior: when a group's details open/close, show/hide its nested rows
+        contentDiv.querySelectorAll('details').forEach(det => {
+          det.addEventListener('toggle', (e) => {
+          const id = det.id;
+          const wrapper = contentDiv.querySelector(`.group-rows[data-group-id="${id}"]`);
+          if (wrapper) {
+            wrapper.style.display = det.open ? 'block' : 'none';
+          }
+          });
+          // Initialize visibility based on initial open state
+          const id = det.id;
+          const wrapper = contentDiv.querySelector(`.group-rows[data-group-id="${id}"]`);
+          if (wrapper) wrapper.style.display = det.open ? 'block' : 'none';
+        });
             } else {
-                contentDiv.innerHTML = `<div class="overflow-x-auto bg-gray-800 rounded-lg">
-                    <table class="w-full text-sm text-left text-gray-300">
-                        ${tableHeader}
-                        <tbody>${renderTableRows(cards)}</tbody>
-                    </table>
-                </div>`;
+        // No grouping: apply global sort to the cards before rendering the table rows
+        const sorted = sortCards(cards);
+        contentDiv.innerHTML = `
+          <div class="table-area w-full">
+            <div class="floating-header-wrapper bg-gray-800"></div>
+            <div class="overflow-x-auto body-scroll bg-gray-800 rounded-b-lg">
+              <table class="w-full text-sm text-left text-gray-300 body-table">
+                <tbody>${renderTableRows(sorted)}</tbody>
+              </table>
+            </div>
+          </div>
+        `;
+
+        // Setup floating header behavior for the non-grouped table as well
+        (function setupFloatingHeader() {
+          try {
+            const area = contentDiv.querySelector('.table-area');
+            const floatingWrapper = area.querySelector('.floating-header-wrapper');
+            const bodyScroll = area.querySelector('.body-scroll');
+            const bodyTable = area.querySelector('.body-table');
+
+            const headerTable = document.createElement('table');
+            headerTable.className = 'w-full text-sm text-left text-gray-300 header-table';
+            headerTable.innerHTML = `${tableHeader}`;
+            floatingWrapper.appendChild(headerTable);
+
+            floatingWrapper.style.position = 'sticky';
+            floatingWrapper.style.top = '0px';
+            floatingWrapper.style.zIndex = 8;
+
+            bodyScroll.addEventListener('scroll', () => {
+              floatingWrapper.scrollLeft = bodyScroll.scrollLeft;
+            });
+
+            const syncWidths = () => {
+              const firstRow = bodyTable.querySelector('tbody tr');
+              if (!firstRow) return;
+              const bodyCells = Array.from(firstRow.children);
+              const headerCells = Array.from(headerTable.querySelectorAll('thead th'));
+              headerTable.style.tableLayout = 'fixed';
+              bodyTable.style.tableLayout = 'fixed';
+              const widths = bodyCells.map(td => td.getBoundingClientRect().width);
+              headerTable.style.width = `${bodyTable.getBoundingClientRect().width}px`;
+              headerCells.forEach((th, i) => {
+                if (widths[i]) th.style.width = `${widths[i]}px`;
+              });
+            };
+
+            syncWidths();
+            setTimeout(syncWidths, 250);
+            window.addEventListener('resize', syncWidths);
+
+            const placeHeader = () => {
+              const appHeader = document.querySelector('header');
+              const offset = appHeader ? appHeader.getBoundingClientRect().bottom : 0;
+              floatingWrapper.style.top = `${Math.ceil(offset)}px`;
+            };
+            placeHeader();
+            window.addEventListener('resize', placeHeader);
+            window.addEventListener('scroll', placeHeader, { passive: true });
+          } catch (err) {
+            console.error('[setupFloatingHeader] error', err);
+          }
+        })();
             }
 
             addCollectionTableListeners();
         }
-        // Robust helper: compute and apply the appropriate top offset for sticky table headers.
-        function computeTableHeaderTop(container) {
-          try {
-            const appHeader = document.querySelector('header');
-            // compute top offset relative to the container so sticky works inside scroller
-            const containerRect = container.getBoundingClientRect();
-            let topOffset = 0;
-            if (appHeader) {
-              const rect = appHeader.getBoundingClientRect();
-              // distance from container top to app header bottom
-              topOffset = Math.max(0, Math.ceil(rect.bottom - containerRect.top));
-            }
-            const banner = document.querySelector('.page-banner');
-            if (banner) {
-              const bRect = banner.getBoundingClientRect();
-              topOffset = Math.max(topOffset, Math.ceil(bRect.bottom - containerRect.top));
-            }
-            // safety clamp in case container is small
-            topOffset = Math.max(0, topOffset);
-            container.querySelectorAll('table thead').forEach(thead => {
-              thead.style.top = `${topOffset}px`;
-            });
-          } catch (err) {
-            console.error('[computeTableHeaderTop] error', err);
-          }
-        }
-
-        // Attach a debounced resize/scroll handler so table header offsets update when layout changes
-        (function attachTableHeaderResizeHandler() {
-          let timer = null;
-          const handler = () => {
-            document.querySelectorAll('.overflow-x-auto').forEach(container => {
-              computeTableHeaderTop(container);
-            });
-          };
-          window.addEventListener('resize', () => {
-            clearTimeout(timer);
-            timer = setTimeout(handler, 120);
-          });
-          window.addEventListener('scroll', () => {
-            if (timer) return;
-            timer = setTimeout(() => {
-              handler();
-              timer = null;
-            }, 150);
-          }, { passive: true });
-        })();
 
         function renderSingleDeck(deckId) {
           console.log(
@@ -3216,7 +3026,7 @@
 
         // --- UI/HELPER FUNCTIONS ---
         function toggleEditMode() {
-            console.log("[Function: toggleEditMode] Toggling edit mode. Find in <script> block.");
+            // toggleEditMode
             const appWrapper = document.getElementById('app-wrapper');
             const isEditMode = appWrapper.classList.toggle('edit-mode');
             const buttonText = document.getElementById('edit-mode-text');
@@ -3240,7 +3050,7 @@
         }
 
         function toggleCardDetailsEditMode() {
-            console.log("[Function: toggleCardDetailsEditMode] Toggling edit mode for the card details modal.");
+            // toggleCardDetailsEditMode
             const wrapper = document.getElementById('card-details-modal-content-wrapper');
             const isEditing = wrapper.classList.toggle('card-modal-edit-mode');
 
@@ -3254,6 +3064,45 @@
                 }
             }
         }
+
+        // --- Mock test runner (only active when ?mocktest=1 in URL) ---
+        (function runMockTestIfRequested(){
+          try {
+            const params = new URLSearchParams(window.location.search);
+            if (!params.get('mocktest')) return;
+            console.log('[MockTest] Initializing mock dataset for saved-view + grouping test');
+            // Minimal sample collection (two sets, multiple copies)
+            localCollection = {
+              'c1': { firestoreId: 'c1', name: 'Barbarian Class', set_name: 'Adventures in the Forgotten Realms', type_line: 'Enchantment — Class', rarity: 'uncommon', cmc: 1, count: 5, image_uris: { small: '' }, prices: { usd: '0.25' } },
+              'c2': { firestoreId: 'c2', name: 'Battle Cry Goblin', set_name: 'Adventures in the Forgotten Realms', type_line: 'Creature — Goblin', rarity: 'uncommon', cmc: 2, count: 3, image_uris: { small: '' }, prices: { usd: '0.24' } },
+              'c3': { firestoreId: 'c3', name: 'Forest', set_name: 'Core Set 2021', type_line: 'Basic Land — Forest', rarity: 'common', cmc: 0, count: 10, image_uris: { small: '' }, prices: { usd: '0.05' } },
+              'c4': { firestoreId: 'c4', name: 'Llanowar Elves', set_name: 'Core Set 2021', type_line: 'Creature — Elf Druid', rarity: 'common', cmc: 1, count: 2, image_uris: { small: '' }, prices: { usd: '0.10' } }
+            };
+            updateCardAssignments();
+            // Add a saved view that groups by set_name (primary) and sorts by name desc
+            savedViews = [
+              { id: 'mock_view_1', name: 'GroupBySet_NameDesc', isDefault: true, filters: [], sorts: [{ column: 'name', direction: 'desc' }], groupBy: ['set_name'], hideInDecks: false, viewMode: 'table', gridSize: 'md' }
+            ];
+            activeViewId = 'mock_view_1';
+            renderSavedViewsSelect();
+            // Ensure working rules are hydrated and applied
+            setActiveViewById(activeViewId);
+            console.log('[MockTest] Mock view applied — verify table grouping and collapse/expand behavior');
+          } catch (err) {
+            console.warn('Mock test setup failed', err);
+          }
+        })();
+
+  /*
+  Commit summary (suggested):
+  - Fix: Table view grouping and collapsible group rows; sort within groups (group-first then sort)
+  - Feature: Advanced saved views (multi-filter, multi-sort, group, hide-in-decks)
+  - Feature: Save/load view mode (grid/table) and grid size (S/M/L) with views
+  - UX: Collapsible groups (grid & table), group counts shown, pagination disabled when grouping
+  - UX: Toast notifications on save/delete/apply view; improved saved-views dropdown labels
+  - Dev: Mock test runner retained (trigger with ?mocktest=1) for local verification
+  - Cleanup: Removed noisy debug logs and added UI polish
+  */
 
         async function saveCardDetails(firestoreId) {
             if (!firestoreId) {
@@ -3367,7 +3216,7 @@
 
 
         function renderModalVisibilitySettings() {
-            console.log("[Function: renderModalVisibilitySettings] Rendering settings for modal fields. Find in <script> block.");
+            // renderModalVisibilitySettings
             const container = document.getElementById('modal-visibility-settings');
             const allFields = ['count', 'finish', 'condition', 'purchasePrice', 'notes', 'deckAssignments'];
             
@@ -3634,7 +3483,7 @@
         }
 
         function openDeckCreationModal(commanderCard = null) {
-            console.log("[Function: openDeckCreationModal] Opening modal to create a new deck.");
+            // openDeckCreationModal
             const form = document.getElementById('deck-creation-form');
             form.reset();
             currentCommanderForAdd = null;
@@ -4039,7 +3888,7 @@
         }
         
         async function createDeckFromBlueprint() {
-            console.log("[Function: createDeckFromBlueprint] Creating deck from confirmed AI blueprint.");
+            // createDeckFromBlueprint
             if (!tempAiBlueprint || !currentCommanderForAdd) {
                 showToast("Error: Missing blueprint or commander data.", "error");
                 return;
@@ -4257,7 +4106,7 @@
         function handleMtgChat(e) { e.preventDefault(); console.warn('handleMtgChat is not implemented.'); }
         
         function confirmClearAllData() {
-            console.log("[Function: confirmClearAllData] Opening confirmation modal for clearing all data.");
+            // confirmClearAllData
             document.getElementById('confirmation-title').textContent = 'Delete Everything?';
             document.getElementById('confirmation-message').textContent = 'This will permanently delete your entire collection and all decks. This action is irreversible.';
             openModal('confirmation-modal');
@@ -4274,7 +4123,7 @@
         }
 
         async function executeClearAllData() {
-            console.log("[Function: executeClearAllData] Executing deletion of all user data.");
+            // executeClearAllData
             if (!userId) {
                 showToast("User not authenticated.", "error");
                 return;
@@ -4361,29 +4210,41 @@
             
             const table = document.querySelector('#collection-content table');
             if(!table) return;
+      table.querySelectorAll('thead th.sortable').forEach(th => {
+         th.addEventListener('click', () => {
+           if(document.body.classList.contains('edit-mode')) return;
 
-            table.querySelectorAll('thead th.sortable').forEach(th => {
-                 th.addEventListener('click', () => {
-                     if(document.body.classList.contains('edit-mode')) return;
+           const column = th.dataset.sort;
+           table.querySelectorAll('thead th.sortable').forEach(otherTh => {
+             if (otherTh !== th) otherTh.classList.remove('sort-asc', 'sort-desc');
+           });
 
-                     const column = th.dataset.sort;
-                     table.querySelectorAll('thead th.sortable').forEach(otherTh => {
-                         if (otherTh !== th) otherTh.classList.remove('sort-asc', 'sort-desc');
-                     });
-
-                     if (collectionSortState.column === column) {
-                         collectionSortState.direction = collectionSortState.direction === 'asc' ? 'desc' : 'asc';
-                     } else {
-                         collectionSortState.column = column;
-                         collectionSortState.direction = 'asc';
-                     }
+           if (collectionSortState.column === column) {
+             collectionSortState.direction = collectionSortState.direction === 'asc' ? 'desc' : 'asc';
+           } else {
+             collectionSortState.column = column;
+             collectionSortState.direction = 'asc';
+           }
                      
-                     th.classList.remove('sort-asc', 'sort-desc');
-                     th.classList.add(collectionSortState.direction === 'asc' ? 'sort-asc' : 'sort-desc');
+           th.classList.remove('sort-asc', 'sort-desc');
+           th.classList.add(collectionSortState.direction === 'asc' ? 'sort-asc' : 'sort-desc');
 
-                     renderPaginatedCollection();
-                 });
-            });
+           // When grouped, sorting should be applied within each group. renderPaginatedCollection handles this.
+           renderPaginatedCollection();
+         });
+      });
+
+      // Make group <details> summaries keyboard accessible (toggle on Enter/Space)
+      table.querySelectorAll('details summary').forEach(summary => {
+        summary.tabIndex = 0;
+        summary.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            const details = summary.parentElement;
+            details.open = !details.open;
+          }
+        });
+      });
         }
         
         function renderDecklist(deckId) {
@@ -4713,6 +4574,94 @@
               renderPaginatedCollection();
             });
           });
+
+          // Advanced View Builder UI wiring
+          document.getElementById('open-view-builder-btn')?.addEventListener('click', () => {
+            const panel = document.getElementById('view-builder-panel');
+            panel.classList.toggle('hidden');
+            document.getElementById('save-view-btn').classList.toggle('hidden');
+            renderViewBuilderLists();
+          });
+
+          document.getElementById('add-filter-rule-btn')?.addEventListener('click', () => {
+            const col = document.getElementById('filter-column-select').value;
+            const op = document.getElementById('filter-op-select').value;
+            const val = document.getElementById('filter-value-input').value.trim();
+            if (!val) return;
+            viewFilterRules.push({ column: col, operator: op, value: val });
+            document.getElementById('filter-value-input').value = '';
+            renderViewBuilderLists();
+          });
+
+          document.getElementById('add-sort-rule-btn')?.addEventListener('click', () => {
+            const col = document.getElementById('sort-column-select').value;
+            const dir = document.getElementById('sort-dir-select').value;
+            viewSortRules.push({ column: col, direction: dir });
+            renderViewBuilderLists();
+          });
+
+          document.getElementById('save-view-confirm-btn')?.addEventListener('click', async () => {
+            const name = document.getElementById('view-name-input').value.trim();
+            if (!name) { showToast('Please provide a name for the view.', 'warning'); return; }
+            const view = {
+              id: activeViewId || null,
+              name,
+              filters: JSON.parse(JSON.stringify(viewFilterRules)),
+              sorts: JSON.parse(JSON.stringify(viewSortRules)),
+              groupBy: [document.getElementById('view-group-by-1').value, document.getElementById('view-group-by-2').value].filter(Boolean),
+              hideInDecks: !!document.getElementById('view-hide-in-deck').checked,
+              viewMode: document.getElementById('view-view-mode')?.value || collectionViewMode,
+              gridSize: document.getElementById('view-grid-size')?.value || collectionGridSize,
+              isDefault: !!document.getElementById('view-default-checkbox')?.checked
+            };
+            await saveViewToFirestore(view);
+            document.getElementById('view-builder-panel').classList.add('hidden');
+            renderCollection();
+          });
+
+          document.getElementById('cancel-view-builder-btn')?.addEventListener('click', () => {
+            document.getElementById('view-builder-panel').classList.add('hidden');
+          });
+
+          document.getElementById('saved-views-select')?.addEventListener('change', (e) => {
+            const select = e.target;
+            const viewId = select.value || null;
+            // Small inline status next to the select
+            let status = document.getElementById('saved-views-status');
+            if (!status) {
+              status = document.createElement('span');
+              status.id = 'saved-views-status';
+              status.className = 'text-sm text-gray-400 ml-2';
+              select.parentElement.appendChild(status);
+            }
+            try {
+              status.textContent = 'Applying...';
+              select.disabled = true;
+              // Close builder panel if open to make change visible immediately
+              const panel = document.getElementById('view-builder-panel');
+              if (panel) panel.classList.add('hidden');
+              // Apply the view (this updates UI controls and triggers a re-render)
+              setActiveViewById(viewId);
+              // Quick success feedback
+              showToast('View applied', 'success');
+            } catch (err) {
+              console.error('Error applying view:', err);
+              showToast('Failed to apply view', 'error');
+            } finally {
+              select.disabled = false;
+              // remove status after a short delay for visibility
+              setTimeout(() => { if (status) status.textContent = ''; }, 700);
+            }
+          });
+
+          document.getElementById('manage-views-btn')?.addEventListener('click', () => {
+            // Simple manage: open panel and show list; user can delete from there in future enhancements
+            document.getElementById('view-builder-panel').classList.remove('hidden');
+            renderViewBuilderLists();
+          });
+
+          // Save default views loaded from Firestore after login
+          loadSavedViewsFromFirestore();
 
           document
             .getElementById("reset-filters-btn")
@@ -5208,121 +5157,105 @@
         }
         
         async function processDataImport(replace) {
+            closeModal('data-import-options-modal');
+            if (!tempImportedData) {
+                showToast("Import data not found.", "error");
+                return;
+            }
 
-      closeModal('data-import-options-modal');
-      if (!tempImportedData) {
-        showToast("Import data not found.", "error");
-        return;
-      }
+            if (replace) {
+                document.getElementById('confirmation-title').textContent = "Replace All Data?";
+                document.getElementById('confirmation-message').textContent = "This will permanently delete all your current decks and collection. This action cannot be undone.";
+                openModal('confirmation-modal');
+                
+                document.getElementById('confirm-action-btn').onclick = async () => {
+                    closeModal('confirmation-modal');
+                    await executeDataImport(true);
+                    document.getElementById('confirm-action-btn').onclick = null; // Clean up listener
+                };
 
-      if (replace) {
-        document.getElementById('confirmation-title').textContent = "Replace All Data?";
-        document.getElementById('confirmation-message').textContent = "This will permanently delete all your current decks and collection. This action cannot be undone.";
-        openModal('confirmation-modal');
-        document.getElementById('confirm-action-btn').onclick = async () => {
-          closeModal('confirmation-modal');
-          await executeDataImportBatched(true);
-          document.getElementById('confirm-action-btn').onclick = null;
-        };
-      } else {
-        await executeDataImportBatched(false);
-      }
-    }
-
-    // Batched import with progress toast
-    async function executeDataImportBatched(replace) {
-      // Prepare data
-      const collectionEntries = Object.entries(tempImportedData.collection || {});
-      const deckEntries = Object.entries(tempImportedData.decks || {});
-      const total = collectionEntries.length + deckEntries.length;
-      let current = 0;
-      const batchSize = 400; // Firestore batch limit is 500, use 400 for safety
-
-      // Show persistent toast with progress bar
-      let toastId = showToastWithProgress(`Importing data...`, current, total);
-
-      // Optionally delete existing data if replacing
-      if (replace) {
-        let deleteIds = [
-          ...Object.keys(localCollection).map(id => ({ type: 'collection', id })),
-          ...Object.keys(localDecks).map(id => ({ type: 'deck', id }))
-        ];
-        for (let i = 0; i < deleteIds.length; i += batchSize) {
-          const batch = writeBatch(db);
-          deleteIds.slice(i, i + batchSize).forEach(({ type, id }) => {
-            const ref = doc(db, `artifacts/${appId}/users/${userId}/${type === 'collection' ? 'collection' : 'decks'}`, id);
-            batch.delete(ref);
-          });
-          await batch.commit();
+            } else {
+                 await executeDataImport(false);
+            }
         }
-      }
 
-      // Helper to batch set/merge
-      async function batchWrite(entries, type) {
-        for (let i = 0; i < entries.length; i += batchSize) {
-          const batch = writeBatch(db);
-          entries.slice(i, i + batchSize).forEach(([id, data]) => {
-            const ref = doc(db, `artifacts/${appId}/users/${userId}/${type}`, id);
-            batch.set(ref, data, { merge: !replace });
-          });
-          await batch.commit();
-          current += Math.min(batchSize, entries.length - i);
-          updateToastProgress(toastId, current, total);
+        async function executeDataImport(replace) {
+            showToast("Importing data... Please wait.", "info");
+            const batch = writeBatch(db);
+
+            if (replace) {
+                // Delete existing data
+                Object.keys(localCollection).forEach(id => batch.delete(doc(db, `artifacts/${appId}/users/${userId}/collection`, id)));
+                Object.keys(localDecks).forEach(id => batch.delete(doc(db, `artifacts/${appId}/users/${userId}/decks`, id)));
+            }
+
+            // Set/Merge new data
+            Object.entries(tempImportedData.collection).forEach(([id, cardData]) => {
+                const ref = doc(db, `artifacts/${appId}/users/${userId}/collection`, id);
+                batch.set(ref, cardData, { merge: !replace });
+            });
+            Object.entries(tempImportedData.decks).forEach(([id, deckData]) => {
+                const ref = doc(db, `artifacts/${appId}/users/${userId}/decks`, id);
+                batch.set(ref, deckData, { merge: !replace });
+            });
+
+            try {
+                await batch.commit();
+                showToast(`Data successfully imported (${replace ? 'Replaced' : 'Merged'}).`, "success");
+            } catch (error) {
+                console.error("Error executing data import:", error);
+                showToast("A problem occurred during the import.", "error");
+            } finally {
+                tempImportedData = null; // Clear temp data
+            }
         }
-      }
-
-      try {
-        await batchWrite(collectionEntries, 'collection');
-        await batchWrite(deckEntries, 'decks');
-        updateToastProgress(toastId, total, total);
-        setTimeout(() => removeToastById(toastId), 1500);
-        showToast(`Data successfully imported (${replace ? 'Replaced' : 'Merged'}).`, "success");
-      } catch (error) {
-        console.error("Error executing data import:", error);
-        showToast("A problem occurred during the import.", "error");
-      } finally {
-        tempImportedData = null;
-      }
-    }
-
-    // Show a persistent toast with progress bar and return its id
-    function showToastWithProgress(message, current, total) {
-      const container = document.getElementById("toast-container");
-      const toast = document.createElement("div");
-      const toastId = `toast-progress-${Date.now()}`;
-      toast.id = toastId;
-      toast.className = `toast text-white bg-blue-600`;
-      toast.innerHTML = `
-        <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-        <span>${message} <span id="toast-progress-counter">${current} / ${total}</span></span>
-        <div class="w-full bg-gray-700 rounded h-2 mt-2 overflow-hidden">
-          <div id="toast-progress-bar" class="bg-green-400 h-2 transition-all duration-300" style="width:${total ? (current/total*100) : 0}%"></div>
-        </div>
-      `;
-      // Remove animation so it stays until removed manually
-      toast.style.animation = 'slideIn 0.5s forwards';
-      container.appendChild(toast);
-      return toastId;
-    }
-
-    // Update the progress bar and counter in the toast
-    function updateToastProgress(toastId, current, total) {
-      const toast = document.getElementById(toastId);
-      if (!toast) return;
-      const counter = toast.querySelector('#toast-progress-counter');
-      const bar = toast.querySelector('#toast-progress-bar');
-      if (counter) counter.textContent = `${current} / ${total}`;
-      if (bar) bar.style.width = `${total ? (current/total*100) : 0}%`;
-    }
-
-    // Remove the toast by id
-    function removeToastById(toastId) {
-      const toast = document.getElementById(toastId);
-      if (toast) toast.remove();
-    }
 
 
         setupGlobalListeners();
+
+        // Modal logic for View Settings
+        function openViewSettingsModal(e) {
+          if (e) e.preventDefault();
+          document.getElementById('view-settings-modal').classList.remove('hidden');
+          syncSavedViewsDropdowns();
+        }
+        function closeViewSettingsModal() {
+          document.getElementById('view-settings-modal').classList.add('hidden');
+        }
+        const manageViewsLink = document.getElementById('manage-views-link');
+        if (manageViewsLink) manageViewsLink.addEventListener('click', openViewSettingsModal);
+        const closeModalBtn = document.getElementById('close-view-settings-modal');
+        if (closeModalBtn) closeModalBtn.addEventListener('click', closeViewSettingsModal);
+        const cancelModalBtn = document.getElementById('cancel-view-settings-modal');
+        if (cancelModalBtn) cancelModalBtn.addEventListener('click', closeViewSettingsModal);
+
+        // Advanced settings popover logic
+        const advSettingsBtn = document.querySelector('.group > button[aria-label="Show advanced settings"]');
+        const advSettingsPopover = advSettingsBtn?.parentElement?.querySelector('.absolute.z-10');
+        if (advSettingsBtn && advSettingsPopover) {
+          advSettingsBtn.addEventListener('mouseenter', () => {
+            advSettingsPopover.classList.remove('hidden');
+          });
+          advSettingsBtn.addEventListener('mouseleave', () => {
+            advSettingsPopover.classList.add('hidden');
+          });
+          advSettingsPopover.addEventListener('mouseenter', () => {
+            advSettingsPopover.classList.remove('hidden');
+          });
+          advSettingsPopover.addEventListener('mouseleave', () => {
+            advSettingsPopover.classList.add('hidden');
+          });
+        }
+
+        // Sync saved views dropdowns
+        function syncSavedViewsDropdowns() {
+          const toolbarSelect = document.getElementById('saved-views-select');
+          const modalSelect = document.getElementById('modal-saved-views-select');
+          if (toolbarSelect && modalSelect) {
+            modalSelect.innerHTML = toolbarSelect.innerHTML;
+            modalSelect.value = toolbarSelect.value;
+          }
+        }
       });
     </script>
   </body>
