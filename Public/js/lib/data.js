@@ -38,6 +38,13 @@ export function updateCardAssignments() {
 
 export async function addCardToCollection(cardData, userId) {
   try {
+    // allow callers to omit userId and fall back to global window.userId for legacy callers
+    if (!userId && typeof window !== 'undefined') userId = window.userId || null;
+    if (!userId) {
+      console.debug('[Data] addCardToCollection skipped: no userId provided (must be signed in)');
+      showToast('Sign in to add cards to your collection.', 'warning');
+      return null;
+    }
     const existingCard = Object.values(localCollection).find(c => c.id === cardData.id && c.finish === cardData.finish);
     if (existingCard) {
       const newCount = (existingCard.count || 0) + (cardData.count || 1);
