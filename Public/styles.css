@@ -1,0 +1,145 @@
+/* Extracted styles from index-dev.html */
+body {
+  font-family: "Inter", sans-serif;
+}
+.card-image-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+}
+.collection-card-item {
+  position: relative;
+  display: block;
+  aspect-ratio: 2 / 3;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 0.5rem;
+}
+.collection-card-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.commander-search-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.card-version-item {
+  position: relative;
+  display: block;
+  aspect-ratio: 2 / 3;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  box-sizing: border-box;
+  align-self: start;
+}
+.card-version-item img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+.card-version-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+#card-versions-grid {
+  grid-auto-rows: auto;
+  align-items: start;
+  align-content: start;
+}
+#collection-content .grid {
+  align-items: start;
+  align-content: start;
+}
+.modal-backdrop > div {
+  pointer-events: auto;
+  z-index: 2;
+}
+.card-version-item { z-index: 0; }
+.card-version-item img { z-index: 0; }
+.card-version-item > div.absolute { z-index: 10; }
+.select-commander-from-collection-btn { pointer-events: auto; }
+.commander-select-btn {
+  z-index: 50;
+  pointer-events: auto;
+}
+.select-commander-from-search-btn:focus,
+.select-commander-from-search-btn:active,
+.select-commander-from-collection-btn:focus,
+.select-commander-from-collection-btn:active {
+  outline: 3px solid rgba(99,102,241,0.7);
+  outline-offset: 4px;
+}
+@supports not (aspect-ratio: 1/1) {
+  .card-version-item::before,
+  .collection-card-item::before,
+  .select-commander-from-search-btn::before {
+    content: "";
+    display: block;
+    width: 100%;
+    padding-top: 150%;
+  }
+}
+.card-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.75);
+}
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.delete-button { display: none; }
+.edit-mode .delete-button { display: inline-flex; }
+.group-header {
+  background-color: #374151;
+  color: #d1d5db;
+  padding: 0.75rem 1.5rem;
+  font-weight: bold;
+  font-size: 1.25rem;
+  margin-top: 1.5rem;
+  border-bottom: 3px solid #4f46e5;
+  position: sticky;
+  top: 72px;
+  z-index: 5;
+}
+.sortable { cursor: pointer; }
+.sortable:hover { color: #a78bfa; }
+.edit-mode .sortable { cursor: default; }
+.edit-mode .sortable:hover { color: inherit; }
+.sort-asc::after { content: " ▲"; font-size: 0.8em; }
+.sort-desc::after { content: " ▼"; font-size: 0.8em; }
+.card-modal-value-display { display: block; }
+.card-modal-value-input { display: none; }
+.card-modal-edit-mode .card-modal-value-display { display: none; }
+.card-modal-edit-mode .card-modal-value-input { display: block; }
+.oracle-text-truncate { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; }
+.kpi-gradient-bar { position: absolute; bottom: 0; left: 0; height: 4px; border-radius: 0 0 0.5rem 0.5rem; transition: width 0.5s ease-in-out; }
+#toast-container { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 100; display: flex; flex-direction: column; gap: 0.75rem; }
+.toast { display: flex; align-items: center; padding: 1rem; border-radius: 0.5rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05); min-width: 300px; max-width: 400px; transform: translateX(120%); animation: slideIn 0.5s forwards, slideOut 0.5s 4.5s forwards; }
+@keyframes slideIn { from { transform: translateX(120%); } to { transform: translateX(0); } }
+@keyframes slideOut { from { transform: translateX(0); } to { transform: translateX(120%); } }
+details > summary { list-style: none; cursor: pointer; }
+details > summary::-webkit-details-marker { display: none; }
+details summary:before { content: "+"; margin-right: 0.5rem; font-weight: bold; }
+details[open] summary:before { content: "-"; }

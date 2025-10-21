@@ -10,289 +10,10 @@
       rel="stylesheet"
     />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-      body {
-        font-family: "Inter", sans-serif;
-      }
-      .card-image-container {
-        position: relative;
-        width: 100%;
-        /* Use aspect-ratio so the image box scales naturally with the grid cell */
-        aspect-ratio: 2 / 3; /* portrait card */
-        overflow: hidden;
-      }
-
-      /* Collection grid card item: ensure each grid cell has a stable height
-         so rows expand to the card's displayed height and cannot overlap. */
-      .collection-card-item {
-        position: relative;
-        display: block; /* let grid manage layout */
-        aspect-ratio: 2 / 3; /* match card portrait */
-        width: 100%;
-        overflow: hidden;
-        border-radius: 0.5rem;
-      }
-
-      /* Explicit image class for collection items (absolute fill) */
-      .collection-card-img {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        display: block;
-      }
-
-      /* Commander search thumbnails: absolute fill to keep layout stable */
-      .commander-search-img {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        display: block;
-      }
-
-      /* Card versions grid item sizing (search results). Use aspect-ratio so
-         the height flows naturally and images are fully visible. Make the
-         item a block-level element and absolutely position the image so the
-         grid cell never collapses or allows layering/overlap during image
-         load. */
-      .card-version-item {
-        position: relative;
-        display: block; /* let grid control placement */
-        aspect-ratio: 2 / 3; /* portrait card */
-        width: 100%;
-        overflow: hidden;
-        border-radius: 0.5rem;
-        box-sizing: border-box; /* ensure padding/border don't affect size */
-        align-self: start; /* avoid stretching that can cause overlap */
-      }
-
-      /* Make the image fill the card cell without affecting layout size */
-      .card-version-item img {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-        object-fit: contain; /* show whole card without cropping */
-        display: block; /* avoid inline whitespace issues */
-      }
-
-      /* Explicit class for images injected by JS renderer */
-      .card-version-img {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-        display: block;
-      }
-
-      /* Force consistent row sizing for the versions grid to avoid overlap.
-         Use 'auto' so rows size to the card item (which has an aspect-ratio).
-         Using fractional rows (1fr) can make rows smaller than the item and
-         cause visual stacking/overflow. */
-      #card-versions-grid {
-        grid-auto-rows: auto;
-        align-items: start;
-        align-content: start;
-      }
-
-      /* Collection grid: ensure items don't stretch rows vertically and
-         that content aligns to the top of each row. This avoids overlap
-         when images load or when items have different internal content. */
-      #collection-content .grid {
-        align-items: start;
-        align-content: start;
-      }
-
-    /* Ensure modal content (child of the backdrop) receives pointer events
-      and is above the backdrop so clicks reach interactive elements. */
-    .modal-backdrop > div {
-      pointer-events: auto;
-      z-index: 2;
-    }
-
-    /* Z-index ordering inside a version item: image at base (z-0), overlay
-      sits above it for hover text (z-10). This keeps layering predictable
-      and avoids other modals or elements capturing clicks unexpectedly. */
-    .card-version-item { z-index: 0; }
-    .card-version-item img { z-index: 0; }
-    .card-version-item > div.absolute { z-index: 10; }
-
-    /* Make commander selection buttons explicitly pointer-enabled */
-    .select-commander-from-collection-btn { pointer-events: auto; }
-    .commander-select-btn {
-      z-index: 50;
-      pointer-events: auto;
-    }
-      .select-commander-from-search-btn:focus,
-      .select-commander-from-search-btn:active,
-      .select-commander-from-collection-btn:focus,
-      .select-commander-from-collection-btn:active {
-        outline: 3px solid rgba(99,102,241,0.7); /* indigo-500 */
-        outline-offset: 4px;
-      }
-
-      /* Fallback for browsers that don't support aspect-ratio: use padding-top
-         pseudo-element to enforce height based on width (height = width * 3/2). */
-      @supports not (aspect-ratio: 1/1) {
-        .card-version-item::before,
-        .collection-card-item::before,
-        .select-commander-from-search-btn::before {
-          content: "";
-          display: block;
-          width: 100%;
-          padding-top: 150%; /* height = 150% of width for 2/3 aspect ratio */
-        }
-      }
-      .card-image {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-      }
-      .modal-backdrop {
-        background-color: rgba(0, 0, 0, 0.75);
-      }
-      /* Hide scrollbar for webkit */
-      .no-scrollbar::-webkit-scrollbar {
-        display: none;
-      }
-      /* Hide scrollbar for IE, Edge and Firefox */
-      .no-scrollbar {
-        -ms-overflow-style: none; /* IE and Edge */
-        scrollbar-width: none; /* Firefox */
-      }
-      /* Master Delete Button Logic */
-      .delete-button {
-        display: none;
-      }
-      .edit-mode .delete-button {
-        display: inline-flex; /* Use flex to align icon and text */
-      }
-
-      .group-header {
-        background-color: #374151; /* gray-700 */
-        color: #d1d5db; /* gray-300 */
-        padding: 0.75rem 1.5rem;
-        font-weight: bold;
-        font-size: 1.25rem;
-        margin-top: 1.5rem;
-        border-bottom: 3px solid #4f46e5; /* indigo-600 */
-        position: sticky;
-        top: 72px; /* Height of header */
-        z-index: 5;
-      }
-      /* For Table Sorting */
-      .sortable {
-        cursor: pointer;
-      }
-      .sortable:hover {
-        color: #a78bfa;
-      }
-      .edit-mode .sortable {
-        cursor: default;
-      }
-      .edit-mode .sortable:hover {
-        color: inherit;
-      }
-      .sort-asc::after {
-        content: " ▲";
-        font-size: 0.8em;
-      }
-      .sort-desc::after {
-        content: " ▼";
-        font-size: 0.8em;
-      }
-      /* Card Modal Edit Mode */
-      .card-modal-value-display {
-        display: block;
-      }
-      .card-modal-value-input {
-        display: none;
-      }
-      .card-modal-edit-mode .card-modal-value-display {
-        display: none;
-      }
-      .card-modal-edit-mode .card-modal-value-input {
-        display: block;
-      }
-
-      .oracle-text-truncate {
-        overflow: hidden;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        line-clamp: 2;
-        -webkit-box-orient: vertical;
-      }
-      .kpi-gradient-bar {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        height: 4px;
-        border-radius: 0 0 0.5rem 0.5rem;
-        transition: width 0.5s ease-in-out;
-      }
-      /* Toast Notifications */
-      #toast-container {
-        position: fixed;
-        bottom: 1.5rem;
-        right: 1.5rem;
-        z-index: 100;
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-      }
-      .toast {
-        display: flex;
-        align-items: center;
-        padding: 1rem;
-        border-radius: 0.5rem;
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
-          0 4px 6px -2px rgba(0, 0, 0, 0.05);
-        min-width: 300px;
-        max-width: 400px;
-        transform: translateX(120%);
-        animation: slideIn 0.5s forwards, slideOut 0.5s 4.5s forwards;
-      }
-      @keyframes slideIn {
-        from {
-          transform: translateX(120%);
-        }
-        to {
-          transform: translateX(0);
-        }
-      }
-      @keyframes slideOut {
-        from {
-          transform: translateX(0);
-        }
-        to {
-          transform: translateX(120%);
-        }
-      }
-
-      /* Accordion styles */
-      details > summary {
-        list-style: none;
-        cursor: pointer;
-      }
-      details > summary::-webkit-details-marker {
-        display: none;
-      }
-      details summary:before {
-        content: "+";
-        margin-right: 0.5rem;
-        font-weight: bold;
-      }
-      details[open] summary:before {
-        content: "-";
-      }
-    </style>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Tiny transparent favicon to avoid 404 in headless tests -->
+    <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=">
+    <!-- Legacy inline first-run proxy removed: modular handler in Public/js/main/app.js (window.handleFirstRunSetup) is used instead -->
   </head>
   <body class="bg-gray-900 text-gray-200">
     <!-- Login Screen -->
@@ -636,22 +357,22 @@
               <div id="collection-kpi-bar" class="flex flex-wrap gap-4 items-center bg-gray-900 p-4 border-b border-gray-700">
               <div class="flex flex-col items-center flex-1 min-w-[120px]">
                 <span class="text-xs text-gray-400">Total Cards</span>
-                <span id="kpi-total-cards" class="text-2xl font-bold text-indigo-400">0</span>
+                <span id="kpi-total-cards" data-metric="total_cards" class="text-2xl font-bold text-indigo-400">0</span>
                 <span class="text-xs text-gray-500">(all copies)</span>
               </div>
               <div class="flex flex-col items-center flex-1 min-w-[120px]">
                 <span class="text-xs text-gray-400">Unique Cards</span>
-                <span id="kpi-unique-cards" class="text-2xl font-bold text-pink-400">0</span>
+                <span id="kpi-unique-cards" data-metric="unique_cards" class="text-2xl font-bold text-pink-400">0</span>
                 <span class="text-xs text-gray-500">(distinct names)</span>
               </div>
               <div class="flex flex-col items-center flex-1 min-w-[120px]">
                 <span class="text-xs text-gray-400">Total Price</span>
-                <span id="kpi-total-price" class="text-2xl font-bold text-green-400">$0.00</span>
+                <span id="kpi-total-price" data-metric="total_price" class="text-2xl font-bold text-green-400">$0.00</span>
                 <span class="text-xs text-gray-500">(USD)</span>
               </div>
               <div class="flex flex-col items-center flex-1 min-w-[120px]">
                 <span class="text-xs text-gray-400">Filtered</span>
-                <span id="kpi-filtered-summary" class="text-lg font-semibold text-gray-300">0/0</span>
+                <span id="kpi-filtered-summary" data-metric="filtered_summary" class="text-lg font-semibold text-gray-300">0/0</span>
                 <span class="text-xs text-gray-500">(showing/total)</span>
               </div>
             </div>
@@ -1432,6 +1153,26 @@
             </div>
           </div>
         </form>
+        <div class="mt-4 text-center text-sm text-gray-400">
+          <button id="open-setup-btn" class="underline text-indigo-400">First time here? Run setup</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- First-run Setup Modal -->
+    <div id="first-run-setup" class="hidden fixed inset-0 z-[110] flex items-center justify-center bg-black/60">
+      <div class="bg-gray-800 p-6 rounded-lg w-full max-w-md">
+        <h2 class="text-lg font-bold mb-3">Initial Setup</h2>
+        <p class="text-sm text-gray-400 mb-3">Create the admin user for this local install (email/password).</p>
+        <div class="space-y-3">
+          <input id="setup-email" type="email" placeholder="email@example.com" class="w-full p-2 bg-gray-700 rounded" />
+          <input id="setup-password" type="password" placeholder="password" class="w-full p-2 bg-gray-700 rounded" />
+        </div>
+        <div class="mt-4 flex justify-end gap-2">
+          <button id="cancel-setup-btn" class="px-3 py-2 rounded bg-gray-600">Cancel</button>
+          <button id="run-setup-btn" class="px-3 py-2 rounded bg-indigo-600 text-white">Create User</button>
+        </div>
+        <div id="setup-msg" class="mt-3 text-sm text-gray-300"></div>
       </div>
     </div>
 
@@ -1839,6 +1580,73 @@
     </div>
 
     <!-- Firebase and App Logic -->
+    <!-- Load modular JS (transitional) -->
+    <script type="module" src="js/main/index.js"></script>
+    <script type="module" src="js/lib/ui.js"></script>
+    <script type="module" src="js/lib/data.js"></script>
+    <script type="module" src="js/pages/collection.js"></script>
+    <script type="module" src="js/pages/decks.js"></script>
+    <script type="module" src="js/pages/singleDeck.js"></script>
+  <script type="module" src="js/main/app.js"></script>
+  <script type="module" src="js/main/boot.js"></script>
+  <script>
+    // NOTE: The legacy test proxy `window.__runFirstRunSetup` was removed.
+    // Tests should call the canonical handler `window.handleFirstRunSetup(email, password)`
+    // If your test runner needs a shim, add a short-lived helper in your test harness.
+  </script>
+
+    <script>
+      // Resilient boot shim: some browsers/environments may load module scripts
+      // slightly after this inline block runs. Poll for the module-attached
+      // boot functions and invoke them when available. This keeps the page
+      // responsive in environments where module execution order is subject to
+      // timing differences.
+      (function resilientBoot() {
+        const tryBoot = () => {
+          try {
+            if (typeof window.bootApp === 'function') {
+              try { window.bootApp(); console.log('[BootShim] window.bootApp invoked'); } catch (e) { console.warn('[BootShim] bootApp threw', e); }
+            }
+            if (typeof window.initAppListeners === 'function') {
+              // Defer the call to avoid synchronous exceptions from third-party SDK race conditions
+              try {
+                setTimeout(() => {
+                  try {
+                    window.initAppListeners();
+                    console.log('[BootShim] window.initAppListeners invoked (deferred)');
+                  } catch (e) {
+                    console.warn('[BootShim] deferred initAppListeners threw', e);
+                  }
+                }, 50);
+              } catch (e) {
+                console.warn('[BootShim] scheduling initAppListeners failed', e);
+              }
+            }
+          } catch (e) {
+            console.warn('Modular boot/init failed or not available yet', e);
+          }
+        };
+
+        // First immediate attempt
+        tryBoot();
+
+        // If the boot functions are not present yet, poll for a short window.
+        let attempts = 0;
+        const maxAttempts = 25; // ~5 seconds (25 * 200ms)
+        const iv = setInterval(() => {
+          attempts++;
+          if (typeof window.bootApp === 'function' || typeof window.initAppListeners === 'function') {
+            tryBoot();
+            clearInterval(iv);
+            return;
+          }
+          if (attempts >= maxAttempts) {
+            clearInterval(iv);
+            console.warn('[BootShim] boot functions not detected after wait; UI modules may not be initialized.');
+          }
+        }, 200);
+      })();
+    </script>
 
   <script type="module">
       // --- Modal Visibility Settings Global ---
@@ -1892,20 +1700,10 @@
         setupCollapsibleSection('toggle-kpi-bar', 'collection-kpi-bar', 'kpi-bar-chevron');
         setupCollapsibleSection('toggle-filters-bar', 'collection-filters-bar', 'filters-bar-chevron');
       });
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+      // Use the local firebase wrappers to avoid creating duplicate SDK instances
+      import { app as firebaseApp, db as firebaseDb, auth as firebaseAuth, appId as initAppId } from './js/firebase/init.js';
+      import { onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInAnonymously, signInWithCustomToken } from './js/firebase/auth.js';
       import {
-        getAuth,
-        onAuthStateChanged,
-        signOut,
-        GoogleAuthProvider,
-        signInWithPopup,
-        createUserWithEmailAndPassword,
-        signInWithEmailAndPassword,
-        signInAnonymously,
-        signInWithCustomToken,
-      } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-      import {
-        getFirestore,
         doc,
         getDoc,
         collection,
@@ -1921,6 +1719,16 @@
       } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
   document.addEventListener("DOMContentLoaded", () => {
+        // Runtime check: warn if multiple Firebase apps or auth instances detected
+        try {
+          const globalApps = (window.__firebase_app ? [window.__firebase_app] : []).length + (window.firebase && Array.isArray(window.firebase.apps) ? window.firebase.apps.length : 0);
+          if (globalApps > 1) {
+            console.warn('[Firebase] Multiple firebase apps detected on window. This can cause inconsistent SDK instances (auth/onAuthStateChanged errors).');
+          }
+          if (window.__firebase_auth && window.__firebase_auth !== firebaseAuth) {
+            console.warn('[Firebase] Multiple auth instances detected (window.__firebase_auth differs from local firebaseAuth).');
+          }
+        } catch (e) { /* best-effort check */ }
         // --- Advanced View Builder Button Event Listeners ---
         // --- Advanced View Builder Button Logic ---
         const openViewBuilderBtn = document.getElementById('open-view-builder-btn');
@@ -2007,7 +1815,7 @@
           "[DOMContentLoaded] Event fired. App is initializing. Find in <script> block."
         );
 
-        // --- FIREBASE & APP CONFIG ---
+  // --- FIREBASE & APP CONFIG ---
         let db, auth;
         let userId = null;
         let collectionUnsubscribe = null;
@@ -2031,9 +1839,21 @@
               };
         console.log("[Config] Firebase config loaded.");
 
-        const app = initializeApp(firebaseConfig);
-        db = getFirestore(app);
-        auth = getAuth(app);
+  // Reuse the already-initialized Firebase app/db/auth from our local init module.
+  const app = firebaseApp;
+  db = firebaseDb;
+  auth = firebaseAuth;
+
+        // If a user is already signed in at page load, ensure the app UI is shown
+        try {
+          const cur = auth && auth.currentUser ? auth.currentUser : (window.__firebase_auth && window.__firebase_auth.currentUser) || null;
+          if (cur) {
+            console.log('[Auth] user present on load, showing app UI', cur.uid);
+            try { document.getElementById('login-screen').classList.add('hidden'); } catch(e){}
+            try { document.getElementById('app-wrapper').classList.remove('hidden'); } catch(e){}
+            try { if (typeof window.initAppListeners === 'function') window.initAppListeners(); } catch(e) { console.warn('[Auth] initAppListeners call on load failed', e); }
+          }
+        } catch (e) { /* best-effort */ }
         
         // IMPORTANT: The user must provide their own Gemini API key for this app to function.
         // The key is left empty here as a placeholder.
@@ -2067,108 +1887,62 @@
         // --- Saved Views / Advanced Filters ---
 
         function renderSavedViewsSelect() {
-          const select = document.getElementById('saved-views-select');
-          if (!select) return;
-          select.innerHTML = '<option value="">(Default)</option>' + savedViews.map(v => {
-            const mode = v.viewMode ? `, ${v.viewMode}` : '';
-            const size = v.gridSize ? `, ${v.gridSize.toUpperCase()}` : '';
-            return `<option value="${v.id}">${v.name}${v.isDefault ? ' (Default)' : ''}${mode}${size}</option>`;
-          }).join('');
-          select.value = activeViewId || '';
+          // migrated to Public/js/settings/settings.js
+          import('./js/settings/settings.js').then(mod => {
+            if (typeof mod.renderSavedViewsSelect === 'function') mod.renderSavedViewsSelect();
+          }).catch(err => console.debug('settings module not yet available for renderSavedViewsSelect', err));
         }
 
         async function loadSavedViewsFromFirestore() {
-          if (!userId) return;
+          // migrated to Public/js/settings/settings.js
           try {
-            const userDocRef = doc(db, `artifacts/${appId}/users/${userId}`);
-            const userDoc = await getDoc(userDocRef);
-            if (userDoc.exists()) {
-              const settings = (userDoc.data().settings) || {};
-              savedViews = settings.savedViews || [];
-              activeViewId = settings.activeViewId || null;
-            } else {
-              savedViews = [];
-              activeViewId = null;
-            }
-          } catch (e) {
-            console.error('Error loading saved views:', e);
-            savedViews = [];
-            activeViewId = null;
+            const mod = await import('./js/settings/settings.js');
+            if (typeof mod.loadSavedViewsFromFirestore === 'function') return mod.loadSavedViewsFromFirestore();
+          } catch (err) {
+            console.debug('settings module not yet available for loadSavedViewsFromFirestore', err);
           }
-          renderSavedViewsSelect();
-          // If no activeViewId but a saved default exists, use it
-          if (!activeViewId) {
-            const def = savedViews.find(v => v.isDefault);
-            if (def) {
-              activeViewId = def.id;
-            }
-          }
-          // Always call setActiveViewById to hydrate UI and state
-          setActiveViewById(activeViewId);
-        // --- Saved Views Dropdown Change Handler ---
-        document.addEventListener('DOMContentLoaded', () => {
-          const select = document.getElementById('saved-views-select');
-          if (select) {
-            select.addEventListener('change', (e) => {
-              const viewId = e.target.value || null;
-              setActiveViewById(viewId);
-            });
-          }
-        });
         }
 
         async function persistSavedViewsToFirestore() {
-          if (!userId) return;
+          // migrated to Public/js/settings/settings.js
           try {
-            const userDocRef = doc(db, `artifacts/${appId}/users/${userId}`);
-            await setDoc(userDocRef, { settings: { ...( (await getDoc(userDocRef)).data()?.settings || {} ), savedViews, activeViewId } }, { merge: true });
-            showToast('Views saved.', 'success');
-          } catch (e) {
-            console.error('Error saving views:', e);
-            showToast('Failed to save view settings.', 'error');
+            const mod = await import('./js/settings/settings.js');
+            if (typeof mod.persistSavedViewsToFirestore === 'function') return mod.persistSavedViewsToFirestore();
+          } catch (err) {
+            console.debug('settings module not yet available for persistSavedViewsToFirestore', err);
           }
         }
 
         function buildFilterPredicate(rule) {
-          // rule: {column, operator, value}
-          return (card) => {
-            const col = rule.column;
-            const val = rule.value;
-            const op = rule.operator;
-            let cardVal = card[col];
-            if (col === 'color_identity') cardVal = (card.color_identity || []).join('');
-            if (col === 'type_line') cardVal = (card.type_line || '').split(' — ')[0];
-            if (col === 'deck') {
-              const assignment = (cardDeckAssignments[card.firestoreId] || [])[0];
-              cardVal = assignment ? assignment.deckName : 'Not in a Deck';
-            }
-            if (cardVal === undefined || cardVal === null) cardVal = '';
-            cardVal = (typeof cardVal === 'string') ? cardVal.toLowerCase() : cardVal;
-            const cmp = (v) => (typeof v === 'string' ? v.toLowerCase() : v);
-            switch(op) {
-              case 'contains':
-                return String(cardVal).includes(String(val).toLowerCase());
-              case 'equals':
-                return String(cardVal) === String(val).toLowerCase();
-              case 'gt':
-                return Number(cardVal) > Number(val);
-              case 'lt':
-                return Number(cardVal) < Number(val);
-              default:
-                return true;
-            }
-          };
+          // migrated to Public/js/settings/settings.js
+          // Delegate to the settings module implementation when available
+          try {
+            const modPromise = import('./js/settings/settings.js');
+            // return a predicate that delegates once module loads
+            return (card) => {
+              // If module loaded and exported predicate builder, use it
+              if (window.__settings_buildFilterPredicate) return window.__settings_buildFilterPredicate(rule)(card);
+              // Fallback simple contains compare
+              const col = rule.column; const val = (rule.value||'').toString().toLowerCase();
+              const cardVal = ((col === 'color_identity' ? (card.color_identity||[]).join('') : (card[col]||'')).toString()||'').toLowerCase();
+              return cardVal.includes(val);
+            };
+          } catch (err) {
+            console.debug('settings module not yet available for buildFilterPredicate', err);
+            return (card) => true;
+          }
         }
 
         function applySavedViewToCards(cardsArr) {
-          // returns a filtered/sorted array based on viewFilterRules and viewSortRules
+          // migrated to Public/js/settings/settings.js
+          // Delegate to module when available
+          if (window.__applySavedViewToCards) return window.__applySavedViewToCards(cardsArr);
+          // Fallback: naive apply using viewFilterRules/viewSortRules
           let result = [...cardsArr];
-          // Apply filters
           for (const rule of viewFilterRules) {
             const pred = buildFilterPredicate(rule);
             result = result.filter(pred);
           }
-          // Apply sorts: sorts are applied as chained comparisons using reduce
           if (viewSortRules.length > 0) {
             result.sort((a,b) => {
               for (const s of viewSortRules) {
@@ -2190,107 +1964,30 @@
         }
 
         async function saveViewToFirestore(view) {
-          // view: { id, name, filters, sorts, groupBy, hideInDecks, viewMode, gridSize, isDefault }
-          if (!view.id) view.id = `view_${Date.now()}`;
-          const existingIndex = savedViews.findIndex(v => v.id === view.id);
-          if (existingIndex >= 0) savedViews[existingIndex] = view; else savedViews.push(view);
-          // If marked default, unset others
-          if (view.isDefault) {
-            savedViews.forEach(v => { if (v.id !== view.id) v.isDefault = false; });
-            activeViewId = view.id;
+          // migrated to Public/js/settings/settings.js
+          try {
+            const mod = await import('./js/settings/settings.js');
+            if (typeof mod.saveViewToFirestore === 'function') return mod.saveViewToFirestore(view);
+          } catch (err) {
+            console.debug('settings module not yet available for saveViewToFirestore', err);
           }
-          await persistSavedViewsToFirestore();
-          renderSavedViewsSelect();
-          showToast(`View "${view.name}" saved.`, 'success');
         }
 
         async function deleteViewFromFirestore(viewId) {
-          savedViews = savedViews.filter(v => v.id !== viewId);
-          if (activeViewId === viewId) activeViewId = null;
-          await persistSavedViewsToFirestore();
-          renderSavedViewsSelect();
-          showToast('View deleted.', 'success');
+          // migrated to Public/js/settings/settings.js
+          try {
+            const mod = await import('./js/settings/settings.js');
+            if (typeof mod.deleteViewFromFirestore === 'function') return mod.deleteViewFromFirestore(viewId);
+          } catch (err) {
+            console.debug('settings module not yet available for deleteViewFromFirestore', err);
+          }
         }
 
         function setActiveViewById(viewId) {
-          activeViewId = viewId || null;
-          // load view into working editor
-          const view = savedViews.find(v => v.id === viewId);
-          if (view) {
-            viewFilterRules = (view.filters || []).map(f => ({...f}));
-            viewSortRules = (view.sorts || []).map(s => ({...s}));
-            // Populate builder fields
-            if (document.getElementById('view-group-by-1')) document.getElementById('view-group-by-1').value = (view.groupBy && view.groupBy[0]) || '';
-            if (document.getElementById('view-group-by-2')) document.getElementById('view-group-by-2').value = (view.groupBy && view.groupBy[1]) || '';
-            if (document.getElementById('view-hide-in-deck')) document.getElementById('view-hide-in-deck').checked = !!view.hideInDecks;
-            if (document.getElementById('view-name-input')) document.getElementById('view-name-input').value = view.name || '';
-            // Populate builder's view-mode and grid-size controls if present
-            if (document.getElementById('view-view-mode')) document.getElementById('view-view-mode').value = view.viewMode || collectionViewMode;
-            if (document.getElementById('view-grid-size')) document.getElementById('view-grid-size').value = view.gridSize || collectionGridSize;
-
-            // Apply view to the live UI controls so visuals update immediately
-            try {
-              // Group selects used by the main render
-              const g1 = document.getElementById('collection-group-by-1');
-              const g2 = document.getElementById('collection-group-by-2');
-              if (g1) g1.value = (view.groupBy && view.groupBy[0]) || '';
-              if (g2) g2.value = (view.groupBy && view.groupBy[1]) || '';
-
-              // Hide-in-deck checkbox used by the main render
-              const hideCheckbox = document.getElementById('hide-in-deck-checkbox');
-              if (hideCheckbox) hideCheckbox.checked = !!view.hideInDecks;
-
-              // Apply view mode and grid size
-              if (view.viewMode) {
-                collectionViewMode = view.viewMode;
-                const gridBtn = document.getElementById('view-toggle-grid');
-                const tableBtn = document.getElementById('view-toggle-table');
-                if (gridBtn && tableBtn) {
-                  if (collectionViewMode === 'grid') {
-                    gridBtn.classList.add('bg-indigo-600','text-white');
-                    tableBtn.classList.remove('bg-indigo-600','text-white');
-                  } else {
-                    tableBtn.classList.add('bg-indigo-600','text-white');
-                    gridBtn.classList.remove('bg-indigo-600','text-white');
-                  }
-                }
-              }
-              if (view.gridSize) {
-                collectionGridSize = view.gridSize;
-                document.querySelectorAll('.grid-size-btn').forEach(b => {
-                  b.classList.remove('bg-indigo-600','text-white');
-                  if (b.dataset.size === collectionGridSize) b.classList.add('bg-indigo-600','text-white');
-                });
-              }
-
-              // If view defines sorts, apply primary sort to global collectionSortState so table header sorting reflects it
-              if (Array.isArray(view.sorts) && view.sorts.length > 0) {
-                const primary = view.sorts[0];
-                collectionSortState = { column: primary.column, direction: primary.direction };
-                // update sortable header UI classes if present
-                document.querySelectorAll('.sortable').forEach(th => {
-                  th.classList.remove('sorted-asc','sorted-desc');
-                  if (th.dataset.sort === collectionSortState.column) th.classList.add(collectionSortState.direction === 'asc' ? 'sorted-asc' : 'sorted-desc');
-                });
-              }
-            } catch (err) {
-              console.warn('Could not apply saved view to live UI controls', err);
-            }
-          } else {
-            viewFilterRules = [];
-            viewSortRules = [];
-            if (document.getElementById('view-group-by-1')) document.getElementById('view-group-by-1').value = '';
-            if (document.getElementById('view-group-by-2')) document.getElementById('view-group-by-2').value = '';
-            if (document.getElementById('view-hide-in-deck')) document.getElementById('view-hide-in-deck').checked = false;
-            if (document.getElementById('view-name-input')) document.getElementById('view-name-input').value = '';
-          }
-          if (typeof renderViewBuilderLists === 'function') renderViewBuilderLists();
-          renderSavedViewsSelect();
-          // Trigger a re-render of collection
-          // Use renderPaginatedCollection which is the canonical entry for collection rendering
-          renderPaginatedCollection();
-          // Inform user the saved view was applied (useful for programmatic switches)
-          if (view && view.name) showToast(`Applied view: ${view.name}`, 'success');
+          // migrated to Public/js/settings/settings.js
+          import('./js/settings/settings.js').then(mod => {
+            if (typeof mod.setActiveViewById === 'function') return mod.setActiveViewById(viewId);
+          }).catch(err => console.debug('settings module not yet available for setActiveViewById', err));
         }
 
         // --- DOM ELEMENTS ---
@@ -2311,7 +2008,8 @@
 
         // --- INITIALIZATION ---
 
-        onAuthStateChanged(auth, async (user) => {
+  // Use the canonical auth instance exported from our firebase init wrapper
+  onAuthStateChanged(auth, async (user) => {
           if (user) {
             userId = user.uid;
             console.log(`[Auth] User is signed in. UID: ${userId}`);
@@ -2322,19 +2020,20 @@
             await loadSettings(); // Ensure settings are loaded before first render
             setupListeners();
           } else {
-            console.log(
-              "[Auth] No user signed in. Attempting custom token or anonymous sign-in."
-            );
-            try {
-              if (typeof __initial_auth_token !== "undefined") {
+            console.log("[Auth] No user signed in. Showing login UI (email/password).");
+            // Prefer explicit email/password login. If an initial custom token exists (CI/special flows), try it.
+            if (typeof __initial_auth_token !== "undefined") {
+              try {
                 await signInWithCustomToken(auth, __initial_auth_token);
                 console.log("[Auth] Successfully signed in with custom token.");
-              } else {
-                await signInAnonymously(auth);
-                console.log("[Auth] Successfully signed in anonymously.");
+              } catch (error) {
+                try { window.__lastAuthError = { message: error?.message || String(error), code: error?.code || null, stack: error?.stack || null }; } catch(e){ window.__lastAuthError = { message: String(error) }; }
+                console.error('[Auth] Custom token sign-in failed:', window.__lastAuthError);
+                document.getElementById("login-screen").classList.remove("hidden");
+                document.getElementById("app-wrapper").classList.add("hidden");
               }
-            } catch (error) {
-              console.error("Error during sign-in:", error);
+            } else {
+              // No automatic sign-in. Reveal login UI for user to sign in or create an account.
               document.getElementById("login-screen").classList.remove("hidden");
               document.getElementById("app-wrapper").classList.add("hidden");
             }
@@ -2415,585 +2114,90 @@
           );
         }
 
+
         async function saveSettings() {
-            if (!userId) return;
-            const userSettingsRef = doc(db, `artifacts/${appId}/users/${userId}`);
-            const settings = { modalVisibility: modalVisibilitySettings };
-            try {
-                await setDoc(userSettingsRef, { settings }, { merge: true });
-                showToast("Settings saved successfully.", "success");
-            } catch (error) {
-                console.error("Error saving settings:", error);
-                showToast("Failed to save settings.", "error");
-            }
+          // migrated to Public/js/settings/settings.js
+          try {
+            const mod = await import('./js/settings/settings.js');
+            if (typeof mod.saveSettings === 'function') return mod.saveSettings();
+          } catch (err) {
+            console.debug('settings module not yet available for saveSettings', err);
+          }
         }
 
 
         async function loadSettings() {
-          if (!userId) return;
+          // migrated to Public/js/settings/settings.js
           try {
-            const userDocRef = doc(db, `artifacts/${appId}/users/${userId}`);
-            const userDoc = await getDoc(userDocRef);
-            if (userDoc.exists()) {
-              const settings = userDoc.data().settings;
-              if (settings && settings.modalVisibility) {
-                modalVisibilitySettings = settings.modalVisibility;
-                console.log(
-                  "[Settings] Loaded modal visibility settings:",
-                  modalVisibilitySettings
-                );
-              }
-            }
-          } catch (e) {
-            console.error("Error loading settings:", e);
+            const mod = await import('./js/settings/settings.js');
+            if (typeof mod.loadSettings === 'function') return mod.loadSettings();
+          } catch (err) {
+            console.debug('settings module not yet available for loadSettings', err);
           }
-          // Ensure defaults are set if settings are missing
-            const allFields = ['count', 'finish', 'condition', 'purchasePrice', 'notes', 'deckAssignments'];
-            allFields.forEach(field => {
-                if (modalVisibilitySettings[field] === undefined) {
-                    modalVisibilitySettings[field] = true;
-                }
-            });
-          renderModalVisibilitySettings();
         }
 
         function updateCardAssignments() {
-          cardDeckAssignments = {}; // This should be keyed by firestoreId
-          Object.values(localDecks).forEach((deck) => {
-            const allDeckCardsFirestoreIds = Object.keys(deck.cards || {});
-            if (deck.commander && deck.commander.firestoreId) {
-                allDeckCardsFirestoreIds.push(deck.commander.firestoreId);
-            }
-
-            allDeckCardsFirestoreIds.forEach(firestoreId => {
-                if (!cardDeckAssignments[firestoreId]) {
-                    cardDeckAssignments[firestoreId] = [];
-                }
-                const existingAssignment = cardDeckAssignments[firestoreId].find(a => a.deckId === deck.id);
-                if (!existingAssignment) {
-                    cardDeckAssignments[firestoreId].push({
-                        deckId: deck.id,
-                        deckName: deck.name,
-                    });
-                }
-            });
-          });
-          console.log("[State] Card to deck assignments updated.");
+          // Delegator: prefer the migrated data module's updateCardAssignments
+          if (typeof window.updateCardAssignments === 'function' && window.updateCardAssignments !== updateCardAssignments) return window.updateCardAssignments();
+          try {
+            return import('./js/lib/data.js').then(mod => {
+              if (typeof mod.updateCardAssignments === 'function') return mod.updateCardAssignments();
+            }).catch(err => console.debug('data module not available for updateCardAssignments', err));
+          } catch (err) {
+            console.debug('Failed to import data module for updateCardAssignments', err);
+          }
         }
 
         // --- RENDER FUNCTIONS ---
 
         function renderCollection() {
-          console.log(
-            "[Function: renderCollection] Triggering a full re-render of the collection view. Find in <script> block."
-          );
-          renderPaginatedCollection();
+          // Delegator: prefer the migrated collection module's renderPaginatedCollection
+          if (typeof window.renderPaginatedCollection === 'function') return window.renderPaginatedCollection();
+          import('./js/pages/collection.js').then(mod => {
+            if (typeof mod.renderPaginatedCollection === 'function') mod.renderPaginatedCollection();
+          }).catch(err => console.debug('collection module not available for renderCollection', err));
         }
 
-        function groupCardsRecursively(cards, groupByKeys) {
-          if (!groupByKeys || !groupByKeys.length) {
-            return cards;
-          }
+        // groupCardsRecursively migrated to Public/js/pages/collection.js
 
-          const currentKey = groupByKeys[0];
-          const remainingKeys = groupByKeys.slice(1);
+        // sortCards migrated to Public/js/pages/collection.js
 
-          const groups = cards.reduce((acc, card) => {
-            let key;
-            if (currentKey === "color_identity") {
-              const colors = card.color_identity.join("");
-              key = colors === "" ? "Colorless" : colors;
-            } else if (currentKey === "type_line") {
-              key = card.type_line.split(" — ")[0];
-            } else if (currentKey === 'deck') {
-              const assignment = (cardDeckAssignments[card.firestoreId] || [])[0];
-              key = assignment ? assignment.deckName : 'Not in a Deck';
-            }
-            else {
-              key = card[currentKey] ?? "Other";
-            }
-            (acc[key] = acc[key] || []).push(card);
-            return acc;
-          }, {});
+        // sortGroupContent migrated to Public/js/pages/collection.js
 
-          if (remainingKeys.length > 0) {
-            for (const groupName in groups) {
-              groups[groupName] = groupCardsRecursively(
-                groups[groupName],
-                remainingKeys
-              );
-            }
-          }
+        // computeGroupCounts migrated to Public/js/pages/collection.js
 
-          return groups;
-        }
+        // renderPaginatedCollection migrated to Public/js/pages/collection.js
 
-        function sortCards(cards) {
-          const { column, direction } = collectionSortState;
-          const sorted = [...cards].sort((a, b) => {
-            let valA, valB;
-            if (column === "price") {
-              valA = parseFloat(a.prices?.usd || 0);
-              valB = parseFloat(b.prices?.usd || 0);
-            } else if (column === "count") {
-              valA = a.count || 1;
-              valB = b.count || 1;
-            } else {
-              valA = a[column] ?? "";
-              valB = b[column] ?? "";
-            }
-            if (typeof valA === "string") valA = valA.toLowerCase();
-            if (typeof valB === "string") valB = valB.toLowerCase();
-            if (valA < valB) return direction === "asc" ? -1 : 1;
-            if (valA > valB) return direction === "asc" ? 1 : -1;
-            return 0;
-          });
-          return sorted;
-        }
+        // renderPaginationControls migrated to Public/js/pages/collection.js
 
-        function sortGroupContent(cards) {
-          if (window.viewSortRules && viewSortRules.length > 0) {
-            const sorted = [...cards].sort((a, b) => {
-              for (const s of viewSortRules) {
-                const col = s.column;
-                const dir = s.direction === 'asc' ? 1 : -1;
-                let valA = a[col] ?? '';
-                let valB = b[col] ?? '';
-                if (col === 'price') { valA = parseFloat(a.prices?.usd||0); valB = parseFloat(b.prices?.usd||0); }
-                if (col === 'count') { valA = a.count||1; valB = b.count||1; }
-                if (typeof valA === 'string') valA = valA.toLowerCase();
-                if (typeof valB === 'string') valB = valB.toLowerCase();
-                if (valA < valB) return -1 * dir;
-                if (valA > valB) return 1 * dir;
-              }
-              return 0;
-            });
-            return sorted;
-          }
-          return sortCards(cards);
-        }
+        // renderCollectionGrid migrated to Public/js/pages/collection.js
 
-        function computeGroupCounts(items) {
-          if (!items) return { unique: 0, copies: 0 };
-          if (Array.isArray(items)) {
-            const unique = items.length;
-            const copies = items.reduce((acc, c) => acc + (c.count || 1), 0);
-            return { unique, copies };
-          }
-          let totalUnique = 0;
-          let totalCopies = 0;
-          for (const key of Object.keys(items)) {
-            const child = items[key];
-            const childCounts = computeGroupCounts(child);
-            totalUnique += childCounts.unique;
-            totalCopies += childCounts.copies;
-          }
-          return { unique: totalUnique, copies: totalCopies };
-        }
-
-        function renderPaginatedCollection() {
-          console.log(
-            `[Function: renderPaginatedCollection] Rendering page ${collectionCurrentPage} of the collection. Find in <script> block.`
-          );
-          const contentDiv = document.getElementById("collection-content");
-          const paginationDiv = document.getElementById("collection-pagination");
-          const noCardsMsg = document.getElementById("no-cards-msg");
-          let cards = Object.values(localCollection);
-
-          if (document.getElementById("hide-in-deck-checkbox").checked) {
-            cards = cards.filter((card) => !cardDeckAssignments[card.firestoreId]);
-          }
-
-          // Apply saved view filters/sorts if a view is active
-          if (typeof applySavedViewToCards === 'function') {
-            cards = applySavedViewToCards(cards);
-          }
-
-
-          // --- KPI BAR LOGIC ---
-          // Compute stats for full collection (before filter)
-          const allCardsArr = Object.values(localCollection);
-          const totalCards = allCardsArr.reduce((sum, c) => sum + (c.count || 1), 0);
-          const uniqueCards = allCardsArr.length;
-          const totalPrice = allCardsArr.reduce((sum, c) => sum + ((c.prices && c.prices.usd ? parseFloat(c.prices.usd) : 0) * (c.count || 1)), 0);
-
-          // Compute stats for filtered view (after filter)
-          const filteredCards = cards;
-          const filteredTotal = filteredCards.reduce((sum, c) => sum + (c.count || 1), 0);
-          const filteredUnique = filteredCards.length;
-          const filteredPrice = filteredCards.reduce((sum, c) => sum + ((c.prices && c.prices.usd ? parseFloat(c.prices.usd) : 0) * (c.count || 1)), 0);
-
-          // Update KPI bar
-          const elTotal = document.getElementById('kpi-total-cards');
-          const elUnique = document.getElementById('kpi-unique-cards');
-          const elPrice = document.getElementById('kpi-total-price');
-          const elFiltered = document.getElementById('kpi-filtered-summary');
-          if (elTotal) elTotal.textContent = totalCards;
-          if (elUnique) elUnique.textContent = uniqueCards;
-          if (elPrice) elPrice.textContent = `$${totalPrice.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}`;
-          if (elFiltered) elFiltered.textContent = `${filteredTotal}/${totalCards}`;
-
-          if (cards.length === 0) {
-            contentDiv.innerHTML = "";
-            paginationDiv.innerHTML = "";
-            noCardsMsg.classList.remove("hidden");
-            return;
-          }
-          noCardsMsg.classList.add("hidden");
-
-          const filterText = document
-            .getElementById("filter-text")
-            .value.toLowerCase();
-          if (filterText) {
-            cards = cards.filter(
-              (card) =>
-                card.name.toLowerCase().includes(filterText) ||
-                card.type_line.toLowerCase().includes(filterText)
-            );
-          }
-
-          // Get grouping keys
-          const groupByKeys = [
-            document.getElementById("collection-group-by-1").value,
-            document.getElementById("collection-group-by-2").value,
-          ].filter(Boolean); // filter(Boolean) removes empty strings
-
-          // When grouping is active we apply grouping first and then sort within each group.
-          // Also disable pagination when grouping is active (show full groups).
-          if (groupByKeys.length > 0) {
-            // Clear pagination UI when grouped
-            paginationDiv.innerHTML = "";
-          } else {
-            // No grouping: apply global sort and pagination as before
-            cards = sortCards(cards);
-
-            const totalPages = Math.ceil(cards.length / COLLECTION_PAGE_SIZE);
-            if (totalPages > 1) {
-              const start = (collectionCurrentPage - 1) * COLLECTION_PAGE_SIZE;
-              const end = start + COLLECTION_PAGE_SIZE;
-              const paginatedCards = cards.slice(start, end);
-              renderPaginationControls(totalPages);
-              cards = paginatedCards;
-            } else {
-              paginationDiv.innerHTML = "";
-            }
-          }
-
-          if (collectionViewMode === "grid") {
-            renderCollectionGrid(cards, groupByKeys);
-          } else {
-            renderCollectionTable(cards, groupByKeys);
-          }
-        }
-
-        function renderPaginationControls(totalPages) {
-          const paginationDiv = document.getElementById("collection-pagination");
-          let html = "";
-          for (let i = 1; i <= totalPages; i++) {
-            const activeClass =
-              i === collectionCurrentPage
-                ? "bg-indigo-600 text-white"
-                : "bg-gray-700 hover:bg-gray-600";
-            html += `<button class="pagination-btn ${activeClass} font-bold py-2 px-4 rounded" data-page="${i}">${i}</button>`;
-          }
-          paginationDiv.innerHTML = html;
-
-          document.querySelectorAll(".pagination-btn").forEach((button) => {
-            button.addEventListener("click", () => {
-              collectionCurrentPage = parseInt(button.dataset.page, 10);
-              renderPaginatedCollection();
-            });
-          });
-        }
-
-        function renderCollectionGrid(cards, groupByKeys) {
-          // renderCollectionGrid
-          const contentDiv = document.getElementById("collection-content");
-
-          const sizeClasses = {
-            sm: "grid-cols-4 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-9 xl:grid-cols-11",
-            md: "grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-9",
-            lg: "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6",
-          };
-          const gridClass = sizeClasses[collectionGridSize] || sizeClasses.md;
-
-          let groupUidCounter = 0;
-          function renderRecursiveGroups(groups, level) {
-            return Object.keys(groups)
-              .sort()
-              .map((groupName) => {
-                const content = groups[groupName];
-                const uid = `group-${groupUidCounter++}`;
-                // If content is an array, compute counts and render cards (sorted)
-                if (Array.isArray(content)) {
-                  const counts = computeGroupCounts(content);
-                  const headerHtml = `
-                    <details id="${uid}" class="col-span-full" ${level === 0 ? "" : "open"}>
-                      <summary class="group-header" style="padding-left: ${1.5 + level}rem;">
-                        ${groupName} <span class="text-sm text-gray-400 ml-3">(${counts.unique} items, ${counts.copies} total)</span>
-                      </summary>
-                      <div class="grid ${gridClass} gap-4 p-4">
-                        ${sortGroupContent(content).map(renderCollectionCard).join("")}
-                      </div>
-                    </details>
-                  `;
-                  return headerHtml;
-                } else {
-                  // subgroup: compute aggregated counts from nested children and render collapsible group
-                  const counts = computeGroupCounts(content);
-                  const subgroupHtml = `
-                    <details id="${uid}" class="col-span-full" ${level === 0 ? "" : "open"}>
-                      <summary class="group-header" style="padding-left: ${1.5 + level}rem;">
-                        ${groupName} <span class="text-sm text-gray-400 ml-3">(${counts.unique} items, ${counts.copies} total)</span>
-                      </summary>
-                      <div class="col-span-full">
-                        ${renderRecursiveGroups(content, level + 1)}
-                      </div>
-                    </details>
-                  `;
-                  return subgroupHtml;
-                }
-              })
-              .join("");
-          }
-
-          if (groupByKeys.length > 0) {
-            console.log(
-              `[renderCollectionGrid] Grouping cards by "${groupByKeys.join(", ")}".`
-            );
-            const groupedCards = groupCardsRecursively(cards, groupByKeys);
-            // Reset UID counter for stable IDs on re-render
-            groupUidCounter = 0;
-            contentDiv.innerHTML = `<div class="grid ${gridClass} gap-4 p-4">
-                                        ${renderRecursiveGroups(groupedCards, 0)}
-                                    </div>`;
-            // Accessibility: make details summaries keyboard-toggleable
-            contentDiv.querySelectorAll('details summary').forEach(summary => {
-              summary.tabIndex = 0;
-              summary.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  const details = summary.parentElement;
-                  details.open = !details.open;
-                }
-              });
-            });
-          } else {
-            contentDiv.innerHTML = `<div class="grid ${gridClass} gap-4 p-4">
-                                        ${cards.map(renderCollectionCard).join("")}
-                                    </div>`;
-          }
-          addCollectionCardListeners();
-        }
-
-        function renderCollectionTable(cards, groupByKeys) {
-            console.log(`[Function: renderCollectionTable] Rendering collection as a table. Card count: ${cards.length}.`);
-            const contentDiv = document.getElementById("collection-content");
-            const renderTableRows = (cardGroup) =>
-                cardGroup
-                .map((card) => {
-                    const price = card.prices?.usd_foil && card.finish === "foil" ? card.prices.usd_foil : card.prices?.usd || "N/A";
-                    const isCommander = card.type_line.includes("Legendary");
-                    const assignment = (cardDeckAssignments[card.firestoreId] || [])[0];
-                    return `<tr class="bg-gray-800 border-b border-gray-700 hover:bg-gray-700/50">
-                                <td class="px-6 py-4">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-10 flex-shrink-0">
-                                            <div class="card-image-container rounded-md overflow-hidden">
-                                                <img src="${card.image_uris?.small}" class="card-image" loading="lazy" alt="${card.name}">
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <div class="font-bold">${card.name}</div>
-                                            <div class="text-sm text-gray-400">${card.set_name}</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4 text-center">${card.count || 1}</td>
-                                <td class="px-6 py-4">${card.type_line}</td>
-                                <td class="px-6 py-4">${assignment ? assignment.deckName : 'None'}</td>
-                                <td class="px-6 py-4">${card.rarity}</td>
-                                <td class="px-6 py-4 text-center">${card.cmc || 0}</td>
-                                <td class="px-6 py-4 text-right">$${price}</td>
-                                <td class="px-6 py-4 text-right">
-                                    <button class="p-2 hover:bg-gray-600 rounded-full view-card-details-btn" data-firestore-id="${card.firestoreId}">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                                    </button>
-                                    ${isCommander ? `<button class="p-2 hover:bg-gray-600 rounded-full create-deck-from-commander-btn" data-firestore-id="${card.firestoreId}" title="Create Commander Deck">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                                    </button>` : ""}
-                                    <button class="p-2 hover:bg-red-800 rounded-full delete-button" data-firestore-id="${card.firestoreId}">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                    </button>
-                                </td>
-                            </tr>`;
-                }).join("");
-
-            function renderRecursiveRows(groups, level) {
-                return Object.keys(groups).sort().map((groupName) => {
-                    const content = groups[groupName];
-                    const topOffset = 114 + (level * 44);
-                    const headerRow = `
-                    <tr class="bg-gray-700">
-                        <th colspan="8" class="px-6 py-2 text-left text-lg font-bold text-gray-300 sticky bg-gray-700" style="top: ${topOffset}px; padding-left: ${1 + level}rem; z-index: 5;">
-                            ${groupName}
-                        </th>
-                    </tr>`;
-                    if (Array.isArray(content)) {
-                        return headerRow + renderTableRows(content);
-                    } else {
-                        return headerRow + renderRecursiveRows(content, level + 1);
-                    }
-                }).join("");
-            }
-
-            const tableHeader = `
-                <thead class="text-xs text-gray-400 uppercase sticky bg-gray-800" style="top: 72px; z-index: 6;">
-                    <tr>
-                        <th scope="col" class="px-6 py-3 sortable" data-sort="name">Name / Info</th>
-                        <th scope="col" class="px-6 py-3 sortable" data-sort="count">#</th>
-                        <th scope="col" class="px-6 py-3 sortable" data-sort="type_line">Type</th>
-                        <th scope="col" class="px-6 py-3 sortable" data-sort="deck">Deck</th>
-                        <th scope="col" class="px-6 py-3 sortable" data-sort="rarity">Rarity</th>
-                        <th scope="col" class="px-6 py-3 sortable" data-sort="cmc">Mana</th>
-                        <th scope="col" class="px-6 py-3 sortable" data-sort="price">Price</th>
-                        <th scope="col" class="px-6 py-3"></th>
-                    </tr>
-                </thead>`;
-
-            if (groupByKeys.length > 0) {
-                const groupedCards = groupCardsRecursively(cards, groupByKeys);
-                // Render a floating header table (outside the horizontal scroller) and a scrollable body table
-                contentDiv.innerHTML = `
-                  <div class="table-area w-full">
-                    <div class="floating-header-wrapper bg-gray-800"></div>
-                    <div class="overflow-x-auto body-scroll bg-gray-800 rounded-b-lg">
-                      <table class="w-full text-sm text-left text-gray-300 body-table">
-                          <tbody>${renderRecursiveRows(groupedCards,0)}</tbody>
-                        </table>
-                    </div>
-                  </div>
-                `;
-
-                // After DOM insertion, create the floating header table and sync widths + scroll
-                (function setupFloatingHeader() {
-                  try {
-                    const area = contentDiv.querySelector('.table-area');
-                    const floatingWrapper = area.querySelector('.floating-header-wrapper');
-                    const bodyScroll = area.querySelector('.body-scroll');
-                    const bodyTable = area.querySelector('.body-table');
-
-                    // Create header-only table inside floating wrapper
-                    const headerTable = document.createElement('table');
-                    headerTable.className = 'w-full text-sm text-left text-gray-300 header-table';
-                    headerTable.innerHTML = `${tableHeader}`;
-                    floatingWrapper.appendChild(headerTable);
-
-                    // Make the floating wrapper sticky relative to viewport and position under app header
-                    floatingWrapper.style.position = 'sticky';
-                    floatingWrapper.style.top = '0px';
-                    floatingWrapper.style.zIndex = 8;
-
-                    // Sync horizontal scroll: when the body scrolls horizontally, move the floating header
-                    bodyScroll.addEventListener('scroll', () => {
-                      floatingWrapper.scrollLeft = bodyScroll.scrollLeft;
-                    });
-
-                    // Sync column widths by measuring first body row cells
-                    const syncWidths = () => {
-                      const firstRow = bodyTable.querySelector('tbody tr');
-                      if (!firstRow) return;
-                      const bodyCells = Array.from(firstRow.children);
-                      const headerCells = Array.from(headerTable.querySelectorAll('thead th'));
-                      // set table layout fixed to keep columns stable
-                      headerTable.style.tableLayout = 'fixed';
-                      bodyTable.style.tableLayout = 'fixed';
-                      // Apply widths
-                      const widths = bodyCells.map(td => td.getBoundingClientRect().width);
-                      // set header table total width to body table width
-                      headerTable.style.width = `${bodyTable.getBoundingClientRect().width}px`;
-                      headerCells.forEach((th, i) => {
-                        if (widths[i]) th.style.width = `${widths[i]}px`;
-                      });
-                    };
-
-                    // Initial sync and after a short delay to allow images to load
-                    syncWidths();
-                    setTimeout(syncWidths, 250);
-
-                    // Re-sync on resize
-                    window.addEventListener('resize', syncWidths);
-                  } catch (err) {
-                    console.error('[FloatingHeader] error', err);
-                  }
-                })();
-            } else {
-                contentDiv.innerHTML = `<div class="overflow-x-auto bg-gray-800 rounded-lg">
-                    <table class="w-full text-sm text-left text-gray-300">
-                        ${tableHeader}
-                        <tbody>${renderTableRows(cards)}</tbody>
-                    </table>
-                </div>`;
-            }
-
-            addCollectionTableListeners();
-        }
+    // renderCollectionTable migrated to Public/js/pages/collection.js
         // Robust helper: compute and apply the appropriate top offset for sticky table headers.
-        function computeTableHeaderTop(container) {
-          try {
-            const appHeader = document.querySelector('header');
-            // compute top offset relative to the container so sticky works inside scroller
-            const containerRect = container.getBoundingClientRect();
-            let topOffset = 0;
-            if (appHeader) {
-              const rect = appHeader.getBoundingClientRect();
-              // distance from container top to app header bottom
-              topOffset = Math.max(0, Math.ceil(rect.bottom - containerRect.top));
-            }
-            const banner = document.querySelector('.page-banner');
-            if (banner) {
-              const bRect = banner.getBoundingClientRect();
-              topOffset = Math.max(topOffset, Math.ceil(bRect.bottom - containerRect.top));
-            }
-            // safety clamp in case container is small
-            topOffset = Math.max(0, topOffset);
-            container.querySelectorAll('table thead').forEach(thead => {
-              thead.style.top = `${topOffset}px`;
-            });
-          } catch (err) {
-            console.error('[computeTableHeaderTop] error', err);
-          }
-        }
+        // computeTableHeaderTop migrated to Public/js/pages/collection.js (as computeTableHeaderTop / installFloatingHeaderSync)
 
-        // Attach a debounced resize/scroll handler so table header offsets update when layout changes
-        (function attachTableHeaderResizeHandler() {
-          let timer = null;
-          const handler = () => {
-            document.querySelectorAll('.overflow-x-auto').forEach(container => {
-              computeTableHeaderTop(container);
-            });
-          };
-          window.addEventListener('resize', () => {
-            clearTimeout(timer);
-            timer = setTimeout(handler, 120);
-          });
-          window.addEventListener('scroll', () => {
-            if (timer) return;
-            timer = setTimeout(() => {
-              handler();
-              timer = null;
-            }, 150);
-          }, { passive: true });
-        })();
+        /* Floating header sync and resize/scroll handler migrated to
+           Public/js/pages/collection.js (installFloatingHeaderSync). */
 
         function renderSingleDeck(deckId) {
           console.log(
             `[Function: renderSingleDeck] Rendering view for deck ID ${deckId}. Find in <script> block.`
           );
-          const deck = localDecks[deckId];
+          const decksMap = window.localDecks || localDecks;
+          let deck = decksMap[deckId];
+          if (!deck) {
+            // Fallback: try to find a deck by scanning values in case the keying differs
+            deck = Object.values(decksMap || {}).find(d => d && (d.id === deckId || d.firestoreId === deckId || String(d.id) === String(deckId)));
+            if (deck) {
+              // Normalize deckId to the deck object's authoritative id
+              deckId = deck.id || deck.firestoreId || deckId;
+              console.log(`[renderSingleDeck] Fallback matched deck by scanning values. Resolved deckId -> ${deckId}`);
+            }
+          }
+
           if (!deck) {
             console.error(
-              `[renderSingleDeck] Could not find deck with ID ${deckId}. Returning to decks view.`
+              `[renderSingleDeck] Could not find deck with ID ${deckId}. Available deck keys: ${Object.keys(decksMap || {}).join(', ')}`
             );
             showView("decks");
             return;
@@ -3001,8 +2205,10 @@
           views.singleDeck.dataset.deckId = deckId;
           document.getElementById('page-title').textContent = deck.name;
 
+          const localColl = window.localCollection || localCollection;
+
           const allDeckCards = Object.keys(deck.cards || {}).map(firestoreId => {
-              const cardData = localCollection[firestoreId];
+              const cardData = localColl[firestoreId];
               if (!cardData) return null;
               // The count in deck is stored on the deck object
               return { ...cardData, count: deck.cards[firestoreId].count };
@@ -3010,7 +2216,7 @@
 
           if (deck.commander) {
             // Find the commander in the collection to get its full data, but use a count of 1
-            const commanderInCollection = localCollection[deck.commander.firestoreId];
+            const commanderInCollection = localColl[deck.commander.firestoreId];
             if(commanderInCollection) {
                 allDeckCards.push({ ...commanderInCollection, count: 1 });
             }
@@ -3215,330 +2421,51 @@
         }
 
         // --- UI/HELPER FUNCTIONS ---
-        function toggleEditMode() {
-            console.log("[Function: toggleEditMode] Toggling edit mode. Find in <script> block.");
-            const appWrapper = document.getElementById('app-wrapper');
-            const isEditMode = appWrapper.classList.toggle('edit-mode');
-            const buttonText = document.getElementById('edit-mode-text');
-            if (isEditMode) {
-                buttonText.textContent = 'Exit Edit Mode';
-                showToast('Edit mode enabled. Deletion is now possible.', 'warning');
-            } else {
-                buttonText.textContent = 'Edit Mode';
-            }
-            // Re-render views that might be affected by edit mode
-            if (!views.collection.classList.contains('hidden')) {
-                renderCollection();
-            }
-            if (!views.decks.classList.contains('hidden')) {
-                renderDecksList();
-            }
-            const activeDeckId = views.singleDeck.dataset.deckId;
-            if (!views.singleDeck.classList.contains('hidden') && activeDeckId) {
-                renderSingleDeck(activeDeckId);
-            }
-        }
+    function toggleEditMode() {
+      if (typeof window.toggleEditMode === 'function' && window.toggleEditMode !== toggleEditMode) return window.toggleEditMode();
+      return import('./js/lib/ui.js').then(mod => { if (typeof mod.toggleEditMode === 'function') return mod.toggleEditMode(); }).catch(err => console.debug('ui module not yet available for toggleEditMode', err));
+    }
 
         function toggleCardDetailsEditMode() {
-            console.log("[Function: toggleCardDetailsEditMode] Toggling edit mode for the card details modal.");
-            const wrapper = document.getElementById('card-details-modal-content-wrapper');
-            const isEditing = wrapper.classList.toggle('card-modal-edit-mode');
-
-            if (isEditing) {
-                showToast("Card edit mode enabled.", "info");
-            } else {
-                // If exiting edit mode, save the data
-                const firestoreId = wrapper.dataset.firestoreId;
-                if (firestoreId) {
-                    saveCardDetails(firestoreId);
-                }
-            }
+      // Delegate to collection module if available
+      if (typeof window.toggleCardDetailsEditMode === 'function' && window.toggleCardDetailsEditMode !== toggleCardDetailsEditMode) return window.toggleCardDetailsEditMode();
+      return import('./js/pages/collection.js').then(mod => { if (typeof mod.toggleCardDetailsEditMode === 'function') return mod.toggleCardDetailsEditMode(); }).catch(err => console.debug('collection module not yet available for toggleCardDetailsEditMode', err));
         }
 
         async function saveCardDetails(firestoreId) {
-            if (!firestoreId) {
-                showToast("Cannot save changes. Card not found in collection.", "error");
-                return;
-            }
-            console.log(`[Function: saveCardDetails] Saving details for firestoreId ${firestoreId}.`);
-
-            const cardRef = doc(db, `artifacts/${appId}/users/${userId}/collection`, firestoreId);
-
-            try {
-                const newCount = modalVisibilitySettings.count ? (parseInt(document.getElementById('modal-edit-count').value, 10) || 0) : localCollection[firestoreId].count;
-                
-                if (newCount <= 0) {
-                    await deleteDoc(cardRef);
-                    showToast("Card removed from collection as count was set to 0.", "success");
-                    closeModal('card-details-modal');
-                    return; // Exit early
-                }
-
-                const updatedData = { count: newCount };
-                if (modalVisibilitySettings.finish) updatedData.finish = document.getElementById('modal-edit-finish').value;
-                if (modalVisibilitySettings.condition) updatedData.condition = document.getElementById('modal-edit-condition').value.trim() || null;
-                if (modalVisibilitySettings.purchasePrice) updatedData.purchasePrice = parseFloat(document.getElementById('modal-edit-purchasePrice').value) || null;
-                if (modalVisibilitySettings.notes) updatedData.notes = document.getElementById('modal-edit-notes').value.trim() || null;
-                
-                await updateDoc(cardRef, updatedData);
-                showToast("Card details saved!", "success");
-                
-                const wrapper = document.getElementById('card-details-modal-content-wrapper');
-                wrapper.classList.remove('card-modal-edit-mode');
-                // Let the snapshot listener handle the re-render of the modal content
-                
-            } catch (error) {
-                console.error("Error saving card details:", error);
-                showToast("Failed to save card details.", "error");
-            }
+      if (typeof window.saveCardDetails === 'function' && window.saveCardDetails !== saveCardDetails) return window.saveCardDetails(firestoreId);
+      return import('./js/pages/collection.js').then(mod => { if (typeof mod.saveCardDetails === 'function') return mod.saveCardDetails(firestoreId); }).catch(err => console.debug('collection module not yet available for saveCardDetails', err));
         }
         
         function renderCardDetailsModal(card) {
-            const contentDiv = document.getElementById('card-details-content');
-            const wrapper = document.getElementById('card-details-modal-content-wrapper');
-            wrapper.dataset.firestoreId = card.firestoreId; // Use firestoreId to ensure we're editing the correct document
-            wrapper.classList.remove('card-modal-edit-mode');
-
-            const assignments = cardDeckAssignments[card.firestoreId] || [];
-
-            contentDiv.innerHTML = `
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="md:col-span-1">
-                        <img src="${card.image_uris?.normal}" class="rounded-lg w-full">
-                    </div>
-                    <div class="md:col-span-2 space-y-4">
-                        <h3 class="text-3xl font-bold">${card.name} ${card.mana_cost || ''}</h3>
-                        <p class="text-lg text-gray-400">${card.type_line}</p>
-                        <div class="text-gray-300 space-y-2 whitespace-pre-wrap">${card.oracle_text}</div>
-                        ${card.power && card.toughness ? `<p class="text-xl font-bold">${card.power}/${card.toughness}</p>` : ''}
-                        <hr class="border-gray-600">
-                        <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                            <p><strong>Set:</strong> ${card.set_name} (${card.set.toUpperCase()})</p>
-                            <p><strong>Rarity:</strong> ${card.rarity}</p>
-                            
-                            <!-- Collection Details -->
-                            ${modalVisibilitySettings.count ? `
-                            <div><strong>Count:</strong>
-                                <span class="card-modal-value-display">${card.count || 1}</span>
-                                <input id="modal-edit-count" type="number" value="${card.count || 1}" min="0" class="card-modal-value-input mt-1 w-full bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm">
-                            </div>` : ''}
-
-                            ${modalVisibilitySettings.finish ? `
-                            <div><strong>Finish:</strong>
-                                <span class="card-modal-value-display">${card.finish || 'nonfoil'}</span>
-                                <select id="modal-edit-finish" class="card-modal-value-input mt-1 w-full bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm">
-                                    <option value="nonfoil" ${card.finish === 'nonfoil' ? 'selected' : ''}>Non-Foil</option>
-                                    <option value="foil" ${card.finish === 'foil' ? 'selected' : ''}>Foil</option>
-                                    <option value="etched" ${card.finish === 'etched' ? 'selected' : ''}>Etched</option>
-                                </select>
-                            </div>` : ''}
-
-                            ${modalVisibilitySettings.condition ? `
-                            <div><strong>Condition:</strong>
-                                <span class="card-modal-value-display">${card.condition || 'Not Set'}</span>
-                                <input id="modal-edit-condition" type="text" value="${card.condition || ''}" placeholder="e.g., Near Mint" class="card-modal-value-input mt-1 w-full bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm">
-                            </div>` : ''}
-
-                            ${modalVisibilitySettings.purchasePrice ? `
-                            <div><strong>Purchase Price:</strong>
-                                <span class="card-modal-value-display">$${(card.purchasePrice || 0).toFixed(2)}</span>
-                                <input id="modal-edit-purchasePrice" type="number" value="${card.purchasePrice || ''}" step="0.01" placeholder="e.g., 4.99" class="card-modal-value-input mt-1 w-full bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm">
-                            </div>` : ''}
-                        </div>
-                        
-                        ${modalVisibilitySettings.notes ? `
-                        <div class="col-span-2"><strong>Notes:</strong>
-                            <p class="card-modal-value-display text-gray-400 whitespace-pre-wrap">${card.notes || 'No notes.'}</p>
-                            <textarea id="modal-edit-notes" placeholder="Add notes here..." class="card-modal-value-input mt-1 w-full bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm h-24">${card.notes || ''}</textarea>
-                        </div>` : ''}
-                        
-                        ${modalVisibilitySettings.deckAssignments && assignments.length > 0 ? `
-                        <div class="col-span-2">
-                            <hr class="border-gray-600 my-2">
-                            <p><strong>In Decks:</strong></p>
-                            <ul class="list-disc list-inside text-gray-400">
-                                ${assignments.map(a => `<li>${a.deckName}</li>`).join('')}
-                            </ul>
-                        </div>` : ''}
-                    </div>
-                </div>
-            `;
+      // Delegate to collection module for rendering details modal
+      if (typeof window.renderCardDetailsModal === 'function' && window.renderCardDetailsModal !== renderCardDetailsModal) return window.renderCardDetailsModal(card);
+      return import('./js/pages/collection.js').then(mod => { if (typeof mod.renderCardDetailsModal === 'function') return mod.renderCardDetailsModal(card); }).catch(err => console.debug('collection module not yet available for renderCardDetailsModal', err));
         }
 
 
-        function renderModalVisibilitySettings() {
-            console.log("[Function: renderModalVisibilitySettings] Rendering settings for modal fields. Find in <script> block.");
-            const container = document.getElementById('modal-visibility-settings');
-            const allFields = ['count', 'finish', 'condition', 'purchasePrice', 'notes', 'deckAssignments'];
-            
-            container.innerHTML = allFields.map(field => {
-                const label = field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
-                return `
-                    <div class="flex items-center">
-                        <input type="checkbox" id="setting-vis-${field}" data-field="${field}" class="h-4 w-4 rounded bg-gray-700 border-gray-600 text-indigo-600 focus:ring-indigo-500" ${modalVisibilitySettings[field] ? 'checked' : ''}>
-                        <label for="setting-vis-${field}" class="ml-2 text-sm text-gray-300">${label}</label>
-                    </div>
-                `;
-            }).join('');
-
-            container.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-                checkbox.addEventListener('change', (e) => {
-                    const field = e.target.dataset.field;
-                    modalVisibilitySettings[field] = e.target.checked;
-                    saveSettings();
-                });
-            });
-        }
+    function renderModalVisibilitySettings() {
+      // migrated to Public/js/settings/settings.js
+      import('./js/settings/settings.js').then(mod => {
+      if (typeof mod.renderModalVisibilitySettings === 'function') return mod.renderModalVisibilitySettings();
+      }).catch(err => console.debug('settings module not yet available for renderModalVisibilitySettings', err));
+    }
         
-        function renderAiBlueprintModal(blueprint, deckName, isReadOnly = false) {
-            console.log(`[Function: renderAiBlueprintModal] Rendering AI blueprint for "${deckName}". Read-only: ${isReadOnly}`);
-            const titleEl = document.getElementById('ai-blueprint-title');
-            const contentEl = document.getElementById('ai-blueprint-content');
-            const footerEl = document.getElementById('ai-blueprint-footer');
+    // renderAiBlueprintModal migrated to Public/js/pages/decks.js (exported as renderAiBlueprintModal)
 
-            titleEl.textContent = `AI Blueprint: ${deckName}`;
-
-            const counts = blueprint.suggestedCounts || {};
-            const countsHtml = Object.entries(counts)
-                .filter(([key]) => key !== 'Total')
-                .map(([key, value]) => `
-                    <div class="flex justify-between items-center p-2 bg-gray-900/50 rounded">
-                        <span class="font-semibold">${key}</span>
-                        <span class="text-indigo-400 font-bold">${value}</span>
-                    </div>
-                `).join('');
-
-            contentEl.innerHTML = `
-                <div>
-                    <h4 class="text-xl font-bold text-indigo-300 mb-2">Deck Summary</h4>
-                    <p class="text-gray-300">${blueprint.summary}</p>
-                </div>
-                <div>
-                    <h4 class="text-xl font-bold text-indigo-300 mb-2">Strategy</h4>
-                    <p class="text-gray-300 whitespace-pre-line">${blueprint.strategy}</p>
-                </div>
-                <div>
-                    <h4 class="text-xl font-bold text-indigo-300 mb-2">Suggested Card Counts (99 total)</h4>
-                    <div class="grid grid-cols-2 gap-2 text-sm">
-                        ${countsHtml}
-                        <div class="flex justify-between items-center p-2 bg-gray-700 rounded col-span-2">
-                            <span class="font-bold text-lg">Total</span>
-                            <span class="text-white font-bold text-lg">${counts.Total || 'N/A'}</span>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            if (isReadOnly) {
-                footerEl.classList.add('hidden');
-            } else {
-                footerEl.classList.remove('hidden');
-            }
-        }
-
-        function showToast(message, type = "info") {
-            const container = document.getElementById("toast-container");
-            const toast = document.createElement("div");
-            let bgColor, icon;
-
-            switch (type) {
-                case "success":
-                    bgColor = "bg-green-600";
-                    icon = `<svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
-                    break;
-                case "error":
-                    bgColor = "bg-red-600";
-                    icon = `<svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
-                    break;
-                case "warning":
-                    bgColor = "bg-yellow-500";
-                    icon = `<svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>`;
-                    break;
-                default: // info
-                    bgColor = "bg-blue-600";
-                    icon = `<svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
-                    break;
-            }
-
-            toast.className = `toast text-white ${bgColor}`;
-            toast.innerHTML = `${icon}<span>${message}</span>`;
-            
-            container.appendChild(toast);
-
-            setTimeout(() => {
-                toast.remove();
-            }, 5000);
-        }
-
-        function openModal(modalId) {
-            const modal = document.getElementById(modalId);
-            if (modal) {
-                modal.classList.remove('hidden');
-                modal.classList.add('flex');
-            }
-        }
-
-        function closeModal(modalId) {
-            const modal = document.getElementById(modalId);
-            if (modal) {
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-            }
-        }
+        // UI delegators removed: use the shims exported by Public/js/lib/ui.js (which attach window.showToast/openModal/closeModal)
         
+        // Delegator to decks module's renderDecksList
         function renderDecksList() {
-             console.log('[Function: renderDecksList] Rendering deck list. Find in <script> block.');
-             const container = document.getElementById('decks-list');
-             const noDecksMsg = document.getElementById('no-decks-msg');
-             const decks = Object.values(localDecks);
-
-             if (decks.length === 0) {
-                 container.innerHTML = '';
-                 noDecksMsg.classList.remove('hidden');
-                 return;
-             }
-             noDecksMsg.classList.add('hidden');
-
-             container.innerHTML = decks.map(deck => {
-               const commander = deck.commander;
-               const commanderImg = commander ? commander.image_uris?.art_crop : 'https://placehold.co/600x440/2d3748/e2e8f0?text=No+Commander';
-               const cardCount = Object.keys(deck.cards || {}).reduce((sum, key) => sum + (deck.cards[key].count || 1), 0) + (commander ? 1 : 0);
-
-
-                  return `
-                       <div class="bg-gray-700/50 rounded-lg overflow-hidden shadow-lg hover:shadow-indigo-500/30 transition-shadow duration-300">
-                           <div class="relative">
-                               <img src="${commanderImg}" alt="${commander ? commander.name : 'Deck Art'}" class="w-full h-48 object-cover">
-                               <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
-                               <div class="absolute bottom-0 left-0 p-4">
-                                   <h3 class="text-xl font-bold">${deck.name}</h3>
-                                   <p class="text-sm text-gray-300">${deck.format} - ${cardCount} cards</p>
-                               </div>
-                           </div>
-                           <div class="p-4 flex justify-between items-center">
-                               <button class="view-deck-btn bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg" data-deck-id="${deck.id}">View Deck</button>
-                               <button class="delete-button bg-red-800 hover:bg-red-700 p-2 rounded-lg" data-deck-id="${deck.id}">
-                                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                               </button>
-                           </div>
-                       </div>
-                      `;
-             }).join('');
-
-           document.querySelectorAll('.view-deck-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const deckId = e.currentTarget.dataset.deckId;
-                    showView('singleDeck');
-                    renderSingleDeck(deckId);
-                });
-           });
-
-             document.querySelectorAll('#decks-list .delete-button').forEach(btn => {
-                 btn.addEventListener('click', (e) => {
-                     const deckId = e.currentTarget.dataset.deckId;
-                     openDeckDeleteOptions(deckId);
-                 });
-             });
+          if (typeof window.renderDecksList === 'function' && window.renderDecksList !== renderDecksList) return window.renderDecksList();
+          try {
+            return import('./js/pages/decks.js').then(mod => {
+              if (typeof mod.renderDecksList === 'function') return mod.renderDecksList();
+              console.debug('decks.renderDecksList not available after import');
+            });
+          } catch (err) {
+            console.debug('Failed to import decks module for renderDecksList', err);
+          }
         }
         
         function renderSettings() {
@@ -3565,15 +2492,23 @@
              }
         }
 
-        function openDeckDeleteOptions(deckId) {
-            console.log(`[Function: openDeckDeleteOptions] Opening delete options for deck ${deckId}`);
-            const modal = document.getElementById('deck-delete-options-modal');
-      const andCardsBtn = modal.querySelector('#delete-deck-and-cards-btn');
-      const onlyBtn = modal.querySelector('#delete-deck-only-btn');
-      if (andCardsBtn) { andCardsBtn.dataset.deckId = deckId; andCardsBtn.dataset.id = deckId; }
-      if (onlyBtn) { onlyBtn.dataset.deckId = deckId; onlyBtn.dataset.id = deckId; }
-            openModal('deck-delete-options-modal');
-        }
+        // Expose delegator functions to window so boot listeners (which may run earlier)
+        // can call them even when scripts loaded in different orders.
+        try {
+          if (typeof window !== 'undefined') {
+            window.showView = showView;
+            window.renderDecksList = renderDecksList;
+            window.renderSettings = renderSettings;
+                window.renderSingleDeck = renderSingleDeck;
+            window.renderCollection = renderCollection;
+            window.searchForCard = searchForCard;
+            window.renderCardConfirmationModal = renderCardConfirmationModal;
+            window.handleDeckCreationSubmit = handleDeckCreationSubmit;
+            window.createDeckFromBlueprint = createDeckFromBlueprint;
+          }
+        } catch (e) { console.debug('Failed to attach delegators to window', e); }
+
+    // openDeckDeleteOptions migrated to Public/js/pages/decks.js (exported as openDeckDeleteOptions)
 
         function showView(viewName) {
             console.log(`[Function: showView] Switching to ${viewName} view. Find in <script> block.`);
@@ -3612,488 +2547,72 @@
         }
         
         function selectCommander(card) {
-            console.log(`[Function: selectCommander] Commander selected: ${card.name}`);
-      console.debug('[selectCommander] card object:', card);
-            currentCommanderForAdd = card;
-            const previewContainer = document.getElementById('selected-commander-preview');
-            previewContainer.innerHTML = `
-                <img src="${card.image_uris?.art_crop}" class="w-16 h-12 object-cover rounded-sm">
-                <div class="flex-grow">
-                    <p class="font-bold">${card.name}</p>
-                    <p class="text-xs text-gray-400">${card.type_line}</p>
-                </div>
-                <button type="button" id="clear-selected-commander" class="p-1 text-red-400 hover:text-red-200 text-2xl font-bold">&times;</button>
-            `;
-            previewContainer.classList.remove('hidden');
-
-            document.getElementById('clear-selected-commander').addEventListener('click', () => {
-                currentCommanderForAdd = null;
-                previewContainer.innerHTML = '';
-                previewContainer.classList.add('hidden');
-            });
+      // Delegate to migrated collection implementation if present
+      if (typeof window.selectCommander === 'function' && window.selectCommander !== selectCommander) return window.selectCommander(card);
+      return import('./js/pages/collection.js').then(mod => { if (typeof mod.selectCommander === 'function') return mod.selectCommander(card); }).catch(err => console.debug('collection module not yet available for selectCommander', err));
         }
 
         function openDeckCreationModal(commanderCard = null) {
-            console.log("[Function: openDeckCreationModal] Opening modal to create a new deck.");
-            const form = document.getElementById('deck-creation-form');
-            form.reset();
-            currentCommanderForAdd = null;
-            tempAiBlueprint = null;
-
-            document.getElementById('selected-commander-preview').innerHTML = '';
-            document.getElementById('selected-commander-preview').classList.add('hidden');
-            
-            // Populate commander list from collection
-            const commanderListContainer = document.getElementById('commander-collection-list');
-            const legendaryCreatures = Object.values(localCollection).filter(c => c.type_line.includes('Legendary') && c.type_line.includes('Creature'));
-            
-        if (legendaryCreatures.length > 0) {
-        commanderListContainer.innerHTML = legendaryCreatures.map(c => `
-          <div class="flex items-center gap-2 p-1 rounded-md hover:bg-gray-700 cursor-pointer select-commander-from-collection-btn" data-firestore-id='${c.firestoreId}' tabindex="0" role="button" aria-label="Select ${c.name}">
-            <div style="width:64px;height:48px;position:relative;flex-shrink:0;">
-              <img src="${c.image_uris?.art_crop}" class="collection-card-img rounded-sm" style="position:absolute;inset:0;object-fit:cover;" />
-            </div>
-            <span class="flex-grow">${c.name}</span>
-            <button type="button" class="commander-select-btn bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold py-1 px-2 rounded ml-2" data-firestore-id='${c.firestoreId}'>Select</button>
-          </div>
-        `).join('');
-
-        // Delegated click handler - more resilient than per-item listeners
-                 commanderListContainer.onclick = (e) => {
-          // If the explicit select button was clicked, prefer that
-          const selectBtn = e.target.closest('.commander-select-btn');
-          if (selectBtn) {
-            console.debug('[commanderListContainer.onclick] select-btn clicked:', selectBtn.dataset.firestoreId);
-            const firestoreId = selectBtn.dataset.firestoreId;
-            const card = localCollection[firestoreId];
-            if (card) return selectCommander(card);
-          }
-
-          const btn = e.target.closest('.select-commander-from-collection-btn');
-          console.debug('[commanderListContainer.onclick] event target:', e.target, 'closest btn:', btn);
-          if (!btn) return;
-          const firestoreId = btn.dataset.firestoreId;
-          console.debug('[commanderListContainer.onclick] selected firestoreId:', firestoreId);
-          const card = localCollection[firestoreId];
-          if (card) selectCommander(card);
-        };
-        commanderListContainer.onkeydown = (e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            const btn = e.target.closest('.select-commander-from-collection-btn');
-            console.debug('[commanderListContainer.onkeydown] key event, btn:', btn);
-            if (!btn) return;
-            e.preventDefault();
-            const firestoreId = btn.dataset.firestoreId;
-            const card = localCollection[firestoreId];
-            if (card) selectCommander(card);
-          }
-        };
-
-            } else {
-                commanderListContainer.innerHTML = '<p class="text-gray-500 text-sm p-2">No legendary creatures in your collection.</p>';
-            }
-
-            if (commanderCard) {
-                selectCommander(commanderCard);
-            }
-
-            openModal('deck-creation-modal');
+            // Delegate to decks module (or collection) for opening deck creation modal
+            if (typeof window.openDeckCreationModal === 'function' && window.openDeckCreationModal !== openDeckCreationModal) return window.openDeckCreationModal(commanderCard);
+            return import('./js/pages/collection.js').then(mod => { if (typeof mod.openDeckCreationModal === 'function') return mod.openDeckCreationModal(commanderCard); }).catch(err => {
+              // fallback to decks module
+              return import('./js/pages/decks.js').then(dmod => { if (typeof dmod.openDeckCreationModal === 'function') return dmod.openDeckCreationModal(commanderCard); }).catch(err2 => console.debug('deck/collection modules not yet available for openDeckCreationModal', err, err2));
+            });
         }
 
         function handleCardSelection(card) {
-            console.log(`[Function: handleCardSelection] Card selected: ${card.name} (${card.id})`);
-            currentCardForAdd = card;
-            closeModal('card-versions-modal');
-            renderCardConfirmationModal(card);
-            openModal('card-confirmation-modal');
+          // Delegate to migrated collection module (or existing window shim)
+          if (typeof window.handleCardSelection === 'function' && window.handleCardSelection !== handleCardSelection) return window.handleCardSelection(card);
+          return import('./js/pages/collection.js').then(mod => { if (typeof mod.handleCardSelection === 'function') return mod.handleCardSelection(card); }).catch(err => console.debug('collection module not yet available for handleCardSelection', err));
         }
 
         function renderCardConfirmationModal(card) {
-            const contentDiv = document.getElementById('card-confirmation-content');
-            
-            const cleanedCard = {
-                id: card.id, name: card.name,
-                image_uris: { small: card.image_uris?.small, normal: card.image_uris?.normal, art_crop: card.image_uris?.art_crop },
-                mana_cost: card.mana_cost, cmc: card.cmc, type_line: card.type_line, oracle_text: card.oracle_text,
-                power: card.power, toughness: card.toughness, colors: card.colors, color_identity: card.color_identity,
-                keywords: card.keywords, set: card.set, set_name: card.set_name, rarity: card.rarity,
-                prices: card.prices, legalities: card.legalities
-            };
-
-            contentDiv.innerHTML = `
-            <div class="flex justify-center md:justify-start md:col-span-1">
-              <img src="${card.image_uris?.normal}" alt="${card.name}" class="rounded-lg shadow-lg w-full max-w-[360px] h-auto max-h-[640px] object-contain">
-            </div>
-            <div class="space-y-4 md:col-span-1">
-              <h3 class="text-3xl font-bold">${card.name}</h3>
-              <form id="add-card-form">
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label for="card-quantity" class="block text-sm font-medium text-gray-300">Quantity</label>
-                    <input type="number" id="card-quantity" value="1" min="1" class="mt-1 w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2">
-                  </div>
-                  <div>
-                    <label for="card-finish" class="block text-sm font-medium text-gray-300">Finish</label>
-                    <select id="card-finish" class="mt-1 w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2">
-                      <option value="nonfoil" ${!card.foil ? 'selected' : ''}>Non-Foil</option>
-                      <option value="foil" ${card.foil ? 'selected' : ''}>Foil</option>
-                    </select>
-                  </div>
-                </div>
-                <div class="mt-6 flex justify-end gap-4">
-                  <button type="button" id="cancel-add-card-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">Cancel</button>
-                  <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">Add Card</button>
-                </div>
-              </form>
-            </div>
-            `;
-
-            document.getElementById('cancel-add-card-btn').addEventListener('click', () => {
-                closeModal('card-confirmation-modal');
-                openModal('card-versions-modal');
-            });
-            
-            document.getElementById('add-card-form').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const quantity = parseInt(document.getElementById('card-quantity').value, 10);
-                const finish = document.getElementById('card-finish').value;
-
-                // Use the globally set currentCardForAdd, not a locally scoped one
-                if (!currentCardForAdd) {
-                    showToast("Error: No card selected.", "error");
-                    return;
-                }
-                
-                const cardToAdd = { ...currentCardForAdd, count: quantity, finish: finish, addedAt: new Date().toISOString() };
-                
-                await addCardToCollection(cardToAdd);
-
-                closeModal('card-confirmation-modal');
-            });
+          if (typeof window.renderCardConfirmationModal === 'function' && window.renderCardConfirmationModal !== renderCardConfirmationModal) return window.renderCardConfirmationModal(card);
+          return import('./js/pages/collection.js').then(mod => { if (typeof mod.renderCardConfirmationModal === 'function') return mod.renderCardConfirmationModal(card); }).catch(err => console.debug('collection module not yet available for renderCardConfirmationModal', err));
         }
         
+        // Delegator to migrated data module's addCardToCollection
         async function addCardToCollection(cardData) {
-            console.log(`[Function: addCardToCollection] Adding ${cardData.count}x ${cardData.name} to collection.`);
-            // Find existing card based on Scryfall ID and finish, but not firestoreId
-            const existingCard = Object.values(localCollection).find(c => c.id === cardData.id && c.finish === cardData.finish);
-            
-            try {
-                if (existingCard) {
-                    const newCount = (existingCard.count || 0) + cardData.count;
-                    const cardRef = doc(db, `artifacts/${appId}/users/${userId}/collection`, existingCard.firestoreId);
-                    await updateDoc(cardRef, { count: newCount });
-                    showToast(`Updated ${cardData.name} to ${newCount} in collection.`, 'success');
-                    return existingCard.firestoreId;
-                } else {
-                    const docRef = await addDoc(collection(db, `artifacts/${appId}/users/${userId}/collection`), cardData);
-                    showToast(`Added ${cardData.count}x ${cardData.name} to collection.`, 'success');
-                    return docRef.id;
-                }
-            } catch (error) {
-                console.error("Error adding card to collection:", error);
-                showToast("Failed to add card to collection.", "error");
-                return null;
+          // Prefer window shim if available
+          if (typeof window.addCardToCollection === 'function' && window.addCardToCollection !== addCardToCollection) return window.addCardToCollection(cardData);
+          try {
+            const mod = await import('./js/lib/data.js');
+            if (typeof mod.addCardToCollection === 'function') {
+              const uid = (typeof userId !== 'undefined' && userId) ? userId : (window.userId || null);
+              return mod.addCardToCollection(cardData, uid);
             }
+          } catch (err) {
+            console.debug('data module not yet available for addCardToCollection', err);
+          }
         }
         
-        async function handleAddSelectedCardsToDeck(deckId, firestoreIds) {
-            if (!deckId || !firestoreIds || firestoreIds.length === 0) {
-                showToast('No cards selected to add.', 'warning');
-                return;
-            }
+        // handleAddSelectedCardsToDeck migrated to Public/js/pages/singleDeck.js (exported as handleAddSelectedCardsToDeck)
+        
+    // getAiDeckBlueprint migrated to Public/js/pages/decks.js (exported as getAiDeckBlueprint)
 
-            const deck = localDecks[deckId];
-            if (!deck) {
-                showToast('Deck not found.', 'error');
-                return;
-            }
-            
-      // Enforce commander color identity rules: all added cards must be legal
-      const commanderColors = deck.commander?.color_identity || [];
-      for (const firestoreId of firestoreIds) {
-        const collectionCard = localCollection[firestoreId];
-        if (!collectionCard) {
-          showToast(`Card not found in collection: ${firestoreId}`, 'error');
-          return;
+
+        function handleDeckCreationSubmit(e) {
+          if (typeof window.handleDeckCreationSubmit === 'function' && window.handleDeckCreationSubmit !== handleDeckCreationSubmit) return window.handleDeckCreationSubmit(e);
+          try {
+            return import('./js/pages/decks.js').then(mod => {
+              if (typeof mod.handleDeckCreationSubmit === 'function') return mod.handleDeckCreationSubmit(e);
+            }).catch(err => console.debug('decks module not yet available for handleDeckCreationSubmit', err));
+          } catch (err) {
+            console.debug('Failed to import decks module for handleDeckCreationSubmit', err);
+          }
         }
-        if (!isColorIdentityValid(collectionCard.color_identity, commanderColors)) {
-          showToast(`Card "${collectionCard.name}" is not legal with this commander (color identity mismatch).`, 'error');
-          return; // Stop the whole process
-        }
+        
+    function createDeckFromBlueprint() {
+      if (typeof window.createDeckFromBlueprint === 'function' && window.createDeckFromBlueprint !== createDeckFromBlueprint) return window.createDeckFromBlueprint();
+      try {
+      return import('./js/pages/decks.js').then(mod => {
+        if (typeof mod.createDeckFromBlueprint === 'function') return mod.createDeckFromBlueprint();
+      }).catch(err => console.debug('decks module not yet available for createDeckFromBlueprint', err));
+      } catch (err) {
+      console.debug('Failed to import decks module for createDeckFromBlueprint', err);
       }
-
-            // Check if any selected cards are already in another deck
-            for (const firestoreId of firestoreIds) {
-                if(cardDeckAssignments[firestoreId] && cardDeckAssignments[firestoreId].length > 0) {
-                    const assignment = cardDeckAssignments[firestoreId][0];
-                    if(assignment.deckId !== deckId) {
-                        showToast(`Card "${localCollection[firestoreId].name}" is already in another deck. Cards can only be in one deck at a time.`, 'error');
-                        return; // Stop the whole process
-                    }
-                }
-            }
-
-
-            const batch = writeBatch(db);
-
-            for (const firestoreId of firestoreIds) {
-                const collectionCard = localCollection[firestoreId];
-                if (!collectionCard || collectionCard.count < 1) {
-                    console.warn(`Skipping card ${firestoreId}, not found or no copies available.`);
-                    continue;
-                }
-                
-                // Deck card ID is the firestore ID
-                const deckCardId = firestoreId;
-                const cardInDeck = deck.cards?.[deckCardId];
-
-                // Logic to "move" a card
-                if (!cardInDeck) {
-                    const collectionCardRef = doc(db, `artifacts/${appId}/users/${userId}/collection`, firestoreId);
-                    batch.update(collectionCardRef, { count: collectionCard.count - 1 });
-
-                    const deckRef = doc(db, `artifacts/${appId}/users/${userId}/decks`, deckId);
-                    const cardForDeck = {
-                        count: 1,
-                        name: collectionCard.name, // Storing minimal data for reference
-                        type_line: collectionCard.type_line,
-                    };
-                    batch.update(deckRef, { [`cards.${deckCardId}`]: cardForDeck });
-                } else {
-                    // If it's already in the deck, just take another from the collection
-                        const collectionCardRef = doc(db, `artifacts/${appId}/users/${userId}/collection`, firestoreId);
-                    batch.update(collectionCardRef, { count: collectionCard.count - 1 });
-
-                    const deckRef = doc(db, `artifacts/${appId}/users/${userId}/decks`, deckId);
-                    batch.update(deckRef, { [`cards.${deckCardId}.count`]: (cardInDeck.count || 0) + 1 });
-                }
-            }
-
-            try {
-                await batch.commit();
-                showToast(`Added ${firestoreIds.length} card(s) to ${deck.name}.`, 'success');
-        // Optimistically update local state so the decklist refreshes immediately
-        try {
-          if (!localDecks[deckId]) localDecks[deckId] = deck;
-          const localDeck = localDecks[deckId];
-          localDeck.cards = localDeck.cards || {};
-          firestoreIds.forEach((firestoreId) => {
-            const collectionCard = localCollection[firestoreId];
-            if (!collectionCard) return;
-
-            // decrement collection count locally (min 0)
-            collectionCard.count = Math.max((collectionCard.count || 0) - 1, 0);
-
-            if (localDeck.cards[firestoreId]) {
-              localDeck.cards[firestoreId].count = (localDeck.cards[firestoreId].count || 0) + 1;
-            } else {
-              localDeck.cards[firestoreId] = {
-                count: 1,
-                name: collectionCard.name,
-                type_line: collectionCard.type_line,
-              };
-            }
-          });
-
-          // Update assignments map and re-render the single deck immediately
-          updateCardAssignments();
-          renderSingleDeck(deckId);
-        } catch (e) {
-          console.warn('Local optimistic update failed:', e);
-        }
-        closeModal('add-cards-to-deck-modal');
-            } catch (error) {
-                console.error("Error adding cards to deck:", error);
-                showToast("Failed to add cards to deck.", "error");
-            }
-        }
-        
-        async function getAiDeckBlueprint(commanderCard) {
-            const prompt = `You are a world-class Magic: The Gathering deck architect specializing in the Commander format. Given the following commander card, you will generate a detailed blueprint for a 100-card deck.
-
-            Your response must be a single, valid JSON object and nothing else. Do not wrap it in markdown backticks.
-            
-            The JSON object must have the following keys:
-            1.  "name": A creative, flavorful name for the deck.
-            2.  "summary": A concise, one-paragraph summary of the deck's primary strategy and win condition.
-            3.  "strategy": A more detailed explanation (2-3 paragraphs) of how to pilot the deck. Cover the early, mid, and late game. Mention key synergies and important card types to look for.
-            4.  "suggestedCounts": An object detailing the ideal number of cards for each major card type. The sum of these counts must equal 99 (for the main deck, excluding the commander). The keys must be exactly: "Land", "Creature", "Instant", "Sorcery", "Artifact", "Enchantment", "Planeswalker", and "Total" (which must be 99).
-
-            Commander Card Details:
-            - Name: ${commanderCard.name}
-            - Type: ${commanderCard.type_line}
-            - Mana Cost: ${commanderCard.mana_cost}
-            - Oracle Text: ${commanderCard.oracle_text}
-            - Power/Toughness: ${commanderCard.power || 'N/A'}/${commanderCard.toughness || 'N/A'}`;
-
-            try {
-                const response = await fetch(GEMINI_API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }] }],
-                    }),
-                });
-
-                if (!response.ok) {
-                    throw new Error(`Gemini API request failed with status ${response.status}`);
-                }
-
-                const data = await response.json();
-                const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                
-                if (!text) {
-                    throw new Error('Invalid or empty response from Gemini API');
-                }
-                
-                // Clean potential markdown and parse
-                const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim();
-                const aiResponse = JSON.parse(cleanedText);
-                
-                // Validate the response structure
-                if (!aiResponse.name || !aiResponse.summary || !aiResponse.strategy || !aiResponse.suggestedCounts || aiResponse.suggestedCounts.Total !== 99) {
-                    throw new Error("Gemini response is missing required fields or has incorrect structure.");
-                }
-
-                return aiResponse;
-
-            } catch (error) {
-                console.error("Error getting AI deck blueprint:", error);
-                // Return a fallback blueprint
-                return {
-                    name: `Deck for ${commanderCard.name}`,
-                    summary: "An error occurred while generating the AI summary. This is a placeholder.",
-                    strategy: "Could not generate a detailed strategy.",
-                    suggestedCounts: { "Land": 37, "Creature": 28, "Instant": 10, "Sorcery": 6, "Artifact": 10, "Enchantment": 8, "Planeswalker": 0, "Total": 99 }
-                };
-        // Attach per-button handlers that stopPropagation to ensure the
-        // select button always triggers selection even if other layers
-        // intercept the click.
-        commanderListContainer.querySelectorAll('.commander-select-btn').forEach(b => {
-          b.addEventListener('click', (ev) => {
-            ev.stopPropagation();
-            const firestoreId = b.dataset.firestoreId;
-            const card = localCollection[firestoreId];
-            console.debug('[commander-select-btn] clicked for', firestoreId, card);
-            if (card) selectCommander(card);
-          });
-        });
-            }
-        }
-
-
-        async function handleDeckCreationSubmit(e) {
-            e.preventDefault();
-            const deckNameInput = document.getElementById('deck-name-input');
-            let deckName = deckNameInput.value.trim();
-            const deckFormat = document.getElementById('deck-format-select').value;
-
-            if (deckFormat === 'commander' && !currentCommanderForAdd) {
-                showToast('Please select a commander for this deck.', 'error');
-                return;
-            }
-
-            const saveButton = document.getElementById('save-deck-btn');
-            const saveText = document.getElementById('save-deck-text');
-            const saveSpinner = document.getElementById('save-deck-spinner');
-
-            saveButton.disabled = true;
-            saveText.textContent = 'Generating...';
-            saveSpinner.classList.remove('hidden');
-
-            try {
-                if (deckFormat === 'commander') {
-                    const blueprint = await getAiDeckBlueprint(currentCommanderForAdd);
-                    tempAiBlueprint = blueprint; // Store for confirmation
-                    
-                    // Populate and open the blueprint confirmation modal
-                    renderAiBlueprintModal(blueprint, deckName || blueprint.name); // Pass user-input name as potential override
-                    openModal('ai-blueprint-modal');
-
-                } else {
-                   // For non-commander formats, create deck directly (or could add a simpler AI step later)
-                    const newDeck = {
-                        name: deckName || `New ${deckFormat} Deck`,
-                        format: deckFormat,
-                        summary: '',
-                        commander: null,
-                        cards: {},
-                        createdAt: new Date().toISOString(),
-                        aiBlueprint: null
-                    };
-                    const docRef = await addDoc(collection(db, `artifacts/${appId}/users/${userId}/decks`), newDeck);
-                    showToast(`Deck "${newDeck.name}" created successfully!`, 'success');
-                    closeModal('deck-creation-modal');
-                    showView('singleDeck');
-                    renderSingleDeck(docRef.id);
-                }
-
-            } catch (error) {
-                console.error("Error during deck creation process:", error);
-                showToast('Failed to generate AI deck plan.', 'error');
-            } finally {
-                saveButton.disabled = false;
-                saveText.textContent = 'Get AI Blueprint';
-                saveSpinner.classList.add('hidden');
-            }
-        }
-        
-        async function createDeckFromBlueprint() {
-            console.log("[Function: createDeckFromBlueprint] Creating deck from confirmed AI blueprint.");
-            if (!tempAiBlueprint || !currentCommanderForAdd) {
-                showToast("Error: Missing blueprint or commander data.", "error");
-                return;
-            }
-
-            const deckName = document.getElementById('deck-name-input').value.trim() || tempAiBlueprint.name;
-
-            try {
-                // Ensure commander exists in collection and we have its firestoreId
-                const commanderFirestoreId = currentCommanderForAdd.firestoreId || await addCardToCollection({
-                    ...currentCommanderForAdd,
-                    count: 1,
-                    finish: 'nonfoil'
-                });
-
-                if (!commanderFirestoreId) {
-                    throw new Error("Failed to add commander to collection.");
-                }
-
-                // Create the final commander object to store in the deck
-                const commanderForDeck = {
-                    ...currentCommanderForAdd,
-                    firestoreId: commanderFirestoreId
-                };
-
-
-                const newDeck = {
-                    name: deckName,
-                    format: 'commander',
-                    commander: commanderForDeck,
-                    cards: {}, // Start with an empty deck, user adds cards later
-                    createdAt: new Date().toISOString(),
-                    aiBlueprint: tempAiBlueprint
-                };
-
-                const docRef = await addDoc(collection(db, `artifacts/${appId}/users/${userId}/decks`), newDeck);
-
-                showToast(`Deck "${deckName}" created successfully!`, 'success');
-                closeModal('ai-blueprint-modal');
-                closeModal('deck-creation-modal');
-
-                // Navigate to the new deck
-                showView('singleDeck');
-                renderSingleDeck(docRef.id);
-
-            } catch (error) {
-                console.error("Error creating deck from blueprint:", error);
-                showToast("Failed to create the new deck.", "error");
-            } finally {
-                // Cleanup temporary state
-                tempAiBlueprint = null;
-                currentCommanderForAdd = null;
-            }
-        }
+    }
 
         // --- AUTHENTICATION FUNCTIONS ---
         async function handleEmailLogin() {
@@ -4103,12 +2622,20 @@
                 showToast('Please enter both email and password.', 'error');
                 return;
             }
-            try {
-                await signInWithEmailAndPassword(auth, email, password);
-            } catch (error) {
-                console.error("Error signing in:", error);
-                showToast(error.message, 'error');
-            }
+      console.log('[Auth] handleEmailLogin start', { email });
+      try {
+        const res = await signInWithEmailAndPassword(auth, email, password);
+        console.log('[Auth] signInWithEmailAndPassword resolved', res);
+        // Small deferral to let auth.currentUser populate and for listeners to run
+        setTimeout(() => {
+          try { console.log('[Auth] post-signin currentUser', auth && auth.currentUser); } catch(e) { console.warn('[Auth] post-signin currentUser check failed', e); }
+          try { document.getElementById('login-screen').classList.add('hidden'); document.getElementById('app-wrapper').classList.remove('hidden'); } catch(e){}
+          try { if (typeof window.initAppListeners === 'function') window.initAppListeners(); } catch(e){ console.warn('[Auth] initAppListeners call after signin failed', e); }
+        }, 150);
+      } catch (error) {
+        console.error("Error signing in:", error);
+        showToast(error.message, 'error');
+      }
         }
 
         async function handleEmailSignup() {
@@ -4118,121 +2645,52 @@
                 showToast('Please enter both email and password.', 'error');
                 return;
             }
-            try {
-                await createUserWithEmailAndPassword(auth, email, password);
-            } catch (error) {
-                console.error("Error signing up:", error);
-                showToast(error.message, 'error');
-            }
+      console.log('[Auth] handleEmailSignup start', { email });
+      try {
+        const res = await createUserWithEmailAndPassword(auth, email, password);
+        console.log('[Auth] createUserWithEmailAndPassword resolved', res);
+        setTimeout(() => {
+          try { console.log('[Auth] post-signup currentUser', auth && auth.currentUser); } catch(e) { console.warn('[Auth] post-signup currentUser check failed', e); }
+          try { document.getElementById('login-screen').classList.add('hidden'); document.getElementById('app-wrapper').classList.remove('hidden'); } catch(e){}
+          try { if (typeof window.initAppListeners === 'function') window.initAppListeners(); } catch(e){ console.warn('[Auth] initAppListeners call after signup failed', e); }
+        }, 150);
+      } catch (error) {
+        console.error("Error signing up:", error);
+        showToast(error.message, 'error');
+      }
         }
 
         async function handleGoogleLogin() {
             const provider = new GoogleAuthProvider();
-            try {
-                await signInWithPopup(auth, provider);
-            } catch (error) {
-                console.error("Google sign-in error:", error);
-                showToast(error.message, 'error');
-            }
+      console.log('[Auth] handleGoogleLogin start');
+      try {
+        const res = await signInWithPopup(auth, provider);
+        console.log('[Auth] signInWithPopup resolved', res);
+        setTimeout(() => {
+          try { console.log('[Auth] post-google currentUser', auth && auth.currentUser); } catch(e) { console.warn('[Auth] post-google currentUser check failed', e); }
+          try { document.getElementById('login-screen').classList.add('hidden'); document.getElementById('app-wrapper').classList.remove('hidden'); } catch(e){}
+          try { if (typeof window.initAppListeners === 'function') window.initAppListeners(); } catch(e){ console.warn('[Auth] initAppListeners call after google signin failed', e); }
+        }, 150);
+      } catch (error) {
+        console.error("Google sign-in error:", error);
+        showToast(error.message, 'error');
+      }
         }
 
+    // Expose auth handlers for boot wiring and modules that expect window.* functions
+    if (typeof window !== 'undefined') {
+      window.handleEmailLogin = handleEmailLogin;
+      window.handleEmailSignup = handleEmailSignup;
+      window.handleGoogleLogin = handleGoogleLogin;
+    }
+
         async function searchForCard(mode, deckId = null) {
-            console.log(`[Function: searchForCard] Initiating search in mode: ${mode}`);
-            currentSearchContext = { mode, deckId };
-            const input = document.getElementById(mode === 'commander' ? 'commander-search-input' : 'card-search-input');
-            const query = input.value.trim();
-            if (query.length < 3) {
-                showToast("Please enter at least 3 characters to search.", "warning");
-                return;
-            }
-
-            let scryfallQuery = query;
-            if (mode === 'commander') {
-                scryfallQuery += " t:legendary (t:creature or t:planeswalker)";
-            }
-
-            const searchButton = document.getElementById(mode === 'commander' ? 'commander-search-btn' : 'search-card-btn');
-            const searchIcon = document.getElementById('search-icon');
-            const searchSpinner = document.getElementById('search-spinner');
-            const searchText = document.getElementById('search-text');
-
-            searchButton.disabled = true;
-            if(searchIcon) searchIcon.classList.add('hidden');
-            if(searchSpinner) searchSpinner.classList.remove('hidden');
-            if(searchText) searchText.textContent = 'Searching...';
-
-            try {
-                const response = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(scryfallQuery)}&unique=prints`);
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.details || 'Card not found.');
-                }
-                const data = await response.json();
-                
-                if (mode === 'commander') {
-                    const resultsContainer = document.getElementById('commander-search-results');
-        // Render each result as a stable grid cell with aspect-ratio
-        resultsContainer.innerHTML = data.data.map(card => `
-          <div class="cursor-pointer select-commander-from-search-btn rounded-md overflow-hidden" data-card-id='${card.id}' tabindex="0" role="button" aria-label="Select ${card.name}" style="aspect-ratio:2/3; position:relative">
-            <img src="${card.image_uris.art_crop}" class="commander-search-img">
-            <button type="button" class="commander-select-btn absolute bottom-2 right-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold py-1 px-2 rounded" data-card-id='${card.id}'>Select</button>
-          </div>
-        `).join('');
-
-        // Delegated handlers so clicks/keyboard work even when images overlay
-                    resultsContainer.onclick = (e) => {
-            const selectBtn = e.target.closest('.commander-select-btn');
-            if (selectBtn) {
-              const cardId = selectBtn.dataset.cardId || selectBtn.dataset.firestoreId;
-              console.debug('[resultsContainer.onclick] select-btn clicked:', cardId);
-              const card = data.data.find(c => c.id === cardId);
-              if (card) return selectCommander(card);
-            }
-
-            const btn = e.target.closest('.select-commander-from-search-btn');
-            console.debug('[resultsContainer.onclick] event target:', e.target, 'closest btn:', btn);
-            if (!btn) return;
-            const cardId = btn.dataset.cardId;
-            console.debug('[resultsContainer.onclick] selected cardId:', cardId);
-            const card = data.data.find(c => c.id === cardId);
-            if (card) selectCommander(card);
-          };
-          resultsContainer.onkeydown = (e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              const btn = e.target.closest('.select-commander-from-search-btn');
-              console.debug('[resultsContainer.onkeydown] key event, btn:', btn);
-              if (!btn) return;
-              e.preventDefault();
-              const cardId = btn.dataset.cardId;
-              const card = data.data.find(c => c.id === cardId);
-              if (card) selectCommander(card);
-            }
-          };
-          // Ensure per-button handlers exist for search tiles too
-          resultsContainer.querySelectorAll('.commander-select-btn').forEach(b => {
-            b.addEventListener('click', (ev) => {
-              ev.stopPropagation();
-              const cardId = b.dataset.cardId || b.dataset.firestoreId;
-              console.debug('[commander-select-btn (search)] clicked for', cardId);
-              const card = data.data.find(c => c.id === cardId);
-              if (card) selectCommander(card);
-            });
-          });
-
-                } else {
-                    renderCardVersions(data.data);
-                    openModal('card-versions-modal');
-                }
-
-            } catch (error) {
-                console.error("Scryfall API error:", error);
-                showToast(error.message, 'error');
-            } finally {
-                searchButton.disabled = false;
-                 if(searchIcon) searchIcon.classList.remove('hidden');
-                if(searchSpinner) searchSpinner.classList.add('hidden');
-                if(searchText) searchText.textContent = 'Search';
-            }
+          if (typeof window.searchForCard === 'function' && window.searchForCard !== searchForCard) return window.searchForCard(mode, deckId);
+          try {
+            return import('./js/pages/collection.js').then(mod => { if (typeof mod.searchForCard === 'function') return mod.searchForCard(mode, deckId); }).catch(err => console.debug('collection module not yet available for searchForCard', err));
+          } catch (err) {
+            console.debug('Failed to import collection module for searchForCard', err);
+          }
         }
         
         function searchForCommander() { 
@@ -4304,317 +2762,40 @@
             }
         }
 
-        function renderCollectionCard(card) {
-             const price = card.prices?.usd_foil && card.finish === 'foil' ? card.prices.usd_foil : card.prices?.usd;
-             const assignment = (cardDeckAssignments[card.firestoreId] || [])[0];
-             return `
-       <div class="relative group rounded-lg overflow-hidden shadow-lg transition-transform transform hover:-translate-y-1 hover:shadow-indigo-500/40 collection-card-item" style="aspect-ratio:2/3">
-         <div class="card-image-container">
-           <img src="${card.image_uris?.normal}" alt="${card.name}" class="collection-card-img" loading="lazy">
-         </div>
-                       <div class="absolute top-1 right-1 bg-gray-900/80 text-white text-sm font-bold px-2 py-1 rounded-full">${card.count || 1}</div>
-                         <div class="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/90 to-transparent">
-                             <p class="text-white text-xs font-bold truncate">${card.name}</p>
-                             ${assignment ? `<p class="text-indigo-400 text-xs font-semibold truncate">${assignment.deckName}</p>` : (price ? `<p class="text-green-400 text-xs font-semibold">$${price}</p>` : '')}
-                         </div>
-                       <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-2">
-                           <button class="view-card-details-btn bg-white/20 backdrop-blur-sm text-white text-xs font-bold py-2 px-3 rounded-lg w-full" data-firestore-id="${card.firestoreId}">View</button>
-                           <button class="delete-button bg-red-600/50 hover:bg-red-600 backdrop-blur-sm text-white text-xs font-bold py-2 px-3 rounded-lg w-full" data-firestore-id="${card.firestoreId}">Delete</button>
-                       </div>
-                   </div>
-                  `;
-        }
+        // renderCollectionCard now provided by Public/js/pages/collection.js; modules attach legacy shims to window where needed.
 
-        function addCollectionCardListeners() {
-             document.querySelectorAll('#collection-content .view-card-details-btn').forEach(btn => {
-                 btn.addEventListener('click', (e) => {
-                     const firestoreId = e.currentTarget.dataset.firestoreId;
-                     const card = localCollection[firestoreId];
-                     if (card) {
-                         renderCardDetailsModal(card);
-                         openModal('card-details-modal');
-                     }
-                 });
-             });
-             document.querySelectorAll('#collection-content .delete-button').forEach(btn => {
-                 btn.addEventListener('click', async (e) => {
-                     const firestoreId = e.currentTarget.dataset.firestoreId;
-                     if (firestoreId) {
-                       await deleteDoc(doc(db, `artifacts/${appId}/users/${userId}/collection`, firestoreId));
-                       showToast('Card removed from collection.', 'success');
-                     }
-                 });
-             });
-             document.querySelectorAll('#collection-content .create-deck-from-commander-btn').forEach(btn => {
-                 btn.addEventListener('click', (e) => {
-                     const firestoreId = e.currentTarget.dataset.firestoreId;
-                     const card = localCollection[firestoreId];
-                     if (card) {
-                         openDeckCreationModal(card);
-                     }
-                 });
-             });
-        }
+    /* addCollectionCardListeners and addCollectionTableListeners migrated to
+       Public/js/pages/collection.js (initCollectionModule installs them). */
         
-        function addCollectionTableListeners() { 
-            addCollectionCardListeners(); // Re-use the same logic for buttons
-            
-            const table = document.querySelector('#collection-content table');
-            if(!table) return;
+    // Delegator to singleDeck module's renderDecklist
+    function renderDecklist(deckId) {
+      if (typeof window.renderDecklist === 'function' && window.renderDecklist !== renderDecklist) return window.renderDecklist(deckId);
+      try {
+      return import('./js/pages/singleDeck.js').then(mod => {
+        if (typeof mod.renderDecklist === 'function') return mod.renderDecklist(deckId);
+      }).catch(err => console.debug('singleDeck module not yet available for renderDecklist', err));
+      } catch (err) {
+      console.debug('Failed to import singleDeck module for renderDecklist', err);
+      }
+    }
 
-            table.querySelectorAll('thead th.sortable').forEach(th => {
-                 th.addEventListener('click', () => {
-                     if(document.body.classList.contains('edit-mode')) return;
+    // Delegator to singleDeck module's renderManaCurveChart
+    function renderManaCurveChart(manaCurveData) {
+      if (typeof window.renderManaCurveChart === 'function' && window.renderManaCurveChart !== renderManaCurveChart) return window.renderManaCurveChart(manaCurveData);
+      try {
+      return import('./js/pages/singleDeck.js').then(mod => {
+        if (typeof mod.renderManaCurveChart === 'function') return mod.renderManaCurveChart(manaCurveData);
+      }).catch(err => console.debug('singleDeck module not yet available for renderManaCurveChart', err));
+      } catch (err) {
+      console.debug('Failed to import singleDeck module for renderManaCurveChart', err);
+      }
+    }
 
-                     const column = th.dataset.sort;
-                     table.querySelectorAll('thead th.sortable').forEach(otherTh => {
-                         if (otherTh !== th) otherTh.classList.remove('sort-asc', 'sort-desc');
-                     });
-
-                     if (collectionSortState.column === column) {
-                         collectionSortState.direction = collectionSortState.direction === 'asc' ? 'desc' : 'asc';
-                     } else {
-                         collectionSortState.column = column;
-                         collectionSortState.direction = 'asc';
-                     }
-                     
-                     th.classList.remove('sort-asc', 'sort-desc');
-                     th.classList.add(collectionSortState.direction === 'asc' ? 'sort-asc' : 'sort-desc');
-
-                     renderPaginatedCollection();
-                 });
-            });
-        }
-        
-        function renderDecklist(deckId) {
-            const container = document.getElementById('decklist-container');
-            if (!container) return;
-
-            const deck = localDecks[deckId];
-            if (!deck) return;
-            
-            const allCards = Object.keys(deck.cards || {}).map(firestoreId => {
-                const cardData = localCollection[firestoreId];
-                if (!cardData) return null;
-                return { ...cardData, countInDeck: deck.cards[firestoreId].count };
-            }).filter(Boolean);
-
-            const groupedCards = allCards.reduce((acc, card) => {
-                const mainType = card.type_line.split(" — ")[0];
-                (acc[mainType] = acc[mainType] || []).push(card);
-                return acc;
-            }, {});
-
-            const typeOrder = ['Creature', 'Planeswalker', 'Instant', 'Sorcery', 'Artifact', 'Enchantment', 'Land'];
-            
-            let html = '';
-
-            // Commander is handled separately in the main layout
-            
-            typeOrder.forEach(type => {
-                if (groupedCards[type]) {
-                    const cardsOfType = groupedCards[type].sort((a,b) => a.name.localeCompare(b.name));
-                    const count = cardsOfType.reduce((sum, card) => sum + card.countInDeck, 0);
-                    html += `<div>
-                        <h4 class="text-lg font-semibold text-indigo-400 mb-2">${type} (${count})</h4>
-                        ${cardsOfType.map(card => `
-                            <div class="flex items-center justify-between p-2 rounded-lg hover:bg-gray-700/50">
-                                <span>${card.countInDeck} ${card.name}</span>
-                                <div class="flex items-center gap-2">
-                                     <button class="view-card-details-btn p-1 text-gray-400 hover:text-white" data-firestore-id="${card.firestoreId}"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg></button>
-                                     <button class="delete-button remove-card-from-deck-btn p-1 text-red-400 hover:text-red-300" data-firestore-id="${card.firestoreId}" data-deck-id="${deckId}"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>`;
-                }
-            });
-
-            container.innerHTML = html || '<p class="text-gray-500">This deck is empty. Click "Add Cards" to get started.</p>';
-            
-            // Attach listeners for newly rendered buttons
-            container.querySelectorAll('.view-card-details-btn').forEach(btn => btn.addEventListener('click', (e) => {
-                const firestoreId = e.currentTarget.dataset.firestoreId;
-                const card = localCollection[firestoreId];
-                if (card) {
-                    renderCardDetailsModal(card);
-                    openModal('card-details-modal');
-                }
-            }));
-
-            container.querySelectorAll('.remove-card-from-deck-btn').forEach(btn => btn.addEventListener('click', async (e) => {
-                const firestoreId = e.currentTarget.dataset.firestoreId;
-                const deckId = e.currentTarget.dataset.deckId;
-                const deck = localDecks[deckId];
-                const cardInDeck = deck.cards[firestoreId];
-                const deckRef = doc(db, `artifacts/${appId}/users/${userId}/decks`, deckId);
-                const collectionCardRef = doc(db, `artifacts/${appId}/users/${userId}/collection`, firestoreId);
-                
-                try {
-                    await runTransaction(db, async (transaction) => {
-                        const collectionCardDoc = await transaction.get(collectionCardRef);
-                        const currentCollectionCount = collectionCardDoc.exists() ? collectionCardDoc.data().count : 0;
-                        
-                        transaction.update(collectionCardRef, { count: currentCollectionCount + 1 });
-
-                        if (cardInDeck.count > 1) {
-                            transaction.update(deckRef, {
-                                [`cards.${firestoreId}.count`]: cardInDeck.count - 1
-                            });
-                        } else {
-                            transaction.update(deckRef, {
-                                [`cards.${firestoreId}`]: deleteField()
-                            });
-                        }
-                    });
-                    showToast(`Removed 1 copy of ${cardInDeck.name} from deck.`, 'success');
-                } catch (error) {
-                    console.error("Error removing card from deck:", error);
-                    showToast('Failed to remove card from deck.', 'error');
-                }
-            }));
-        }
-
-        function renderManaCurveChart(manaCurveData) {
-            const ctx = document.getElementById('mana-curve-chart')?.getContext('2d');
-            if (!ctx) return;
-
-            const chartId = 'mana-curve-chart';
-            if (deckChartInstances[chartId]) {
-                deckChartInstances[chartId].destroy();
-            }
-
-            const labels = ['0', '1', '2', '3', '4', '5', '6', '7+'];
-            const data = labels.map((label, index) => {
-                const cmc = parseInt(label);
-                if (index < 7) {
-                    return manaCurveData[cmc] || 0;
-                } else {
-                    let sum = 0;
-                    for (let key in manaCurveData) {
-                        if (parseInt(key) >= 7) {
-                            sum += manaCurveData[key];
-                        }
-                    }
-                    return sum;
-                }
-            });
-
-            deckChartInstances[chartId] = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Card Count',
-                        data: data,
-                        backgroundColor: 'rgba(79, 70, 229, 0.6)',
-                        borderColor: 'rgba(129, 140, 248, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: { color: '#9CA3AF', stepSize: 2 },
-                            grid: { color: '#4B5563' }
-                        },
-                        x: {
-                            ticks: { color: '#9CA3AF' },
-                            grid: { display: false }
-                        }
-                    }
-                }
-            });
-        }
-
-        function addSingleDeckListeners(deckId) {
-            document.getElementById('add-cards-to-deck-btn')?.addEventListener('click', () => {
-                openAddCardsToDeckModal(deckId);
-            });
-
-            document.querySelector('#single-deck-view .view-card-details-btn')?.addEventListener('click', (e) => {
-                const firestoreId = e.currentTarget.dataset.firestoreId;
-                const card = localCollection[firestoreId];
-                if (card) {
-                     renderCardDetailsModal(card);
-                     openModal('card-details-modal');
-                }
-            });
-
-            document.getElementById('deck-delete-btn')?.addEventListener('click', (e) => {
-                openDeckDeleteOptions(e.currentTarget.dataset.deckId);
-            });
-            
-            document.getElementById('ai-suggestions-btn')?.addEventListener('click', () => {
-                showToast('AI suggestions are coming soon!', 'info');
-            });
-             document.getElementById('export-deck-btn')?.addEventListener('click', (e) => {
-                 exportDeck(e.currentTarget.dataset.deckId);
-             });
-             document.getElementById('view-strategy-btn')?.addEventListener('click', () => {
-                 const deck = localDecks[deckId];
-                 if(deck && deck.aiBlueprint) {
-                     renderAiBlueprintModal(deck.aiBlueprint, deck.name, true); // true for read-only mode
-                     openModal('ai-blueprint-modal');
-                 }
-             });
-        }
+    // addSingleDeckListeners migrated to Public/js/pages/singleDeck.js (exported as addSingleDeckListeners)
 
         function renderCardVersions(cards) {
-            const grid = document.getElementById('card-versions-grid');
-            const loading = document.getElementById('versions-loading');
-            grid.innerHTML = ''; // Clear previous results
-            grid.onclick = null; // Clear old listener
-            loading.classList.remove('hidden');
-
-            grid.innerHTML = cards.map(card => {
-                const price = card.prices?.usd ? `$${card.prices.usd}` : (card.prices?.usd_foil ? `$${card.prices.usd_foil} (Foil)`: 'N/A');
-                return `
-                <div class="relative group rounded-lg overflow-hidden cursor-pointer card-version-item" data-card-id="${card.id}" style="aspect-ratio:2/3">
-                    <img src="${card.image_uris?.large}" alt="${card.name}" class="card-version-img">
-                    <div class="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3 text-white">
-                    <p class="font-bold">${card.set_name}</p>
-                    <p class="text-sm">${price}</p>
-                    </div>
-                </div>
-                `;
-            }).join('');
-            
-            // Add hover preview logic
-            const hoverPreview = document.getElementById('card-hover-preview');
-            const hoverImage = hoverPreview.querySelector('img');
-
-            grid.querySelectorAll('.card-version-item').forEach(item => {
-                item.addEventListener('mouseenter', (e) => {
-                    const imgSrc = e.currentTarget.querySelector('img').src;
-                    if (imgSrc) {
-                        hoverImage.src = imgSrc;
-                        hoverPreview.classList.remove('hidden');
-                    }
-                });
-                item.addEventListener('mouseleave', () => {
-                    hoverPreview.classList.add('hidden');
-                    hoverImage.src = '';
-                });
-            });
-
-            // Event delegation for clicks on the grid
-            grid.onclick = function(event) {
-                const cardItem = event.target.closest('.card-version-item');
-                if (!cardItem) return;
-                
-                const cardId = cardItem.dataset.cardId;
-                const selectedCard = cards.find(c => c.id === cardId);
-                if (selectedCard) {
-                    handleCardSelection(selectedCard);
-                }
-            };
-            
-            loading.classList.add('hidden');
+          if (typeof window.renderCardVersions === 'function' && window.renderCardVersions !== renderCardVersions) return window.renderCardVersions(cards);
+          return import('./js/pages/collection.js').then(mod => { if (typeof mod.renderCardVersions === 'function') return mod.renderCardVersions(cards); }).catch(err => console.debug('collection module not yet available for renderCardVersions', err));
         }
 
         // --- UI EVENT LISTENERS ---
@@ -4919,138 +3100,19 @@
         }
         
         // --- ADD CARDS TO DECK MODAL LOGIC ---
-        function openAddCardsToDeckModal(deckId) {
-            const deck = localDecks[deckId];
-            if (!deck) {
-                showToast('Could not find the specified deck.', 'error');
-                return;
-            }
-
-            document.getElementById('add-cards-modal-title').textContent = `Add Cards to "${deck.name}"`;
-            
-            const commanderColors = deck.commander?.color_identity || ['W', 'U', 'B', 'R', 'G']; // Allow all colors if no commander
-            const tableBody = document.getElementById('add-cards-modal-table-body');
-            const filterInput = document.getElementById('add-card-modal-filter');
-            filterInput.value = '';
-
-            const renderTable = () => {
-                const filterText = filterInput.value.toLowerCase();
-                const eligibleCards = Object.values(localCollection)
-                    .filter(card => card.count > 0 && isColorIdentityValid(card.color_identity, commanderColors))
-                    .filter(card => card.name.toLowerCase().includes(filterText))
-                    .sort((a, b) => a.name.localeCompare(b.name));
-
-                if (eligibleCards.length === 0) {
-                    tableBody.innerHTML = `<tr><td colspan="4" class="text-center p-4 text-gray-500">No eligible cards in your collection.</td></tr>`;
-                } else {
-                    tableBody.innerHTML = eligibleCards.map(card => `
-                        <tr class="border-b border-gray-700 hover:bg-gray-700/50">
-                            <td class="p-4">
-                                <div class="flex items-center">
-                                    <input id="checkbox-${card.firestoreId}" type="checkbox" data-firestore-id="${card.firestoreId}" class="add-card-checkbox w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-600 ring-offset-gray-800 focus:ring-2">
-                                    <label for="checkbox-${card.firestoreId}" class="sr-only">checkbox</label>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 font-medium whitespace-nowrap">${card.name}</td>
-                            <td class="px-6 py-4">${card.type_line.split(' — ')[0]}</td>
-                            <td class="px-6 py-4 text-center">${card.count}</td>
-                        </tr>
-                    `).join('');
-                }
-                updateSelectedCount();
-            };
-
-            const updateSelectedCount = () => {
-                const selectedCount = document.querySelectorAll('.add-card-checkbox:checked').length;
-                document.getElementById('add-cards-selected-count').textContent = `${selectedCount} card(s) selected`;
-            };
-
-            // Initial render
-            renderTable();
-
-            // Event Listeners
-            filterInput.addEventListener('input', renderTable);
-            tableBody.addEventListener('change', updateSelectedCount);
-
-            document.getElementById('add-cards-select-all').addEventListener('change', (e) => {
-                document.querySelectorAll('.add-card-checkbox').forEach(checkbox => {
-                    checkbox.checked = e.target.checked;
-                });
-                updateSelectedCount();
-            });
-
-            document.getElementById('confirm-add-cards-to-deck-btn').onclick = () => {
-                const selectedIds = Array.from(document.querySelectorAll('.add-card-checkbox:checked')).map(cb => cb.dataset.firestoreId);
-                handleAddSelectedCardsToDeck(deckId, selectedIds);
-            };
-
-            openModal('add-cards-to-deck-modal');
-        }
+    function openAddCardsToDeckModal(deckId) {
+      if (typeof window.openAddCardsToDeckModal === 'function' && window.openAddCardsToDeckModal !== openAddCardsToDeckModal) return window.openAddCardsToDeckModal(deckId);
+      try {
+      return import('./js/pages/singleDeck.js').then(mod => {
+        if (typeof mod.openAddCardsToDeckModal === 'function') return mod.openAddCardsToDeckModal(deckId);
+      }).catch(err => console.debug('singleDeck module not yet available for openAddCardsToDeckModal', err));
+      } catch (err) {
+      console.debug('Failed to import singleDeck module for openAddCardsToDeckModal', err);
+      }
+    }
 
         // --- DECK DELETION LOGIC ---
-    async function deleteDeck(deckId, alsoDeleteCards) {
-      // Be defensive: if deckId is not provided, attempt to read it from
-      // the modal buttons or the currently viewed single deck.
-      if (!deckId) {
-        try {
-          const modal = document.getElementById('deck-delete-options-modal');
-          if (modal) {
-            const btn = modal.querySelector('#delete-deck-only-btn') || modal.querySelector('#delete-deck-and-cards-btn');
-            deckId = btn && (btn.dataset.deckId || btn.dataset.id) ? (btn.dataset.deckId || btn.dataset.id) : deckId;
-          }
-        } catch (e) {
-          console.warn('[deleteDeck] Error while reading deckId from modal:', e);
-        }
-        if (!deckId && views && views.singleDeck) {
-          deckId = views.singleDeck.dataset.deckId;
-        }
-      }
-
-      console.log(`[Function: deleteDeck] Deleting deck ${deckId}. Also delete cards: ${alsoDeleteCards}`);
-
-      const deck = localDecks[deckId];
-      if (!deck) {
-        console.warn('[deleteDeck] localDecks keys:', Object.keys(localDecks || {}));
-        showToast("Deck not found.", "error");
-        return;
-      }
-
-            try {
-                const batch = writeBatch(db);
-
-                // 1. Delete the deck document
-                const deckRef = doc(db, `artifacts/${appId}/users/${userId}/decks`, deckId);
-                batch.delete(deckRef);
-
-                // 2. (Optional) Delete associated cards from the collection
-                if (alsoDeleteCards) {
-                    const cardIdsToDelete = new Set(Object.keys(deck.cards || {}));
-                    if (deck.commander && deck.commander.firestoreId) {
-                        cardIdsToDelete.add(deck.commander.firestoreId);
-                    }
-
-                    cardIdsToDelete.forEach(firestoreId => {
-                        const cardRef = doc(db, `artifacts/${appId}/users/${userId}/collection`, firestoreId);
-                        batch.delete(cardRef);
-                    });
-                }
-                
-                await batch.commit();
-
-                showToast(`Deck "${deck.name}" deleted successfully.`, "success");
-
-                // If we were viewing the deleted deck, go back to the list
-                const activeDeckId = views.singleDeck.dataset.deckId;
-                if(activeDeckId === deckId) {
-                    showView('decks');
-                }
-                
-                closeModal('deck-delete-options-modal');
-            } catch(error) {
-                console.error("Error deleting deck:", error);
-                showToast("Failed to delete deck.", "error");
-            }
-        }
+    // deleteDeck migrated to Public/js/pages/singleDeck.js (exported as deleteDeck)
         
         // --- DATA EXPORT/IMPORT LOGIC ---
         function exportAllData() {
@@ -5078,110 +3140,36 @@
         }
 
         function exportDeck(deckId) {
-             const deck = localDecks[deckId];
-             if (!deck) {
-                 showToast('Deck not found for export.', 'error');
-                 return;
-             }
-             
-             let decklist = '';
-             if (deck.commander) {
-                 decklist += `1 ${deck.commander.name} # Commander\n`;
-             }
-             
-             // Create a combined list of cards including the commander for sorting
-             let allCardsForList = [];
-             if (deck.commander && deck.commander.firestoreId) {
-                allCardsForList.push({ name: deck.commander.name, count: 1 });
-             }
-             Object.keys(deck.cards || {}).forEach(firestoreId => {
-                 const cardData = localCollection[firestoreId];
-                 if(cardData) {
-                    allCardsForList.push({ name: cardData.name, count: deck.cards[firestoreId].count });
-                 }
-             });
-
-             // We can export the full deck object as a JSON file too
-             const deckDataToExport = {
-                 deckInfo: {
-                     name: deck.name,
-                     format: deck.format,
-                     commander: deck.commander ? { scryfall_id: deck.commander.id, name: deck.commander.name } : null
-                 },
-                 cards: allCardsForList
-             };
-
-           const dataStr = JSON.stringify(deckDataToExport, null, 2);
-           const blob = new Blob([dataStr], { type: 'application/json' });
-           const url = URL.createObjectURL(blob);
-           const a = document.createElement('a');
-           a.href = url;
-           a.download = `${deck.name.replace(/\s/g, '_')}.json`;
-           document.body.appendChild(a);
-           a.click();
-           document.body.removeChild(a);
-           URL.revokeObjectURL(url);
-           showToast(`Exported ${deck.name} as a JSON file!`, 'success');
+          if (typeof window.exportDeck === 'function' && window.exportDeck !== exportDeck) return window.exportDeck(deckId);
+          try {
+            return import('./js/pages/singleDeck.js').then(mod => {
+              if (typeof mod.exportDeck === 'function') return mod.exportDeck(deckId);
+            }).catch(err => console.debug('singleDeck module not yet available for exportDeck', err));
+          } catch (err) {
+            console.debug('Failed to import singleDeck module for exportDeck', err);
+          }
         }
 
         function handleImportDeckData(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                const content = e.target.result;
-                try {
-                    const deckData = JSON.parse(content);
-                    // We now have the structured deck data, let's process it
-                    await processDeckImport(deckData);
-                } catch(error) {
-                    console.error("Error parsing deck file:", error);
-                    showToast("Could not parse file. Please ensure it's a valid deck JSON export.", "error");
-                }
-            };
-            reader.readAsText(file);
-            event.target.value = ''; // Reset input
+          if (typeof window.handleImportDeckData === 'function' && window.handleImportDeckData !== handleImportDeckData) return window.handleImportDeckData(event);
+          try {
+            return import('./js/pages/singleDeck.js').then(mod => {
+              if (typeof mod.handleImportDeckData === 'function') return mod.handleImportDeckData(event);
+            }).catch(err => console.debug('singleDeck module not yet available for handleImportDeckData', err));
+          } catch (err) {
+            console.debug('Failed to import singleDeck module for handleImportDeckData', err);
+          }
         }
 
-        async function processDeckImport(deckData) {
-            // ... implementation to create a new deck from the JSON data
-            showToast(`Importing deck "${deckData.deckInfo.name}"... This may take a moment.`, "info");
-            
-            const cardsToFetch = deckData.cards;
-            const batch = writeBatch(db);
-
-            for (const card of cardsToFetch) {
-                // For simplicity, we'll assume we need to add these cards to the collection.
-                // A more advanced version would check if they exist first.
-                const response = await fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(card.name)}`);
-                if(response.ok) {
-                    const scryfallCard = await response.json();
-                    const cardToAdd = { ...scryfallCard, count: card.count, finish: 'nonfoil', addedAt: new Date().toISOString() };
-                    
-                    const existing = Object.values(localCollection).find(c => c.id === scryfallCard.id && c.finish === 'nonfoil');
-                    if (existing) {
-                        const newCount = existing.count + card.count;
-                        batch.update(doc(db, `artifacts/${appId}/users/${userId}/collection`, existing.firestoreId), { count: newCount });
-                    } else {
-                        batch.set(doc(collection(db, `artifacts/${appId}/users/${userId}/collection`)), cardToAdd);
-                    }
-                }
-            }
-            await batch.commit();
-            showToast("Deck cards added to collection. Creating deck entry...", "success");
-
-            // Now create the deck itself (this part is simplified)
-            const newDeck = {
-                name: deckData.deckInfo.name,
-                format: deckData.deckInfo.format,
-                cards: {}, // This would need to be populated by finding the new firestoreIds
-                // ... etc
-            };
-            // ... more logic needed here to map imported cards to firestoreIds and build the deck.cards object.
-            // This is a complex step omitted for brevity but would be required for a full implementation.
-
-            showToast("Deck import is complex and this is a simplified version.", "warning");
+        function processDeckImport(deckData) {
+          if (typeof window.processDeckImport === 'function' && window.processDeckImport !== processDeckImport) return window.processDeckImport(deckData);
+          try {
+            return import('./js/pages/singleDeck.js').then(mod => {
+              if (typeof mod.processDeckImport === 'function') return mod.processDeckImport(deckData);
+            }).catch(err => console.debug('singleDeck module not yet available for processDeckImport', err));
+          } catch (err) {
+            console.debug('Failed to import singleDeck module for processDeckImport', err);
+          }
         }
 
 
@@ -5285,44 +3273,11 @@
       }
     }
 
-    // Show a persistent toast with progress bar and return its id
-    function showToastWithProgress(message, current, total) {
-      const container = document.getElementById("toast-container");
-      const toast = document.createElement("div");
-      const toastId = `toast-progress-${Date.now()}`;
-      toast.id = toastId;
-      toast.className = `toast text-white bg-blue-600`;
-      toast.innerHTML = `
-        <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-        <span>${message} <span id="toast-progress-counter">${current} / ${total}</span></span>
-        <div class="w-full bg-gray-700 rounded h-2 mt-2 overflow-hidden">
-          <div id="toast-progress-bar" class="bg-green-400 h-2 transition-all duration-300" style="width:${total ? (current/total*100) : 0}%"></div>
-        </div>
-      `;
-      // Remove animation so it stays until removed manually
-      toast.style.animation = 'slideIn 0.5s forwards';
-      container.appendChild(toast);
-      return toastId;
-    }
-
-    // Update the progress bar and counter in the toast
-    function updateToastProgress(toastId, current, total) {
-      const toast = document.getElementById(toastId);
-      if (!toast) return;
-      const counter = toast.querySelector('#toast-progress-counter');
-      const bar = toast.querySelector('#toast-progress-bar');
-      if (counter) counter.textContent = `${current} / ${total}`;
-      if (bar) bar.style.width = `${total ? (current/total*100) : 0}%`;
-    }
-
-    // Remove the toast by id
-    function removeToastById(toastId) {
-      const toast = document.getElementById(toastId);
-      if (toast) toast.remove();
-    }
+    // Progress toast delegators removed: Public/js/lib/ui.js exposes these helpers and attaches them to window.
 
 
-        setupGlobalListeners();
+        // setupGlobalListeners is now installed by the module boot sequence.
+        // (bootApp() calls setupGlobalListeners once to avoid duplicate handlers.)
       });
     </script>
   </body>

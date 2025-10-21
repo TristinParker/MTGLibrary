@@ -1684,32 +1684,18 @@
           "[DOMContentLoaded] Event fired. App is initializing. Find in <script> block."
         );
 
-        // Robust helper: compute and apply the appropriate top offset for sticky table headers.
-        function computeTableHeaderTop(container) {
-          try {
-            const appHeader = document.querySelector('header');
-            // compute top offset relative to the container so sticky works inside scroller
-            const containerRect = container.getBoundingClientRect();
-            let topOffset = 0;
-            if (appHeader) {
-              const rect = appHeader.getBoundingClientRect();
-              // distance from container top to app header bottom
-              topOffset = Math.max(0, Math.ceil(rect.bottom - containerRect.top));
-            }
-            const banner = document.querySelector('.page-banner');
-            if (banner) {
-              const bRect = banner.getBoundingClientRect();
-              topOffset = Math.max(topOffset, Math.ceil(bRect.bottom - containerRect.top));
-            }
-            // safety clamp in case container is small
-            topOffset = Math.max(0, topOffset);
-            container.querySelectorAll('table thead').forEach(thead => {
-              thead.style.top = `${topOffset}px`;
-            });
-          } catch (err) {
-            console.error('[computeTableHeaderTop] error', err);
-          }
+        // UI module cached loader used by delegators
+        let __uiModulePromise = null;
+        async function getUIModule() {
+          if (window.__UI) return window.__UI;
+          if (__uiModulePromise) return __uiModulePromise;
+          __uiModulePromise = import('./js/lib/ui.js')
+            .then(m => { window.__UI = m; return m; })
+            .catch(err => { __uiModulePromise = null; throw err; });
+          return __uiModulePromise;
         }
+
+  // UI helpers are provided by `Public/js/lib/ui.js`. See Public/README.md for delegation and testing guidance.
 
         // Attach a debounced resize/scroll handler so table header offsets update when layout changes
         (function attachTableHeaderResizeHandler() {
@@ -3285,55 +3271,7 @@
             }
         }
 
-        function showToast(message, type = "info") {
-            const container = document.getElementById("toast-container");
-            const toast = document.createElement("div");
-            let bgColor, icon;
-
-            switch (type) {
-                case "success":
-                    bgColor = "bg-green-600";
-                    icon = `<svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
-                    break;
-                case "error":
-                    bgColor = "bg-red-600";
-                    icon = `<svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
-                    break;
-                case "warning":
-                    bgColor = "bg-yellow-500";
-                    icon = `<svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>`;
-                    break;
-                default: // info
-                    bgColor = "bg-blue-600";
-                    icon = `<svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
-                    break;
-            }
-
-            toast.className = `toast text-white ${bgColor}`;
-            toast.innerHTML = `${icon}<span>${message}</span>`;
-            
-            container.appendChild(toast);
-
-            setTimeout(() => {
-                toast.remove();
-            }, 5000);
-        }
-
-        function openModal(modalId) {
-            const modal = document.getElementById(modalId);
-            if (modal) {
-                modal.classList.remove('hidden');
-                modal.classList.add('flex');
-            }
-        }
-
-        function closeModal(modalId) {
-            const modal = document.getElementById(modalId);
-            if (modal) {
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-            }
-        }
+    // showToast/openModal/closeModal delegators removed: rely on Public/js/lib/ui.js window shims.
         
         function renderDecksList() {
              console.log('[Function: renderDecksList] Rendering deck list. Find in <script> block.');

@@ -1561,80 +1561,18 @@
         // --- ALL FUNCTION DEFINITIONS ---
 
         // --- UI HELPERS (defining before they are called) ---
-        function showToast(message, type = "info", duration = 5000) {
-          console.log(
-            `[Function: showToast] Displaying toast. Message: "${message}", Type: ${type}. Find in <script> block.`
-          );
-          const container = document.getElementById("toast-container");
-          const toast = document.createElement("div");
-          const id = `toast-${Date.now()}`;
-          toast.id = id;
-
-          let bgColor, icon;
-          switch (type) {
-            case "success":
-              bgColor = "bg-green-600";
-              icon = `<svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
-              break;
-            case "error":
-              bgColor = "bg-red-600";
-              icon = `<svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
-              break;
-            case "loading":
-              bgColor = "bg-blue-600";
-              icon = `<div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>`;
-              break;
-            default:
-              bgColor = "bg-gray-700";
-              icon = `<svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
-              break;
-          }
-
-          toast.className = `toast text-white ${bgColor}`;
-          toast.innerHTML = `${icon}<span>${message}</span>`;
-          container.appendChild(toast);
-
-          if (duration) {
-            setTimeout(() => {
-              toast.remove();
-            }, duration + 500); // 500ms for slide out animation
-          } else {
-            toast.style.animation = "slideIn 0.5s forwards"; // No slide out
-          }
-          return id;
+        // Lightweight cached loader for the UI module used by delegators below.
+        let __uiModulePromise = null;
+        async function getUIModule() {
+          if (window.__UI) return window.__UI;
+          if (__uiModulePromise) return __uiModulePromise;
+          __uiModulePromise = import('./js/lib/ui.js')
+            .then(m => { window.__UI = m; return m; })
+            .catch(err => { __uiModulePromise = null; throw err; });
+          return __uiModulePromise;
         }
 
-        function updateToast(id, message, type) {
-          console.log(
-            `[Function: updateToast] Updating toast ID ${id}. Message: "${message}", Type: ${type}. Find in <script> block.`
-          );
-          const toast = document.getElementById(id);
-          if (!toast) return;
-
-          let bgColor, icon;
-          switch (type) {
-            case "success":
-              bgColor = "bg-green-600";
-              icon = `<svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
-              break;
-            case "error":
-              bgColor = "bg-red-600";
-              icon = `<svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
-              break;
-            default: // back to info
-              bgColor = "bg-gray-700";
-              icon = `<svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
-              break;
-          }
-          toast.className = `toast text-white ${bgColor}`;
-          toast.style.animation = "none"; // reset animation
-          toast.innerHTML = `${icon}<span>${message}</span>`;
-          setTimeout(() => {
-            // set new fade out
-            toast.style.animation = "slideOut 0.5s forwards";
-            setTimeout(() => toast.remove(), 500);
-          }, 4500);
-        }
+  // UI helpers are provided by `Public/js/lib/ui.js`. See Public/README.md for delegation and testing guidance.
 
         function loadUserData() {
           console.log(

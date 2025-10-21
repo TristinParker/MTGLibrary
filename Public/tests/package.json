@@ -1,0 +1,11 @@
+{
+  "name": "mtglibrary-tests",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "smoke": "node smokeTest.js"
+  },
+  "dependencies": {
+    "puppeteer": "^23.0.0"
+  }
+}
