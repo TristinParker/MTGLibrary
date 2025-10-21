@@ -799,22 +799,40 @@ function renderCollectionTable(cards, groupByKeys) {
         overlay = document.createElement('div');
         overlay.id = 'collection-group-overlay';
         overlay.style.position = 'fixed';
-        overlay.style.left = '0';
-        overlay.style.right = '0';
         overlay.style.zIndex = '40';
         overlay.style.pointerEvents = 'none';
         overlay.style.display = 'flex';
         overlay.style.alignItems = 'center';
         overlay.style.padding = '6px 16px';
         overlay.style.gap = '12px';
+        overlay.style.boxSizing = 'border-box';
         overlay.innerHTML = `<div id="collection-group-overlay-content" style="margin-left:1rem;color:#E6EEF8;font-weight:600;"></div>`;
         document.body.appendChild(overlay);
+      }
+      // Constrain overlay to the collection content region so it doesn't overlap the sidebar/logo
+      try {
+        const contentRect = contentDiv.getBoundingClientRect();
+        overlay.style.left = `${contentRect.left}px`;
+        overlay.style.width = `${contentRect.width}px`;
+        overlay.style.right = 'auto';
+      } catch (e) {
+        // fallback to full-width
+        overlay.style.left = '0';
+        overlay.style.right = '0';
+        overlay.style.width = 'auto';
       }
       overlay.style.top = `${top}px`;
 
       // Update overlay based on scroll position inside the collection content
       const updateOverlay = () => {
         try {
+          // Keep overlay horizontally aligned with the collection content in case of resize/layout changes
+          try {
+            const contentRect = contentDiv.getBoundingClientRect();
+            overlay.style.left = `${contentRect.left}px`;
+            overlay.style.width = `${contentRect.width}px`;
+            overlay.style.right = 'auto';
+          } catch (e) {}
           const wrappers = Array.from(contentDiv.querySelectorAll('.group-table-wrapper, .group-nest-wrapper'));
           const viewportTop = window.scrollY + top + 2; // slight offset inside
           let currentTitle = '';

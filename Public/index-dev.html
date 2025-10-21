@@ -2492,6 +2492,18 @@
                 pageTitle.textContent = 'My Collection';
                  currentSearchContext = { mode: 'collection', deckId: null };
                 renderCollection();
+                // Ensure any floating collection overlay is constrained/revealed when entering collection view
+                try {
+                  const overlay = document.getElementById('collection-group-overlay');
+                  const contentDiv = document.getElementById('collection-content');
+                  if (overlay && contentDiv) {
+                    const rect = contentDiv.getBoundingClientRect();
+                    overlay.style.left = `${rect.left}px`;
+                    overlay.style.width = `${rect.width}px`;
+                    overlay.style.right = 'auto';
+                    overlay.style.display = overlay.textContent ? 'flex' : 'none';
+                  }
+                } catch(e) { /* ignore */ }
             } else if (viewName === 'decks') {
                 pageTitle.textContent = 'Decks';
                 renderDecksList();
@@ -2501,6 +2513,13 @@
             } else if (viewName === 'singleDeck') {
                 // Title is set in renderSingleDeck
             }
+            // Hide the collection overlay when not viewing collection to avoid phantom text overlaying the sidebar
+            try {
+              if (viewName !== 'collection') {
+                const overlay = document.getElementById('collection-group-overlay');
+                if (overlay) overlay.style.display = 'none';
+              }
+            } catch (e) { /* ignore */ }
         }
         
         function selectCommander(card) {
