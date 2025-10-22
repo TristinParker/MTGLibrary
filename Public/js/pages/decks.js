@@ -71,7 +71,7 @@ export function initDecksModule() {
 import { GEMINI_API_URL } from '../main/index.js';
 
 export async function getAiDeckBlueprint(commanderCard) {
-  const prompt = `You are a world-class Magic: The Gathering deck architect specializing in the Commander format. Given the following commander card, you will generate a detailed blueprint for a 100-card deck.
+  let prompt = `You are a world-class Magic: The Gathering deck architect specializing in the Commander format. Given the following commander card, you will generate a detailed blueprint for a 100-card deck.
 
             Your response must be a single, valid JSON object and nothing else. Do not wrap it in markdown backticks.
             
@@ -87,6 +87,22 @@ export async function getAiDeckBlueprint(commanderCard) {
             - Mana Cost: ${commanderCard.mana_cost}
             - Oracle Text: ${commanderCard.oracle_text}
             - Power/Toughness: ${commanderCard.power || 'N/A'}/${commanderCard.toughness || 'N/A'}`;
+
+  // If a user playstyle summary is available, append it to provide contextual guidance
+  try {
+    // Prefer structured playstyle object when available
+    let structured = null;
+    try { if (window.playstyle && window.playstyleState) structured = window.playstyleState; } catch (e) {}
+    if (!structured && typeof window.playstyle === 'object' && typeof window.playstyle.loadPlaystyleForUser === 'function' && window.userId) {
+      try { structured = await window.playstyle.loadPlaystyleForUser(window.userId); } catch (e) { /* ignore */ }
+    }
+    if (structured) {
+      // Append a JSON block with the structured playstyle and instruct Gemini to consider it
+      prompt = `${prompt}\n\nUser Playstyle (JSON):\n${JSON.stringify(structured, null, 2)}\n\nUse this structured profile to tailor the deck blueprint and explain how cards and counts reflect the player's preferences.`;
+    } else if (window.playstyleSummary) {
+      prompt = `${prompt}\n\nUser Playstyle Summary:\n${window.playstyleSummary}`;
+    }
+  } catch (e) { /* non-fatal */ }
 
   try {
     const response = await fetch(GEMINI_API_URL, {

@@ -7,6 +7,10 @@ export function bootApp() {
   initCollectionModule();
   initDecksModule();
   initSingleDeckModule();
+  // Ensure playstyle module is loaded at boot so Settings can render the widget immediately
+  try {
+    import('../settings/playstyle.js').then(mod => { if (window.userId && typeof mod.loadPlaystyleForUser === 'function') mod.loadPlaystyleForUser(window.userId); }).catch(e => {});
+  } catch (e) { /* ignore */ }
   // Attempt to load saved views for the signed-in user so the Saved Views
   // dropdown is populated and any active view can be applied early.
   try {
@@ -113,6 +117,10 @@ export function setupGlobalListeners() {
             if (typeof window.showView === 'function') {
               console.debug('[Boot] calling window.showView for', key);
               window.showView(key);
+              // If user opened Settings, ensure playstyle module is loaded and rendered
+              if (key === 'settings') {
+                try { import('../settings/playstyle.js').then(mod => { if (window.userId && typeof mod.loadPlaystyleForUser === 'function') mod.loadPlaystyleForUser(window.userId); }); } catch (e) {}
+              }
             } else if (typeof window.renderPaginatedCollection === 'function' && key === 'collection') {
               // fallback to rendering collection view
               if (typeof window.showView === 'function') window.showView('collection');
@@ -136,11 +144,11 @@ export function setupGlobalListeners() {
   navDecks.onclick = (e) => { try { console.debug('[Boot][FB] nav-decks onclick fallback'); if (typeof window.showView === 'function') window.showView('decks'); else renderDecksList(); } catch (err) { console.error('[Boot][FB] nav-decks onclick error', err); } };
   console.debug('[Boot][FB] nav-decks fallback onclick installed');
       }
-      if (navSettings) {
-  navSettings.style.pointerEvents = 'auto';
-  navSettings.onclick = (e) => { try { console.debug('[Boot][FB] nav-settings onclick fallback'); if (typeof window.showView === 'function') window.showView('settings'); else renderSettings(); if (typeof window.renderSettingsSavedViews === 'function') window.renderSettingsSavedViews(); } catch (err) { console.error('[Boot][FB] nav-settings onclick error', err); } };
-  console.debug('[Boot][FB] nav-settings fallback onclick installed');
-      }
+        if (navSettings) {
+      navSettings.style.pointerEvents = 'auto';
+      navSettings.onclick = (e) => { try { console.debug('[Boot][FB] nav-settings onclick fallback'); if (typeof window.showView === 'function') window.showView('settings'); else renderSettings(); if (typeof window.renderSettingsSavedViews === 'function') window.renderSettingsSavedViews(); try { import('../settings/playstyle.js').then(mod => { if (window.userId && typeof mod.loadPlaystyleForUser === 'function') mod.loadPlaystyleForUser(window.userId); }); } catch (e) {} } catch (err) { console.error('[Boot][FB] nav-settings onclick error', err); } };
+      console.debug('[Boot][FB] nav-settings fallback onclick installed');
+        }
     } catch (err) { console.error('[Boot][FB] nav fallback install error', err); }
 
     // Header buttons
