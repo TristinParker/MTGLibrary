@@ -283,6 +283,34 @@ details[open] summary:before { content: "-"; }
   button, .nav-link, .collection-card-item { touch-action: manipulation; -webkit-tap-highlight-color: rgba(0,0,0,0); }
 }
 
+/* Decks grid and card sizing overrides
+   - Use auto-fill to allow dynamic number of columns rather than fixed 3.
+   - Cap the deck card width to the image natural aspect (so it won't stretch across the whole row).
+   - Prevent images from being stretched vertically by enforcing aspect-ratio and object-fit.
+*/
+#decks-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+.deck-card { display: flex; flex-direction: column; }
+.deck-card .relative { width: 100%; }
+.deck-card-img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 1; /* keep the banner-style art from stretching vertically */
+  object-fit: cover;
+  display: block;
+}
+
+/* Limit the maximum width of a single deck card so it doesn't grow excessively on large screens */
+.deck-card { max-width: 480px; }
+
+/* Center grid when few items exist */
+#decks-list:empty { justify-content: center; }
+
+
 @media (max-width: 420px) {
   /* Slightly narrower collapsed width on very small screens */
   nav { width: 48px; }
@@ -290,3 +318,45 @@ details[open] summary:before { content: "-"; }
   .nav-link { min-height: 44px; }
   .group-header { font-size: 1.05rem; padding: 0.6rem 1rem; }
 }
+
+/* -----------------------------
+   Decks list responsive & square images
+   -----------------------------
+   Use auto-fill grid so the number of columns adapts to viewport width
+   and cap the card width so the deck art does not stretch. Enforce a
+   square aspect ratio for the visible image area so the full square
+   art is shown using object-fit: cover.
+*/
+/* Make cards larger (approx. twice previous) but cap at image source size.
+   The placeholder/source art used elsewhere is 600x440; use that as our max.
+*/
+#decks-list {
+  display: grid;
+  /* larger min width so each card appears roughly twice size on wide screens */
+  grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+.deck-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 600px; /* cap to image source width */
+}
+.deck-card > .relative {
+  position: relative;
+  width: 100%;
+  /* Allow natural image ratio (600x440 ~ 15:11) while capping height */
+  aspect-ratio: 600 / 440;
+  max-height: 440px; /* don't exceed source art height */
+  overflow: hidden;
+}
+.deck-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* fill the container without distortion */
+  display: block;
+  max-width: 600px;
+  max-height: 440px;
+}
+

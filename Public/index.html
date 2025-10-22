@@ -932,7 +932,7 @@
       class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop"
     >
       <div
-        class="bg-gray-800 rounded-lg shadow-2xl max-w-2xl w-full h-[80vh] flex flex-col"
+        class="bg-gray-800 rounded-lg shadow-2xl max-w-4xl w-full h-[86vh] flex flex-col"
       >
         <div
           class="p-4 border-b border-gray-700 flex justify-between items-center"
@@ -969,6 +969,13 @@
               Send
             </button>
           </form>
+          <div class="mt-3 flex items-center justify-between">
+            <div id="ai-loading-indicator" class="text-sm text-gray-400 hidden"><span class="animate-pulse">Waiting for AI...</span></div>
+            <div class="flex items-center gap-2">
+              <button id="save-ai-conversation-btn" class="bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium px-3 py-1 rounded">Save Conversation</button>
+              <button id="export-ai-conversation-btn" class="bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium px-3 py-1 rounded">Export JSON</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1268,7 +1275,7 @@
       class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop"
     >
       <div
-        class="bg-gray-800 rounded-lg shadow-2xl max-w-2xl w-full h-[80vh] flex flex-col"
+        class="bg-gray-800 rounded-lg shadow-2xl max-w-4xl w-full h-[86vh] flex flex-col"
       >
         <div
           class="p-4 border-b border-gray-700 flex justify-between items-center"
@@ -1308,6 +1315,13 @@
               Ask
             </button>
           </form>
+          <div class="mt-3 flex items-center justify-between">
+            <div id="rule-loading-indicator" class="text-sm text-gray-400 hidden"><span class="animate-pulse">Consulting the rules...</span></div>
+            <div class="flex items-center gap-2">
+              <button id="save-rule-conversation-btn" class="bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium px-3 py-1 rounded">Save Conversation</button>
+              <button id="export-rule-conversation-btn" class="bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium px-3 py-1 rounded">Export JSON</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1318,7 +1332,7 @@
       class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop"
     >
       <div
-        class="bg-gray-800 rounded-lg shadow-2xl max-w-2xl w-full h-[80vh] flex flex-col"
+        class="bg-gray-800 rounded-lg shadow-2xl max-w-4xl w-full h-[86vh] flex flex-col"
       >
         <div
           class="p-4 border-b border-gray-700 flex justify-between items-center"
@@ -1358,6 +1372,13 @@
               Send
             </button>
           </form>
+          <div class="mt-3 flex items-center justify-between">
+            <div id="mtg-loading-indicator" class="text-sm text-gray-400 hidden"><span class="animate-pulse">Waiting for AI...</span></div>
+            <div class="flex items-center gap-2">
+              <button id="save-mtg-conversation-btn" class="bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium px-3 py-1 rounded">Save Conversation</button>
+              <button id="export-mtg-conversation-btn" class="bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium px-3 py-1 rounded">Export JSON</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1571,6 +1592,12 @@
     <script type="module" src="js/pages/decks.js"></script>
     <script type="module" src="js/pages/singleDeck.js"></script>
   <script type="module" src="js/main/app.js"></script>
+  <!-- Load the extracted Public/app.js as a module so its ES module imports
+    execute and it can register window.__module_handle* handlers that
+    the boot script expects. -->
+  <script type="module" src="app.js"></script>
+  <!-- DOMPurify for sanitizing AI-provided HTML responses (no SRI to avoid integrity mismatch) -->
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@2.5.4/dist/purify.min.js"></script>
   <script type="module" src="js/main/boot.js"></script>
   <script>
     // NOTE: The legacy test proxy `window.__runFirstRunSetup` was removed.
@@ -2697,9 +2724,64 @@
             });
         }
         
-        function handleAiChat(e) { e.preventDefault(); console.warn('handleAiChat is not implemented.'); }
-        function handleRuleLookup(e) { e.preventDefault(); console.warn('handleRuleLookup is not implemented.'); }
-        function handleMtgChat(e) { e.preventDefault(); console.warn('handleMtgChat is not implemented.'); }
+        // Delegators: when forms call these, prefer the module handlers if available.
+        function handleAiChat(eOrDeckId) {
+          try {
+            if (eOrDeckId && eOrDeckId.preventDefault) eOrDeckId.preventDefault();
+            // If called as a submit handler, extract the value and deckId if present
+            const input = document.getElementById('ai-chat-input');
+            const message = input ? input.value : null;
+            // Prefer module impl if available
+            if (typeof window.__module_handleAiChat === 'function') {
+              // If a deckId string/number was passed, forward it; otherwise call with null deckId
+              const deckId = (typeof eOrDeckId === 'string' || typeof eOrDeckId === 'number') ? eOrDeckId : null;
+              return window.__module_handleAiChat(deckId, message);
+            }
+            console.warn('handleAiChat module implementation not available.');
+          } catch (err) { console.error('handleAiChat delegator error', err); }
+        }
+
+        function handleRuleLookup(eOrQuery) {
+          try {
+            if (eOrQuery && eOrQuery.preventDefault) eOrQuery.preventDefault();
+            const input = document.getElementById('rule-lookup-input');
+            const query = input ? input.value : (typeof eOrQuery === 'string' ? eOrQuery : null);
+            if (typeof window.__module_handleRuleLookup === 'function') return window.__module_handleRuleLookup(query);
+            console.warn('handleRuleLookup module implementation not available.');
+          } catch (err) { console.error('handleRuleLookup delegator error', err); }
+        }
+
+        function handleMtgChat(eOrMessage) {
+          try {
+            if (eOrMessage && eOrMessage.preventDefault) eOrMessage.preventDefault();
+            // Prevent duplicate submissions when multiple listeners (legacy + boot) are attached.
+            if (window.__mtgChatRequestInFlight) {
+              console.warn('MTG chat request already in-flight; ignoring duplicate submit.');
+              return;
+            }
+            const input = document.getElementById('mtg-chat-input');
+            const message = input ? input.value : (typeof eOrMessage === 'string' ? eOrMessage : null);
+
+            if (typeof window.__module_handleMtgChat === 'function') {
+              try {
+                window.__mtgChatRequestInFlight = true;
+                const result = window.__module_handleMtgChat(message);
+                // If the module handler returns a promise, clear the flag when done.
+                if (result && typeof result.finally === 'function') {
+                  result.finally(() => { window.__mtgChatRequestInFlight = false; });
+                } else {
+                  // synchronous return — clear immediately
+                  window.__mtgChatRequestInFlight = false;
+                }
+                return result;
+              } catch (innerErr) {
+                window.__mtgChatRequestInFlight = false;
+                throw innerErr;
+              }
+            }
+            console.warn('handleMtgChat module implementation not available.');
+          } catch (err) { console.error('handleMtgChat delegator error', err); }
+        }
         
         function confirmClearAllData() {
             console.log("[Function: confirmClearAllData] Opening confirmation modal for clearing all data.");

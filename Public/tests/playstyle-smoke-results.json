@@ -1,0 +1,7 @@
+{
+  "url": "http://localhost:8080/index.html",
+  "ok": false,
+  "logs": [],
+  "hasModule": false,
+  "error": "playstyle module not found on window"
+}

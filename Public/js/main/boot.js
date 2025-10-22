@@ -86,6 +86,8 @@ export function bootApp() {
 // Auto-boot for existing HTML relying on global execution order
 if (typeof window !== 'undefined') {
   window.bootApp = bootApp;
+  // Also expose setupGlobalListeners to legacy inline scripts that expect a global function
+  window.setupGlobalListeners = setupGlobalListeners;
 }
 
 // --- Global listener wiring (migrated from inline HTML) ---
@@ -311,7 +313,22 @@ export function setupGlobalListeners() {
     const closeRule = document.getElementById('close-rule-lookup-modal-btn'); if (closeRule) closeRule.addEventListener('click', () => { if (typeof window.closeModal === 'function') window.closeModal('rule-lookup-modal'); });
     const ruleForm = document.getElementById('rule-lookup-form'); if (ruleForm) ruleForm.addEventListener('submit', (e) => { e.preventDefault(); if (typeof window.handleRuleLookup === 'function') window.handleRuleLookup(e); });
     const closeMtg = document.getElementById('close-mtg-chat-modal-btn'); if (closeMtg) closeMtg.addEventListener('click', () => { if (typeof window.closeModal === 'function') window.closeModal('mtg-chat-modal'); });
-    const mtgForm = document.getElementById('mtg-chat-form'); if (mtgForm) mtgForm.addEventListener('submit', (e) => { e.preventDefault(); if (typeof window.handleMtgChat === 'function') window.handleMtgChat(e); });
+    const mtgForm = document.getElementById('mtg-chat-form');
+    try {
+      if (mtgForm && !window.__boot_mtg_listener_installed) {
+        mtgForm.addEventListener('submit', (e) => { try { e.preventDefault(); const input = document.getElementById('mtg-chat-input'); const m = input ? input.value : null; if (typeof window.handleMtgChat === 'function') window.handleMtgChat(m); } catch (err) { console.error('[Boot] mtgForm submit handler error', err); } });
+        window.__boot_mtg_listener_installed = true;
+      }
+    } catch (err) { console.debug('[Boot] failed to install mtgForm submit listener', err); }
+    // Fallback: if some other listener prevents form submission, ensure button click still triggers module handler
+    try {
+      const aiSubmitBtn = document.querySelector('#ai-chat-form button[type="submit"]');
+      if (aiSubmitBtn) aiSubmitBtn.addEventListener('click', (ev) => { try { ev.preventDefault(); const input = document.getElementById('ai-chat-input'); const msg = input ? input.value : null; if (typeof window.__module_handleAiChat === 'function') window.__module_handleAiChat(null, msg); } catch (e) { console.error('AI submit button fallback error', e); } });
+      const ruleSubmitBtn = document.querySelector('#rule-lookup-form button[type="submit"]');
+      if (ruleSubmitBtn) ruleSubmitBtn.addEventListener('click', (ev) => { try { ev.preventDefault(); const input = document.getElementById('rule-lookup-input'); const q = input ? input.value : null; if (typeof window.__module_handleRuleLookup === 'function') window.__module_handleRuleLookup(q); } catch (e) { console.error('Rule submit button fallback error', e); } });
+  const mtgSubmitBtn = document.querySelector('#mtg-chat-form button[type="submit"]');
+  if (mtgSubmitBtn) mtgSubmitBtn.addEventListener('click', (ev) => { try { ev.preventDefault(); const input = document.getElementById('mtg-chat-input'); const m = input ? input.value : null; if (typeof window.handleMtgChat === 'function') window.handleMtgChat(m); } catch (e) { console.error('MTG submit button fallback error', e); } });
+    } catch (err) { console.warn('Failed to install button-level fallback click handlers', err); }
     const closeNewPlayer = document.getElementById('close-new-player-guide-modal-btn'); if (closeNewPlayer) closeNewPlayer.addEventListener('click', () => { if (typeof window.closeModal === 'function') window.closeModal('new-player-guide-modal'); });
 
     // Confirmation modals

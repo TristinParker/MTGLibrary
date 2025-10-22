@@ -24,9 +24,9 @@ export function renderDecksList() {
     const commanderImg = commander ? commander.image_uris?.art_crop : 'https://placehold.co/600x440/2d3748/e2e8f0?text=No+Commander';
     const cardCount = Object.keys(deck.cards || {}).reduce((sum, key) => sum + (deck.cards[key].count || 1), 0) + (commander ? 1 : 0);
     return `
-      <div class="bg-gray-700/50 rounded-lg overflow-hidden shadow-lg hover:shadow-indigo-500/30 transition-shadow duration-300">
+      <div class="deck-card bg-gray-700/50 rounded-lg overflow-hidden shadow-lg hover:shadow-indigo-500/30 transition-shadow duration-300">
         <div class="relative">
-          <img src="${commanderImg}" alt="${commander ? commander.name : 'Deck Art'}" class="w-full h-48 object-cover">
+          <img src="${commanderImg}" alt="${commander ? commander.name : 'Deck Art'}" class="deck-card-img">
           <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
           <div class="absolute bottom-0 left-0 p-4">
             <h3 class="text-xl font-bold">${deck.name}</h3>

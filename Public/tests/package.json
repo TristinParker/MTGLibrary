@@ -4,10 +4,12 @@
   "private": true,
   "scripts": {
     "smoke": "node smokeTest.js",
+    "playstyle-smoke": "node playstyleSmoke.js",
+    "serve-and-test": "npx http-server .. -p 8080 -a 127.0.0.1 --silent & npm run playstyle-smoke",
     "import-export": "node importExportTest.js",
     "ui-controls": "node uiControlsSmoke.js"
   },
-  "dependencies": {
-    "puppeteer": "^23.0.0"
+  "devDependencies": {
+    "puppeteer": "^24.26.0"
   }
 }
