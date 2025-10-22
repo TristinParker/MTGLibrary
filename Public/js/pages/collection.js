@@ -495,8 +495,10 @@ export function renderCardConfirmationModal(card) {
           <div>
             <label for="card-finish" class="block text-sm font-medium text-gray-300">Finish</label>
             <select id="card-finish" class="mt-1 w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2">
-              <option value="nonfoil" ${!card.foil ? 'selected' : ''}>Non-Foil</option>
-              <option value="foil" ${card.foil ? 'selected' : ''}>Foil</option>
+              <!-- Default to Non-Foil unless card.finish explicitly set -->
+              <option value="nonfoil" ${card.finish ? (card.finish === 'nonfoil' ? 'selected' : '') : 'selected'}>Non-Foil</option>
+              <option value="foil" ${card.finish === 'foil' ? 'selected' : ''}>Foil</option>
+              <option value="etched" ${card.finish === 'etched' ? 'selected' : ''}>Etched</option>
             </select>
           </div>
         </div>
@@ -565,18 +567,17 @@ function renderCollectionGrid(cards, groupByKeys) {
     return Object.keys(groups).sort().map((groupName) => {
       const content = groups[groupName];
       const uid = `group-${groupUidCounter++}`;
-      // render caret + title with indentation; top-level groups open by default,
-      // deeper subgroups start closed for a cleaner UX
+  // render caret + title with indentation; start all groups collapsed by default
       const counts = computeGroupCounts(content);
       const isLeaf = Array.isArray(content);
-      const openAttr = level === 0 ? 'open' : '';
+  const openAttr = '';
       const padding = `${1.5 + level}rem`;
       // include data-level so styling can target nested depth
       if (isLeaf) {
         return `
           <details id="${uid}" class="col-span-full collection-group level-${level}" data-level="${level}" ${openAttr}>
             <summary class="group-header" style="padding-left: ${padding}; display:flex; align-items:center; gap:0.5rem;">
-              <span class="caret" aria-hidden="true">▾</span>
+              <span class="caret" aria-hidden="true">▸</span>
               <span class="group-title">${groupName}</span>
               <span class="counts">(${counts.unique} items, ${counts.copies} total)</span>
             </summary>
@@ -587,7 +588,7 @@ function renderCollectionGrid(cards, groupByKeys) {
         return `
           <details id="${uid}" class="col-span-full collection-group level-${level}" data-level="${level}" ${openAttr}>
             <summary class="group-header" style="padding-left: ${padding}; display:flex; align-items:center; gap:0.5rem;">
-              <span class="caret" aria-hidden="true">▾</span>
+              <span class="caret" aria-hidden="true">▸</span>
               <span class="group-title">${groupName}</span>
               <span class="counts">(${counts.unique} items, ${counts.copies} total)</span>
             </summary>
@@ -628,7 +629,7 @@ function renderCollectionGrid(cards, groupByKeys) {
         .group-content.level-content-3 { border-left: 2px dashed rgba(99,102,241,0.04); padding-left: 0.75rem; }
       </style>
       <div class="grid ${gridClass} gap-4 p-4">${renderRecursiveGroups(groupedCards, 0)}</div>`;
-    // add keyboard handlers for toggling details
+    // add keyboard handlers for toggling details and initialize carets
     contentDiv.querySelectorAll('details summary').forEach(summary => {
       summary.tabIndex = 0;
       summary.addEventListener('keydown', (e) => {
@@ -638,6 +639,17 @@ function renderCollectionGrid(cards, groupByKeys) {
           details.open = !details.open;
         }
       });
+    });
+    // Ensure carets reflect the current open state and update on toggle
+    contentDiv.querySelectorAll('details').forEach(details => {
+      try {
+        const caret = details.querySelector('.caret');
+        if (caret) caret.textContent = details.open ? '▾' : '▸';
+        details.addEventListener('toggle', () => {
+          const c = details.querySelector('.caret');
+          if (c) c.textContent = details.open ? '▾' : '▸';
+        });
+      } catch (e) { /* ignore */ }
     });
   } else {
     contentDiv.innerHTML = `<div class="grid ${gridClass} gap-4 p-4">${cards.map(renderCollectionCard).join('')}</div>`;
@@ -746,18 +758,18 @@ function renderCollectionTable(cards, groupByKeys) {
         const counts = computeGroupCounts(content);
         const titlePadding = `${1 + level}rem`;
         if (Array.isArray(content)) {
-          // table for this leaf group
+          // table for this leaf group - start collapsed
           return `
-            <div class="group-table-wrapper mb-4" data-open="true">
+            <div class="group-table-wrapper mb-4" data-open="false">
               <div class="group-table-title px-4 py-2 rounded-t flex items-center justify-between" style="padding-left:${titlePadding}; background:linear-gradient(180deg, rgba(0,0,0,0.04), transparent);">
                 <div class="flex items-center gap-3">
-                  <button type="button" class="group-toggle-btn text-sm text-gray-300" aria-expanded="true" aria-label="Toggle group ${groupName}">▾</button>
+                  <button type="button" class="group-toggle-btn text-sm text-gray-300" aria-expanded="false" aria-label="Toggle group ${groupName}">▸</button>
                   <strong class="text-lg">${groupName}</strong>
                   <span class="ml-2 text-sm text-gray-400">(${counts.unique} items, ${counts.copies} total)</span>
                 </div>
                 <div class="group-title-actions"></div>
               </div>
-              <div class="group-table-body overflow-x-auto bg-gray-800 rounded-b-lg">
+              <div class="group-table-body overflow-x-auto bg-gray-800 rounded-b-lg" style="display:none;">
                 <table class="w-full text-sm text-left text-gray-300">
                   ${tableHeader}
                   <tbody>
@@ -768,18 +780,18 @@ function renderCollectionTable(cards, groupByKeys) {
             </div>
           `;
         } else {
-          // nested groups: render title then nested group tables
+          // nested groups: render title then nested group tables - start collapsed
           return `
-            <div class="group-nest-wrapper mb-4" data-open="true">
+            <div class="group-nest-wrapper mb-4" data-open="false">
               <div class="group-table-title px-4 py-2 rounded-t flex items-center justify-between" style="padding-left:${titlePadding}; background:linear-gradient(180deg, rgba(0,0,0,0.02), transparent);">
                 <div class="flex items-center gap-3">
-                  <button type="button" class="group-toggle-btn text-sm text-gray-300" aria-expanded="true" aria-label="Toggle group ${groupName}">▾</button>
+                  <button type="button" class="group-toggle-btn text-sm text-gray-300" aria-expanded="false" aria-label="Toggle group ${groupName}">▸</button>
                   <strong class="text-lg">${groupName}</strong>
                   <span class="ml-2 text-sm text-gray-400">(${counts.unique} items, ${counts.copies} total)</span>
                 </div>
                 <div class="group-title-actions"></div>
               </div>
-              <div class="group-nested-tables" style="padding-left:0.5rem">
+              <div class="group-nested-tables" style="padding-left:0.5rem; display:none;">
                 ${renderGroupTables(content, level + 1)}
               </div>
             </div>
@@ -1037,7 +1049,7 @@ export function renderCardDetailsModal(card) {
             <p><strong>Set:</strong> ${card.set_name} (${(card.set||'').toUpperCase()})</p>
             <p><strong>Rarity:</strong> ${card.rarity || ''}</p>
             ${modalVisibility.count ? `<div><strong>Count:</strong><span class="card-modal-value-display">${card.count || 1}</span><input id="modal-edit-count" type="number" value="${card.count || 1}" min="0" class="card-modal-value-input mt-1 w-full bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm"></div>` : ''}
-            ${modalVisibility.finish ? `<div><strong>Finish:</strong><span class="card-modal-value-display">${card.finish || 'nonfoil'}</span><select id="modal-edit-finish" class="card-modal-value-input mt-1 w-full bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm"><option value="nonfoil" ${card.finish === 'nonfoil' ? 'selected' : ''}>Non-Foil</option><option value="foil" ${card.finish === 'foil' ? 'selected' : ''}>Foil</option><option value="etched" ${card.finish === 'etched' ? 'selected' : ''}>Etched</option></select></div>` : ''}
+            ${modalVisibility.finish ? `<div><strong>Finish:</strong><span class="card-modal-value-display">${card.finish || 'nonfoil'}</span><select id="modal-edit-finish" class="card-modal-value-input mt-1 w-full bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm"><option value="nonfoil" ${card.finish ? (card.finish === 'nonfoil' ? 'selected' : '') : 'selected'}>Non-Foil</option><option value="foil" ${card.finish === 'foil' ? 'selected' : ''}>Foil</option><option value="etched" ${card.finish === 'etched' ? 'selected' : ''}>Etched</option></select></div>` : ''}
             ${modalVisibility.condition ? `<div><strong>Condition:</strong><span class="card-modal-value-display">${card.condition || 'Not Set'}</span><input id="modal-edit-condition" type="text" value="${card.condition || ''}" placeholder="e.g., Near Mint" class="card-modal-value-input mt-1 w-full bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm"></div>` : ''}
             ${modalVisibility.purchasePrice ? `<div><strong>Purchase Price:</strong><span class="card-modal-value-display">$${(card.purchasePrice || 0).toFixed(2)}</span><input id="modal-edit-purchasePrice" type="number" value="${card.purchasePrice || ''}" step="0.01" placeholder="e.g., 4.99" class="card-modal-value-input mt-1 w-full bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm"></div>` : ''}
           </div>
