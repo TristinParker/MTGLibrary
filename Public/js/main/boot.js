@@ -7,10 +7,7 @@ export function bootApp() {
   initCollectionModule();
   initDecksModule();
   initSingleDeckModule();
-  // Ensure playstyle module is loaded at boot so Settings can render the widget immediately
-  try {
-    import('../settings/playstyle.js').then(mod => { if (window.userId && typeof mod.loadPlaystyleForUser === 'function') mod.loadPlaystyleForUser(window.userId); }).catch(e => {});
-  } catch (e) { /* ignore */ }
+  // Do not preload/render the playstyle widget site-wide. It will be loaded on demand from the header button.
   // Attempt to load saved views for the signed-in user so the Saved Views
   // dropdown is populated and any active view can be applied early.
   try {
@@ -90,12 +87,31 @@ if (typeof window !== 'undefined') {
   window.setupGlobalListeners = setupGlobalListeners;
 }
 
+// If DOM isn't ready when setupGlobalListeners() is invoked elsewhere, ensure we attach listeners once DOM is ready
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      try { if (!window.__global_listeners_installed) setupGlobalListeners(); } catch(e) {}
+    });
+  } else {
+    try { if (!window.__global_listeners_installed) setupGlobalListeners(); } catch(e) {}
+  }
+}
+
 // --- Global listener wiring (migrated from inline HTML) ---
 export function setupGlobalListeners() {
-  // Be defensive: make no assumptions about which functions exist yet (legacy inline may still provide them)
+  // Make idempotent: avoid installing handlers more than once even if called repeatedly
   try {
-  console.debug('[Boot] setupGlobalListeners() start. window.renderPaginatedCollection=', typeof window.renderPaginatedCollection === 'function');
-  console.debug('[Boot] Installing global UI listeners');
+    if (typeof window !== 'undefined' && window.__global_listeners_installed) {
+      console.debug('[Boot] setupGlobalListeners() already installed; skipping');
+      return;
+    }
+    // mark as installed early to prevent re-entrancy during listener wiring
+    if (typeof window !== 'undefined') window.__global_listeners_installed = true;
+
+    // Be defensive: make no assumptions about which functions exist yet (legacy inline may still provide them)
+    console.debug('[Boot] setupGlobalListeners() start. window.renderPaginatedCollection=', typeof window.renderPaginatedCollection === 'function');
+    console.debug('[Boot] Installing global UI listeners');
 
     const navLinks = {
       collection: document.getElementById('nav-collection'),
@@ -158,6 +174,45 @@ export function setupGlobalListeners() {
     if (editBtn) editBtn.addEventListener('click', () => { if (typeof window.toggleEditMode === 'function') window.toggleEditMode(); else console.debug('[Boot] toggleEditMode not available'); });
     const newPlayerBtn = document.getElementById('new-player-guide-btn');
     if (newPlayerBtn) newPlayerBtn.addEventListener('click', () => { if (typeof window.openModal === 'function') window.openModal('new-player-guide-modal'); });
+    // Playstyle floating panel toggle — use delegation to be resilient to timing
+    async function openPlaystylePanel() {
+      const panel = document.getElementById('playstyle-floating-panel');
+      const panelContent = document.getElementById('playstyle-panel-content');
+      if (!panel) return;
+      console.debug('[Boot] openPlaystylePanel()');
+      panel.classList.remove('hidden');
+      // lazy-load the playstyle module and render into the panel
+      try {
+        const mod = await import('../settings/playstyle.js');
+        if (mod) {
+          try { if (window.userId && typeof mod.loadPlaystyleForUser === 'function') await mod.loadPlaystyleForUser(window.userId); } catch(e){}
+          if (typeof mod.renderPlaystyleWidget === 'function') mod.renderPlaystyleWidget('playstyle-panel-content');
+        }
+      } catch (e) {
+        console.debug('[Boot] failed to load playstyle module for panel', e);
+      }
+    }
+    function closePlaystylePanel() {
+      const panel = document.getElementById('playstyle-floating-panel');
+      const panelContent = document.getElementById('playstyle-panel-content');
+      if (!panel) return; console.debug('[Boot] closePlaystylePanel()'); panel.classList.add('hidden'); if (panelContent) panelContent.innerHTML = ''; }
+    // if the button exists, wire directly, otherwise add delegated click handler on document
+    const playstyleBtn = document.getElementById('open-playstyle-panel-btn');
+    const closePanelBtn = document.getElementById('close-playstyle-panel-btn');
+    if (playstyleBtn) {
+      playstyleBtn.addEventListener('click', () => { try { const panel = document.getElementById('playstyle-floating-panel'); const isHidden = panel && panel.classList.contains('hidden'); if (isHidden) openPlaystylePanel(); else closePlaystylePanel(); } catch(e) { console.debug('[Boot] playstyle toggle failed', e); } });
+    } else {
+      // delegated: catch clicks on the header button even if it wasn't present at listener installation
+      document.addEventListener('click', (ev) => {
+        const t = ev.target.closest && ev.target.closest('#open-playstyle-panel-btn');
+        if (!t) return;
+        try { const panel = document.getElementById('playstyle-floating-panel'); const isHidden = panel && panel.classList.contains('hidden'); if (isHidden) openPlaystylePanel(); else closePlaystylePanel(); } catch(e) { console.debug('[Boot] delegated playstyle toggle failed', e); }
+      });
+    }
+    if (closePanelBtn) closePanelBtn.addEventListener('click', () => closePlaystylePanel());
+    else {
+      document.addEventListener('click', (ev) => { const t = ev.target.closest && ev.target.closest('#close-playstyle-panel-btn'); if (!t) return; closePlaystylePanel(); });
+    }
 
     // Collection search & filters
     const searchBtn = document.getElementById('search-card-btn');

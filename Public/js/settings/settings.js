@@ -596,6 +596,8 @@ export function renderSettingsSavedViews(containerId = 'settings-saved-views-lis
   }));
 }
 
+// Playstyle rendering is handled by the header floating panel (boot.js) so we no longer render it from Settings.
+
 // Handler: when settings wants to edit a view, populate the builder and open it
 window.addEventListener('settings:editView', async (e) => {
   try {

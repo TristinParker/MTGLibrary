@@ -58,11 +58,17 @@ async function callGeminiWithRetry(payload, retries = 3, delay = 1000) {
  * @returns {Promise<object>} - A promise that resolves to { question, choices }.
  */
 async function askNextQuestion(priorAnswers) {
-  const systemInstruction = `You are an expert survey designer for Magic: The Gathering (MTG) players. Your goal is to create the most informative question to understand a user's playstyle based on their previous answers. Questions should be clear and concise, with 3-5 distinct multiple-choice answers.`;
+  const systemInstruction = `You are an expert survey designer for Magic: The Gathering (MTG) players. Your goal is to create the most informative question to understand a user's playstyle based on their previous answers. Questions should be clear and concise, with 3-5 distinct multiple-choice answers. Avoid repeating questions. Focus on different aspects of MTG playstyles, such as deck preferences, game strategies, social interaction styles, and risk tolerance.`;
 
   let userPrompt;
   if (priorAnswers.length === 0) {
     userPrompt = "Generate the very first question for an MTG playstyle questionnaire. This question should gauge the player's overall experience with the game, as this will help tailor subsequent questions.";
+  } 
+  else if (priorAnswers.length === 1) {
+    userPrompt = "Generate the second question for an MTG playstyle questionnaire. This question should build on the player's overall experience and delve into their specific preferences.";
+  }
+  else if (priorAnswers.length === 2) {
+    userPrompt = "Generate the third question for an MTG playstyle questionnaire. This question should explore the player's fantasy or thematic preferences in deck building.";
   } else {
     const previousAnswersText = priorAnswers.map(a => `- ${a.question}: ${a.answer}`).join('\n');
     userPrompt = `Based on the user's previous answers, generate the next single best question to further refine their playstyle profile. Do not repeat questions.\n\nPrevious Answers:\n${previousAnswersText}`;
@@ -172,33 +178,53 @@ async function synthesizeStructuredPlaystyle(answers) {
 
 // --- UI and Data Logic ---
 
-function renderPlaystyleWidget(containerId = 'settings-playstyle') {
-  const container = document.getElementById(containerId);
+export function renderPlaystyleWidget(containerId = 'settings-playstyle') {
+  // Prefer the floating panel if it's present
+  let container = typeof document !== 'undefined' ? document.getElementById(containerId) : null;
+  if ((!container || container === null) && typeof document !== 'undefined') {
+    const panel = document.getElementById('playstyle-panel-content');
+    if (panel) container = panel;
+  }
   if (!container) return;
   container.innerHTML = '';
   const box = document.createElement('div');
-  box.className = 'bg-gray-800 p-6 rounded-lg shadow-lg';
+  // Make the box a flex column so we can have a scrollable content area and a stable footer
+  box.className = 'bg-gradient-to-br from-gray-800/80 to-gray-800 p-4 rounded-xl shadow-lg border border-gray-700 flex flex-col gap-3';
+  const summaryHtml = playstyleState.summary ? escapeHtml(playstyleState.summary) : '<em>No playstyle saved yet.</em>';
   box.innerHTML = `
-    <h2 class="text-2xl font-semibold mb-4 border-b border-gray-700 pb-2">Playstyle & Preferences</h2>
-    <div id="playstyle-summary" class="text-gray-300 mb-4">${playstyleState.summary ? escapeHtml(playstyleState.summary) : '<em>No playstyle saved yet.</em>'}</div>
-    <div class="flex gap-2">
-      <button id="start-playstyle-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg">Start Questionnaire</button>
-      <button id="edit-playstyle-btn" class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg">Edit</button>
-      <button id="clear-playstyle-btn" class="bg-red-800 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg">Clear</button>
+    <div class="flex items-center justify-between">
+      <h3 class="text-lg font-semibold text-gray-100">Playstyle & Preferences</h3>
     </div>
-    <div id="playstyle-question-area" class="mt-4"></div>
+
+    <div id="playstyle-scroll-container" class="overflow-auto max-h-[55vh] pr-2">
+      <div id="playstyle-summary" class="text-gray-300 leading-relaxed">${summaryHtml}</div>
+      <div id="playstyle-meta" class="mt-3 flex flex-wrap gap-2"></div>
+      <div id="playstyle-question-area" class="mt-4"></div>
+    </div>
+
+    <div class="pt-3 border-t border-gray-700 flex items-center justify-end gap-2">
+      <button id="start-playstyle-btn" class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold py-2 px-3 rounded-md">Start</button>
+      <button id="edit-playstyle-btn" class="inline-flex items-center gap-2 bg-yellow-600 hover:bg-yellow-700 text-white text-sm font-semibold py-2 px-3 rounded-md">Edit</button>
+      <button id="clear-playstyle-btn" class="inline-flex items-center gap-2 bg-red-700 hover:bg-red-600 text-white text-sm font-semibold py-2 px-3 rounded-md">Clear</button>
+    </div>
   `;
   container.appendChild(box);
 
-  document.getElementById('start-playstyle-btn').addEventListener('click', () => startQuestionnaire());
-  document.getElementById('edit-playstyle-btn').addEventListener('click', () => startQuestionnaire(playstyleState.answers || []));
-  document.getElementById('clear-playstyle-btn').addEventListener('click', async () => {
+  // Scope button lookups to the container to avoid selecting wrong elements when multiple instances exist
+  const startBtn = container.querySelector('#start-playstyle-btn');
+  const editBtn = container.querySelector('#edit-playstyle-btn');
+  const clearBtn = container.querySelector('#clear-playstyle-btn');
+
+  if (startBtn) startBtn.addEventListener('click', () => startQuestionnaire());
+  if (editBtn) editBtn.addEventListener('click', () => startQuestionnaire(playstyleState.answers || []));
+  if (clearBtn) clearBtn.addEventListener('click', async () => {
     const uid = window.userId || null;
     if (!uid) { showToast('Sign in to clear your saved playstyle.', 'warning'); return; }
     await clearPlaystyleForUser(uid);
     playstyleState = { summary: null, answers: [] };
     window.playstyleSummary = null;
-    renderPlaystyleWidget(containerId);
+    // Re-render the widget in the same container
+    renderPlaystyleWidget(container.id || containerId);
     showToast('Playstyle cleared.', 'success');
   });
 }
@@ -341,8 +367,7 @@ export function initPlaystyleModule() {
     window.playstyleState = playstyleState;
     window.playstyleSummary = playstyleState.summary || null;
   }
-  // attempt to render if settings view is present on init
-  renderPlaystyleWidget(); 
+  // do not auto-render on import; Settings view will call renderPlaystyleWidget when visible
   console.log('[Playstyle] Module initialized.');
 }
 

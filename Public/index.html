@@ -260,6 +260,15 @@
         >
           <h2 id="page-title" class="text-2xl font-bold">My Collection</h2>
           <div class="flex items-center gap-4">
+              <!-- How to Start / Guided Help Button -->
+              <button
+                id="how-to-start-btn"
+                title="How to Start"
+                class="bg-teal-600 hover:bg-teal-700 text-white font-medium py-2 px-3 rounded-lg transition duration-200 flex items-center gap-2"
+              >
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 20c4.418 0 8-3.582 8-8s-3.582-8-8-8-8 3.582-8 8 3.582 8 8 8z"/></svg>
+                <span class="hidden sm:inline">How to Start</span>
+              </button>
             <button
               id="new-player-guide-btn"
               class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 flex items-center gap-2"
@@ -279,6 +288,14 @@
                 ></path>
               </svg>
               New Player Guide
+            </button>
+            <button
+              id="open-playstyle-panel-btn"
+              title="Playstyle"
+              class="bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-3 rounded-lg transition duration-200 flex items-center gap-2"
+            >
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 20l9-5-9-5-9 5 9 5z"/></svg>
+              <span class="hidden sm:inline">Playstyle</span>
             </button>
             <button
               id="edit-mode-toggle"
@@ -772,18 +789,80 @@
               </button>
             </div>
           </div>
-          <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
-            <h2 class="text-2xl font-semibold mb-4 border-b border-gray-700 pb-2">Playstyle & Preferences</h2>
-            <div id="settings-playstyle" class="space-y-4">
-              <!-- Playstyle widget will be rendered here by playstyle.js -->
-            </div>
-          </div>
+          <!-- Playstyle widget removed from embedded Settings view; use header Playstyle button to open floating panel -->
         </main>
       </div>
     </div>
 
     <!-- Toast Container -->
     <div id="toast-container"></div>
+
+    <!-- Floating Playstyle Panel (hidden by default) -->
+    <div id="playstyle-floating-panel" class="fixed top-16 right-6 z-[80] hidden w-96 max-w-[90vw] bg-transparent">
+      <div class="bg-gray-900 border border-gray-700 rounded-xl shadow-2xl overflow-hidden">
+        <div class="flex items-center justify-between p-3 border-b border-gray-700">
+          <div class="flex items-center gap-3">
+            <svg class="w-6 h-6 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 20l9-5-9-5-9 5 9 5z"/></svg>
+            <div class="text-sm font-semibold">Playstyle</div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="close-playstyle-panel-btn" class="text-gray-400 hover:text-white">&times;</button>
+          </div>
+        </div>
+        <div id="playstyle-panel-content" class="p-4">
+          <!-- Playstyle widget will be rendered here when panel opens -->
+        </div>
+      </div>
+    </div>
+
+    <!-- How-To Start Panel (contextual guided start) -->
+    <div id="how-to-panel" class="fixed top-16 right-6 z-[80] hidden w-[32rem] max-w-[95vw] bg-transparent">
+      <style>
+        /* How-To panel animations and highlight styles */
+        @keyframes mtg-fade-slide-in { from { opacity: 0; transform: translateY(-6px) scale(0.995); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        .howto-enter { animation: mtg-fade-slide-in 240ms cubic-bezier(.2,.9,.2,1) both; }
+        .howto-active-step { box-shadow: 0 0 0 4px rgba(16,185,129,0.06), 0 6px 18px rgba(2,6,23,0.6); border-color: rgba(16,185,129,0.9); }
+        .howto-pulse { animation: mtg-pulse 1.6s infinite; }
+        @keyframes mtg-pulse { 0% { transform: scale(1); } 50% { transform: scale(1.01); } 100% { transform: scale(1); } }
+      </style>
+      <div class="bg-gray-900 border border-gray-700 rounded-xl shadow-2xl overflow-hidden howto-enter">
+        <div class="flex items-center justify-between p-3 border-b border-gray-700">
+          <div class="flex items-center gap-3">
+            <svg class="w-6 h-6 text-teal-400" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 20c4.418 0 8-3.582 8-8s-3.582-8-8-8-8 3.582-8 8 3.582 8 8 8z"/></svg>
+            <div class="text-sm font-semibold">How to Start</div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="close-how-to-btn" class="text-gray-400 hover:text-white">&times;</button>
+          </div>
+        </div>
+        <div id="how-to-panel-content" class="p-4 space-y-3 max-h-[60vh] overflow-y-auto">
+          <!-- Content populated by JS -->
+        </div>
+        <div class="p-3 border-t border-gray-700 text-right bg-gray-800 flex items-center justify-between gap-3">
+          <div class="flex items-center gap-2">
+            <label class="text-xs text-gray-300">Animation</label>
+            <select id="howto-animation-intensity" class="bg-gray-700 text-sm text-gray-200 rounded px-2 py-1">
+              <option value="subtle">Subtle</option>
+              <option value="prominent">Prominent</option>
+            </select>
+          </div>
+          <div>
+            <button id="open-full-guide-btn" class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded">Open Full Guide</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- How-To Full Guide Modal -->
+    <div id="howto-modal" class="modal-backdrop hidden fixed inset-0 bg-black/60 z-90 items-center justify-center">
+      <div class="bg-gray-900 max-w-3xl w-[90vw] max-h-[85vh] overflow-auto rounded-lg p-4 ring-1 ring-black/50">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-xl font-bold">Full How-To Guide</h2>
+          <button id="howto-modal-close" class="text-gray-300 hover:text-white">✕</button>
+        </div>
+        <div id="howto-modal-content" class="prose prose-invert text-sm"></div>
+      </div>
+    </div>
 
     <!-- Modals -->
 
@@ -964,9 +1043,10 @@
             />
             <button
               type="submit"
-              class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold p-2 rounded-lg"
+              class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold p-2 rounded-lg flex items-center"
             >
-              Send
+              <span class="mtg-btn-text">Send</span>
+              <div class="mtg-spinner hidden animate-spin rounded-full h-4 w-4 border-b-2 border-white ml-2" aria-hidden="true"></div>
             </button>
           </form>
           <div class="mt-3 flex items-center justify-between">
@@ -1009,6 +1089,13 @@
             class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg"
           >
             Cancel
+          </button>
+          <button
+            type="button"
+            id="run-blueprint-suggestions-btn"
+            class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg"
+          >
+            Run Deck Suggestions
           </button>
           <button
             type="button"
@@ -1310,9 +1397,10 @@
             />
             <button
               type="submit"
-              class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold p-2 rounded-lg"
+              class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold p-2 rounded-lg flex items-center"
             >
-              Ask
+              <span class="mtg-btn-text">Ask</span>
+              <div class="mtg-spinner hidden animate-spin rounded-full h-4 w-4 border-b-2 border-white ml-2" aria-hidden="true"></div>
             </button>
           </form>
           <div class="mt-3 flex items-center justify-between">
@@ -1367,9 +1455,10 @@
             />
             <button
               type="submit"
-              class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold p-2 rounded-lg"
+              class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold p-2 rounded-lg flex items-center"
             >
-              Send
+              <span class="mtg-btn-text">Send</span>
+              <div class="mtg-spinner hidden animate-spin rounded-full h-4 w-4 border-b-2 border-white ml-2" aria-hidden="true"></div>
             </button>
           </form>
           <div class="mt-3 flex items-center justify-between">
@@ -1657,6 +1746,220 @@
         }, 200);
       })();
     </script>
+  <script>
+    // How-To Panel: contextual guided start helper
+    (function(){
+      const btn = document.getElementById('how-to-start-btn');
+      const panel = document.getElementById('how-to-panel');
+      const closeBtn = document.getElementById('close-how-to-btn');
+      const content = document.getElementById('how-to-panel-content');
+      const openFullGuide = document.getElementById('open-full-guide-btn');
+
+      if (!btn || !panel || !content) return;
+
+      const SECTIONS = [
+        { id: 'playstyle', title: '1. Set Your Playstyle', desc: 'Open Playstyle from the header to set preferences. This personalizes AI suggestions and blueprints.' },
+        { id: 'add-cards', title: '2. Add Cards to Your Collection', desc: 'Use the Add Card search to find prints on Scryfall, select versions, set quantity/finish, and add them.' },
+        { id: 'add-decks', title: '3. Create Decks', desc: 'Open Decks → Create New Deck. For Commander, pick a commander then request an AI blueprint if desired.' },
+        { id: 'collection-filters', title: '4. Filter & Group Your Collection', desc: 'Use Quick Filter, Group By, and saved views to organize the display.' },
+        { id: 'ai-tools', title: '5. Use AI Tools', desc: 'AI features include Deck Suggestions, Rule Lookup, and MTG Chat. Add your Gemini API key to enable them.' },
+        { id: 'data-mgmt', title: '6. Import / Export & Data Management', desc: 'Export All Data or Import backups from Settings. Use Replace with caution (it deletes current data).' },
+        { id: 'danger-zone', title: '7. Danger Zone', desc: 'Clear All Account Data (permanent). This is irreversible; use the confirmation dialog.' }
+      ];
+
+  function renderSections(activeView) {
+        // activeView: 'collection'|'decks'|'singleDeck'|'settings'
+        let ordered = [];
+        // Default preferred order: playstyle -> add cards -> add decks -> rest
+        ordered = ['playstyle','add-cards','add-decks','collection-filters','ai-tools','data-mgmt','danger-zone'];
+
+        // If on Settings page, put settings-related sections up top
+        if (activeView === 'settings') {
+          ordered = ['data-mgmt','danger-zone','collection-filters','playstyle','add-cards','add-decks','ai-tools'];
+        }
+
+        // If on Decks or singleDeck, highlight deck-related steps first
+        if (activeView === 'decks' || activeView === 'singleDeck') {
+          ordered = ['playstyle','add-cards','add-decks','ai-tools','collection-filters','data-mgmt','danger-zone'];
+        }
+
+        // Compose HTML
+        content.innerHTML = ordered.map((id, idx) => {
+          const s = SECTIONS.find(x => x.id === id);
+          if (!s) return '';
+          const isActive = (function(){
+            if (activeView === 'collection' && (id==='add-cards' || id==='collection-filters')) return true;
+            if ((activeView === 'decks' || activeView === 'singleDeck') && (id==='add-decks' || id==='ai-tools')) return true;
+            if (activeView === 'settings' && (id==='data-mgmt' || id==='danger-zone')) return true;
+            if (id==='playstyle' && ['collection','decks','singleDeck','settings'].includes(activeView)) return true;
+            return false;
+          })();
+
+          return `
+            <div class="p-3 rounded-lg ${isActive ? 'ring-2 ring-teal-500 bg-gray-800' : 'bg-gray-900'}">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <div class="text-sm font-semibold ${isActive ? 'text-teal-300' : 'text-gray-200'}">${s.title}</div>
+                  <div class="text-xs text-gray-400 mt-1">${s.desc}</div>
+                </div>
+                <div class="text-xs text-gray-500">Step ${idx+1}</div>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        // Post-process DOM to add our animation/highlight classes to the active step(s)
+        try {
+          // remove from all first
+          content.querySelectorAll('.howto-active-step, .howto-pulse').forEach(n => n.classList.remove('howto-active-step','howto-pulse'));
+          // Add to items that appear to be active (teal text or ring)
+          const candidates = Array.from(content.children || []).filter(el => el.querySelector('.text-sm.font-semibold.text-teal-300') || el.classList.contains('ring-2') );
+          if (candidates.length > 0) {
+            const primary = candidates[0];
+            primary.classList.add('howto-active-step','howto-pulse');
+          }
+        } catch (err) { /* ignore DOM quirks */ }
+      }
+
+      function getCurrentView() {
+        try {
+          const views = { collection: document.getElementById('collection-view'), decks: document.getElementById('decks-view'), singleDeck: document.getElementById('single-deck-view'), settings: document.getElementById('settings-view') };
+          for (const k in views) {
+            const el = views[k]; if (!el) continue; if (!el.classList.contains('hidden')) return k;
+          }
+        } catch (e) {}
+        return 'collection';
+      }
+
+      btn.addEventListener('click', () => {
+        const view = getCurrentView();
+        renderSections(view);
+        panel.classList.toggle('hidden');
+        panel.classList.toggle('flex');
+      });
+      closeBtn && closeBtn.addEventListener('click', () => { panel.classList.add('hidden'); panel.classList.remove('flex'); });
+      openFullGuide && openFullGuide.addEventListener('click', () => {
+        // open settings and scroll to saved views as a proxy for the full guide
+        try { if (typeof window.showView === 'function') window.showView('settings'); } catch (e) {
+          const settingsView = document.getElementById('settings-view'); const collectionView = document.getElementById('collection-view'); if (settingsView && collectionView) { collectionView.classList.add('hidden'); settingsView.classList.remove('hidden'); }
+        }
+        // re-render with settings active
+        setTimeout(() => { renderSections('settings'); }, 150);
+      });
+
+      // Event-driven updates: listen for a custom view-change event dispatched by the app
+      window.addEventListener('mtg:viewchange', (e) => {
+        try {
+          const v = e && e.detail && e.detail.view ? e.detail.view : getCurrentView();
+          // Only update panel if visible to avoid unnecessary work
+          if (!panel.classList.contains('hidden')) renderSections(v);
+          // Highlight header nav buttons based on view
+          try {
+            document.querySelectorAll('.nav-link').forEach(n => n.classList.remove('nav-active'));
+            const map = { collection: 'nav-collection', decks: 'nav-decks', settings: 'nav-settings' };
+            const el = document.getElementById(map[v]); if (el) el.classList.add('nav-active');
+          } catch (innerErr) { /* ignore */ }
+        } catch (err) { console.debug('mtg:viewchange handler error', err); }
+      });
+
+      // Also render once on initial load
+      renderSections(getCurrentView());
+
+      // Wire Open Full Guide to fetch HOWTO.md and show modal
+      (function wireFullGuideModal() {
+        const openBtn = document.getElementById('open-full-guide-btn');
+        const modal = document.getElementById('howto-modal');
+        const modalClose = document.getElementById('howto-modal-close');
+        const modalContent = document.getElementById('howto-modal-content');
+        const intensity = document.getElementById('howto-animation-intensity');
+
+        function simpleMdToHtml(md) {
+          // Very small markdown to HTML converter for headings, lists, paragraphs, bold, italics, links
+          let html = md
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+          // headings
+          html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+          html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+          html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+          // bold/italic
+          html = html.replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>');
+          html = html.replace(/\*(.*?)\*/gim, '<em>$1</em>');
+          // links
+          html = html.replace(/\[(.*?)\]\((.*?)\)/gim, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+          // unordered lists
+          html = html.replace(/(^|\n)\s*[-\*] (.*)/gim, '$1<li>$2</li>');
+          html = html.replace(/(<li>.*<\/li>\s*)+/gim, (m) => '<ul>' + m.replace(/\n/g,'') + '</ul>');
+          // paragraphs
+          html = html.replace(/^(?!<h|<ul|<li|<blockquote|<pre)([^\n]+)\n?/gim, '<p>$1</p>');
+          return html;
+        }
+
+        async function loadHowTo() {
+          // Try HTML first (rich content). If unavailable, fallback to markdown.
+          try {
+            const resHtml = await fetch('HOWTO.html');
+            if (resHtml && resHtml.ok) {
+              const html = await resHtml.text();
+              // DOMPurify is loaded earlier on the page; sanitize before inserting
+              try {
+                modalContent.innerHTML = DOMPurify ? DOMPurify.sanitize(html) : html;
+                return;
+              } catch (e) {
+                console.warn('DOMPurify not available or sanitize failed', e);
+                modalContent.innerHTML = html;
+                return;
+              }
+            }
+          } catch (e) { /* ignore and fallback */ }
+
+          // fallback to markdown
+          try {
+            const res = await fetch('HOWTO.md');
+            if (!res.ok) throw new Error('Fetch failed');
+            const md = await res.text();
+            modalContent.innerHTML = simpleMdToHtml(md);
+          } catch (err) {
+            modalContent.innerHTML = '<p class="text-red-400">Could not load guide.</p>';
+            console.error('Failed to load HOWTO (html/md)', err);
+          }
+        }
+
+        openBtn && openBtn.addEventListener('click', async () => {
+          await loadHowTo();
+          modal.classList.remove('hidden');
+          modal.classList.add('flex');
+          // set animation intensity classes on panel (so user preview matches modal setting)
+          const panelRoot = document.querySelector('#how-to-panel > div');
+          if (panelRoot) {
+            if (intensity && intensity.value === 'prominent') {
+              panelRoot.style.boxShadow = '0 10px 30px rgba(16,185,129,0.15)';
+              panelRoot.style.border = '1px solid rgba(16,185,129,0.9)';
+            } else {
+              panelRoot.style.boxShadow = '';
+              panelRoot.style.border = '';
+            }
+          }
+        });
+
+        modalClose && modalClose.addEventListener('click', () => {
+          modal.classList.add('hidden');
+          modal.classList.remove('flex');
+        });
+
+        // intensity selector affects pulse amplitude by toggling a class on panel content
+        intensity && intensity.addEventListener('change', (e) => {
+          const val = e.target.value;
+          const contentEl = document.getElementById('how-to-panel-content');
+          if (!contentEl) return;
+          if (val === 'prominent') {
+            contentEl.querySelectorAll('.howto-pulse').forEach(n => n.style.transform = 'scale(1.02)');
+          } else {
+            contentEl.querySelectorAll('.howto-pulse').forEach(n => n.style.transform = 'scale(1)');
+          }
+        });
+      })();
+    })();
+  </script>
 
   <script type="module">
       // --- Modal Visibility Settings Global ---
@@ -1865,8 +2168,6 @@
           // migrated to Public/js/settings/settings.js
           import('./js/settings/settings.js').then(mod => {
             if (typeof mod.renderSavedViewsSelect === 'function') mod.renderSavedViewsSelect();
-            // also ensure playstyle widget is available
-            try { import('./js/settings/playstyle.js').then(ps => { if (window.userId) ps.loadPlaystyleForUser(window.userId); }); } catch (e) {}
           }).catch(err => console.debug('settings module not yet available for renderSavedViewsSelect', err));
         }
 
@@ -2299,7 +2600,7 @@
               }
 
               return `
-                <div class="bg-gray-700/50 p-3 rounded-lg relative overflow-hidden">
+                <div class="bg-gray-700/50 p-3 rounded-lg relative overflow-hidden kpi-clickable" data-slot="${kpi.label}" title="Click to ask AI for ${kpi.label} suggestions">
                     <div class="flex justify-between items-baseline">
                         <span class="text-sm text-gray-400">${kpi.label}</span>
                         <span class="font-bold text-lg">${kpi.current}${
@@ -2390,9 +2691,10 @@
                         <div class="bg-gray-800 p-4 rounded-lg shadow-lg">
                             <h3 class="text-xl font-semibold mb-3">Deck Tools</h3>
                             <div class="space-y-3">
-                                ${deck.aiBlueprint ? `<button id="view-strategy-btn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg">View AI Strategy</button>` : ''}
-                                <button id="ai-suggestions-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg">Deck Suggestions</button>
-                                <button id="export-deck-btn" data-deck-id="${deckId}" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">Export Decklist (.txt)</button>
+                ${deck.aiBlueprint ? `<div class="space-y-2"><button id="view-strategy-btn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg">View AI Strategy</button><button id="rerun-ai-summary-btn" class="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg">Rerun AI Summary</button></div>` : ''}
+                <button id="ai-suggestions-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg">Deck Suggestions</button>
+                <button id="deck-help-btn" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-lg">Deck Help</button>
+                <button id="export-deck-btn" data-deck-id="${deckId}" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">Export Decklist (.txt)</button>
                             </div>
                         </div>
                     </div>
@@ -2410,6 +2712,69 @@
           renderDecklist(deckId);
           renderManaCurveChart(manaCurveData);
           addSingleDeckListeners(deckId);
+
+          // Attach KPI click handlers to ask AI for a single slot/type
+          try {
+            document.querySelectorAll('.kpi-clickable').forEach(el => {
+              el.style.cursor = 'pointer';
+              el.addEventListener('click', (e) => {
+                const slot = el.dataset.slot;
+                if (!slot) return;
+                try {
+                  import('./js/pages/deckSuggestions.js').then(mod => {
+                    if (mod.openDeckSuggestionsModal) mod.openDeckSuggestionsModal(deckId, { type: slot });
+                  }).catch(err => console.debug('deckSuggestions module not available for KPI click', err));
+                } catch (err) { console.debug('KPI click handler failed', err); }
+              });
+            });
+          } catch (err) { /* ignore attach errors */ }
+
+          // Deck Help button: open a deck-scoped MTG chat helper
+          try {
+            const helpBtn = document.getElementById('deck-help-btn');
+            if (helpBtn) helpBtn.addEventListener('click', () => {
+              try { import('./js/pages/deckSuggestions.js').then(mod => { if (mod.openDeckHelp) mod.openDeckHelp(deckId); else if (typeof window.openDeckHelp === 'function') window.openDeckHelp(deckId); }).catch(err => console.debug('deckSuggestions module not available for Deck Help', err)); } catch (e) { console.debug('Deck Help click handler failed', e); }
+            });
+          } catch (err) { /* ignore */ }
+
+          // Deck Suggestions (full-deck) button
+          try {
+            const suggestBtn = document.getElementById('ai-suggestions-btn');
+            if (suggestBtn) suggestBtn.addEventListener('click', () => {
+              try {
+                import('./js/pages/deckSuggestions.js').then(mod => {
+                  if (mod.openDeckSuggestionsModal) mod.openDeckSuggestionsModal(deckId, { type: null });
+                }).catch(err => console.debug('deckSuggestions module not available for full suggestions', err));
+              } catch (e) { console.debug('Deck Suggestions click handler failed', e); }
+            });
+          } catch (e) { /* ignore */ }
+
+          // View AI Strategy button
+          try {
+            const viewBtn = document.getElementById('view-strategy-btn');
+            if (viewBtn) viewBtn.addEventListener('click', () => {
+              try {
+                import('./js/pages/decks.js').then(mod => {
+                  if (mod.renderAiBlueprintModal) mod.renderAiBlueprintModal(deck.aiBlueprint || window.tempAiBlueprint || {}, deck.name);
+                  try { openModal('ai-blueprint-modal'); } catch(e){}
+                }).catch(err => console.debug('decks module not available for View AI Strategy', err));
+              } catch (e) { console.debug('View AI Strategy click failed', e); }
+            });
+          } catch (e) { /* ignore */ }
+
+          // Rerun AI Summary button: asks Gemini for a new blueprint using the commander + current deck cards
+          try {
+            const rerunBtn = document.getElementById('rerun-ai-summary-btn');
+            if (rerunBtn) rerunBtn.addEventListener('click', async () => {
+              try {
+                const decksMod = await import('./js/pages/decks.js');
+                const blueprint = await (decksMod.getAiDeckBlueprint ? decksMod.getAiDeckBlueprint(deck.commander, allDeckCards) : null);
+                window.tempAiBlueprint = blueprint;
+                if (decksMod.renderAiBlueprintModal) decksMod.renderAiBlueprintModal(blueprint, deck.name);
+                try { openModal('ai-blueprint-modal'); } catch(e){}
+              } catch (err) { console.error('Rerun AI summary failed', err); showToast('AI summary failed.', 'error'); }
+            });
+          } catch (e) { /* ignore */ }
         }
 
         // --- UI/HELPER FUNCTIONS ---
@@ -2466,6 +2831,7 @@
                  // Ensure saved views UI is refreshed when entering the Settings view
                  try { if (typeof window.renderSettingsSavedViews === 'function') window.renderSettingsSavedViews(); } catch(e) { console.debug('[RenderSettings] renderSettingsSavedViews call failed', e); }
                  try { if (typeof window.renderSavedViewsSelect === 'function') window.renderSavedViewsSelect(window.savedViews || []); } catch(e) { console.debug('[RenderSettings] renderSavedViewsSelect call failed', e); }
+                 // Playstyle panel is available via header Playstyle button
              const deckListContainer = document.getElementById('settings-deck-list');
              const decks = Object.values(localDecks);
              if (decks.length > 0) {
@@ -2551,13 +2917,18 @@
             } else if (viewName === 'singleDeck') {
                 // Title is set in renderSingleDeck
             }
-            // Hide the collection overlay when not viewing collection to avoid phantom text overlaying the sidebar
-            try {
-              if (viewName !== 'collection') {
-                const overlay = document.getElementById('collection-group-overlay');
-                if (overlay) overlay.style.display = 'none';
-              }
-            } catch (e) { /* ignore */ }
+                // Hide the collection overlay when not viewing collection to avoid phantom text overlaying the sidebar
+                try {
+                  if (viewName !== 'collection') {
+                    const overlay = document.getElementById('collection-group-overlay');
+                    if (overlay) overlay.style.display = 'none';
+                  }
+                } catch (e) { /* ignore */ }
+
+                // Dispatch a custom event so other parts of the app can react to view changes
+                try {
+                  window.dispatchEvent(new CustomEvent('mtg:viewchange', { detail: { view: viewName } }));
+                } catch (e) { /* ignore */ }
         }
         
         function selectCommander(card) {
@@ -3079,6 +3450,23 @@
           document
             .getElementById("confirm-blueprint-btn")
             .addEventListener("click", createDeckFromBlueprint);
+
+          // Run Deck Suggestions directly from the Blueprint modal: create the deck then run suggestions
+          try {
+            const runBtn = document.getElementById('run-blueprint-suggestions-btn');
+            if (runBtn) runBtn.addEventListener('click', async () => {
+              try {
+                const deckId = await createDeckFromBlueprint();
+                if (deckId) {
+                  import('./js/pages/deckSuggestions.js').then(mod => {
+                    if (mod.openDeckSuggestionsModal) mod.openDeckSuggestionsModal(deckId, { type: null });
+                  }).catch(err => console.debug('deckSuggestions module not available after createDeckFromBlueprint', err));
+                } else {
+                  showToast('Could not create deck to run suggestions.', 'error');
+                }
+              } catch (err) { console.error('run-blueprint-suggestions failed', err); showToast('Failed to run deck suggestions.', 'error'); }
+            });
+          } catch (e) { /* ignore */ }
 
           // AI Chat Modals
           document

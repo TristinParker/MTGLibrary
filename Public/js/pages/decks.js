@@ -70,7 +70,7 @@ export function initDecksModule() {
 // --- AI Blueprint helpers (migrated from inline HTML) ---
 import { GEMINI_API_URL } from '../main/index.js';
 
-export async function getAiDeckBlueprint(commanderCard) {
+export async function getAiDeckBlueprint(commanderCard, deckCards = null) {
   let prompt = `You are a world-class Magic: The Gathering deck architect specializing in the Commander format. Given the following commander card, you will generate a detailed blueprint for a 100-card deck.
 
             Your response must be a single, valid JSON object and nothing else. Do not wrap it in markdown backticks.
@@ -90,6 +90,12 @@ export async function getAiDeckBlueprint(commanderCard) {
 
   // If a user playstyle summary is available, append it to provide contextual guidance
   try {
+    // If a deck card list was provided, append a short summary to the prompt so
+    // Gemini can consider the current decklist when generating a blueprint/summary.
+    if (deckCards && Array.isArray(deckCards) && deckCards.length > 0) {
+      const sample = deckCards.slice(0, 120).map(c => `${c.name} x${c.count || 1}`).join(', ');
+      prompt = `${prompt}\n\nCurrent Decklist (sample up to 120 cards):\n${sample}\n\nConsider this decklist when generating the blueprint.`;
+    }
     // Prefer structured playstyle object when available
     let structured = null;
     try { if (window.playstyle && window.playstyleState) structured = window.playstyleState; } catch (e) {}
@@ -114,8 +120,39 @@ export async function getAiDeckBlueprint(commanderCard) {
     const data = await response.json();
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!text) throw new Error('Invalid or empty response from Gemini API');
-    const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim();
-    const aiResponse = JSON.parse(cleanedText);
+    // Prefer fenced ```json blocks, fall back to first JSON substring
+    let jsonText = null;
+    const fenced = text.match(/```json([\s\S]*?)```/i);
+    if (fenced) jsonText = fenced[1].trim();
+    else {
+      const m = text.match(/\{[\s\S]*\}/);
+      jsonText = m ? m[0] : null;
+    }
+    if (!jsonText) throw new Error('No JSON found in Gemini response');
+
+    // Sanitize control characters (unescaped control chars will break JSON.parse)
+    function sanitizeJsonString(s) {
+      if (!s || typeof s !== 'string') return s;
+      // Escape any literal control characters (U+0000 - U+001F)
+      return s.replace(/[\u0000-\u001F]/g, (ch) => {
+        const code = ch.charCodeAt(0).toString(16).padStart(2, '0');
+        return `\\u${code}`;
+      });
+    }
+
+    let aiResponse = null;
+    try {
+      aiResponse = JSON.parse(jsonText);
+    } catch (err) {
+      // try sanitizing and parse again
+      try {
+        const sanitized = sanitizeJsonString(jsonText);
+        aiResponse = JSON.parse(sanitized);
+      } catch (err2) {
+        console.error('Failed to parse Gemini JSON even after sanitization', err2, jsonText);
+        throw err2;
+      }
+    }
     if (!aiResponse.name || !aiResponse.summary || !aiResponse.strategy || !aiResponse.suggestedCounts || aiResponse.suggestedCounts.Total !== 99) {
       throw new Error('Gemini response is missing required fields or has incorrect structure.');
     }
@@ -186,6 +223,11 @@ export function openDeckDeleteOptions(deckId) {
 
 export async function handleDeckCreationSubmit(e) {
   e && e.preventDefault();
+  if (window.__handleDeckCreationSubmitInFlight) {
+    console.warn('handleDeckCreationSubmit already in-flight; ignoring duplicate submit.');
+    return;
+  }
+  window.__handleDeckCreationSubmitInFlight = true;
   const deckNameInput = document.getElementById('deck-name-input');
   let deckName = deckNameInput?.value.trim();
   const deckFormat = document.getElementById('deck-format-select')?.value;
@@ -245,6 +287,7 @@ export async function handleDeckCreationSubmit(e) {
     if (saveButton) saveButton.disabled = false;
     if (saveText) saveText.textContent = 'Get AI Blueprint';
     if (saveSpinner) saveSpinner.classList.add('hidden');
+      window.__handleDeckCreationSubmitInFlight = false;
   }
 }
 
@@ -253,6 +296,12 @@ export async function createDeckFromBlueprint() {
     showToast('Missing blueprint or commander data.', 'error');
     return;
   }
+  // Prevent duplicate submissions
+  if (window.__createDeckFromBlueprintInFlight) {
+    console.warn('createDeckFromBlueprint already in-flight; ignoring duplicate call.');
+    return;
+  }
+  window.__createDeckFromBlueprintInFlight = true;
   const commander = window.currentCommanderForAdd;
   const deckName = document.getElementById('deck-name-input')?.value.trim() || window.tempAiBlueprint.name;
   try {
@@ -273,16 +322,30 @@ export async function createDeckFromBlueprint() {
       createdAt: new Date().toISOString(),
       aiBlueprint: window.tempAiBlueprint
     };
-    const docRef = await addDoc(collection(db, `artifacts/${appId}/users/${getUserId()}/decks`), newDeck);
-    showToast(`Deck "${deckName}" created successfully!`, 'success');
+
+  // Persist the new deck to Firestore and obtain its id (docRef)
+  // Reuse the userId that was already validated above.
+  const decksCol = collection(db, `artifacts/${appId}/users/${userId}/decks`);
+  const docRef = await addDoc(decksCol, newDeck);
+
+  showToast(`Deck "${newDeck.name}" created successfully!`, 'success');
+    // Clear temporary blueprint/commander data after successful creation
+    window.tempAiBlueprint = null;
+    window.currentCommanderForAdd = null;
+
+    // Close modals and navigate to single deck view for the newly created deck
     closeModal('ai-blueprint-modal');
     closeModal('deck-creation-modal');
     if (typeof window.showView === 'function') window.showView('singleDeck');
     if (typeof window.renderSingleDeck === 'function') window.renderSingleDeck(docRef.id);
+    // Return the created deck id so callers (e.g., UI buttons) can chain actions.
+    return docRef.id;
   } catch (error) {
     console.error('Error creating deck from blueprint:', error);
     showToast('Failed to create the new deck.', 'error');
   } finally {
+    // Ensure in-flight flag is cleared even on error
+    window.__createDeckFromBlueprintInFlight = false;
     window.tempAiBlueprint = null;
     window.currentCommanderForAdd = null;
   }

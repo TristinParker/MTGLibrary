@@ -107,6 +107,65 @@ body {
 .modal-backdrop {
   background-color: rgba(0, 0, 0, 0.75);
 }
+
+/* Deck suggestions modal specific styles */
+.deck-suggestions-modal-content {
+  width: 90vw;
+  height: 90vh;
+  max-width: 1200px;
+  max-height: 900px;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  background: linear-gradient(180deg, #0f1724, #0b1220);
+  border: 1px solid rgba(148,163,184,0.06);
+}
+.deck-suggestions-results {
+  flex: 1; min-height: 0; overflow: auto; max-height: 60vh; padding-right: 0.5rem;
+}
+.deck-suggestions-preview-pane {
+  flex-basis: 40%; overflow: auto; min-height: 0;
+}
+
+/* Small inline spinner used in save status */
+.tiny-spinner {
+  width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.15); border-top-color: rgba(255,255,255,0.85); border-radius: 50%; display: inline-block; vertical-align: middle; margin-right: 6px; animation: spin 0.9s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Rating input inside suggestions preview */
+.deck-suggestion-rating {
+  background: rgba(255,255,255,0.06);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.08);
+  padding: 6px 8px;
+  border-radius: 6px;
+  width: 56px;
+  box-sizing: border-box;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1;
+}
+
+/* Remove native number input spinner controls for better UX */
+.deck-suggestion-rating::-webkit-outer-spin-button,
+.deck-suggestion-rating::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.deck-suggestion-rating {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+/* Focus style */
+.deck-suggestion-rating:focus {
+  outline: 2px solid rgba(99,102,241,0.6);
+  outline-offset: 2px;
+  background: rgba(255,255,255,0.09);
+}
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 .delete-button { display: none; }

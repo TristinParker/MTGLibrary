@@ -34,6 +34,19 @@ export function openModal(modalId) {
   if (!modal) return;
   modal.classList.remove('hidden');
   modal.classList.add('flex');
+  // Small accessibility/UX: autofocus primary inputs for known modals
+  try {
+    // Delay slightly to allow modal to become visible
+    setTimeout(() => {
+      if (modalId === 'ai-suggestions-modal') {
+        const el = document.getElementById('ai-chat-input'); if (el) try { el.focus(); } catch(e){}
+      } else if (modalId === 'rule-lookup-modal') {
+        const el = document.getElementById('rule-lookup-input'); if (el) try { el.focus(); } catch(e){}
+      } else if (modalId === 'mtg-chat-modal') {
+        const el = document.getElementById('mtg-chat-input'); if (el) try { el.focus(); } catch(e){}
+      }
+    }, 60);
+  } catch (e) {}
 }
 
 export function closeModal(modalId) {

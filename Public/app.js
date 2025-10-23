@@ -169,6 +169,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const GEMINI_API_KEY = "AIzaSyDkbSsM1e4aN85G7ZVGw-XOs4HE8_E4Zig";
   const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${GEMINI_API_KEY}`;
   console.log("[Config] Gemini API URL configured.");
+  // Expose globally so other modules can call the Gemini API
+  try { window.GEMINI_API_URL = GEMINI_API_URL; } catch (e) {}
 
   // --- STATE ---
   let currentCardForAdd = null;
@@ -453,12 +455,7 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("login-screen").classList.add("hidden");
       document.getElementById("app-wrapper").classList.remove("hidden");
       await loadSettings();
-      // Ensure the playstyle module is loaded for this user so app.js can reference the summary
-      try {
-        import('./js/settings/playstyle.js').then(mod => {
-          try { if (userId && typeof mod.loadPlaystyleForUser === 'function') mod.loadPlaystyleForUser(userId); } catch(e){}
-        }).catch(e => { /* best-effort */ });
-      } catch (e) { /* ignore */ }
+      // Playstyle helpers are lazy-loaded by the header floating panel when the user opens it.
       setupListeners();
     } else {
       // Prefer an explicit email/password sign-in UI. If an initial custom token is available
@@ -865,6 +862,9 @@ if (typeof window !== 'undefined') {
       activeAiChatHistory.push({ role: 'user', parts: [{ text: userMessage }] });
     }
     renderAiChat();
+    // UX: disable submit and clear+focus AI chat input
+    try { setSubmitDisabled('#ai-chat-form button[type="submit"]', true); } catch (e) {}
+    try { const inputEl = document.getElementById('ai-chat-input'); if (inputEl) animateClearAndFocus(inputEl); } catch (e) {}
     try {
       // Show a global toast indicating a pending AI request
       if (typeof window.showToast === 'function') {
@@ -884,12 +884,65 @@ if (typeof window !== 'undefined') {
         window.showToast('AI response received.', 'success');
       }
       renderAiChat();
+      try { setSubmitDisabled('#ai-chat-form button[type="submit"]', false); } catch (e) {}
     }
+  }
+
+  // --- Chat UX helpers ---
+  function injectChatStyles() {
+    try {
+      if (window.__mtg_chat_styles_injected) return;
+      const css = `
+      .mtg-input-fade{transition:opacity .22s ease,transform .22s ease}
+      .mtg-input-fade.fade-out{opacity:0;transform:translateY(-6px)}
+      .mtg-submit-disabled{opacity:.5;cursor:not-allowed}
+      `;
+      const s = document.createElement('style'); s.setAttribute('data-mtg-chat-styles','1'); s.appendChild(document.createTextNode(css));
+      (document.head || document.documentElement).appendChild(s);
+      window.__mtg_chat_styles_injected = true;
+    } catch (e) { /* ignore */ }
+  }
+
+  function setSubmitDisabled(selector, disabled) {
+    try {
+      const btn = document.querySelector(selector);
+      if (!btn) return;
+      btn.disabled = !!disabled;
+      if (disabled) btn.classList.add('mtg-submit-disabled'); else btn.classList.remove('mtg-submit-disabled');
+      // Toggle spinner if present
+      try {
+        const spinner = btn.querySelector('.mtg-spinner');
+        const textSpan = btn.querySelector('.mtg-btn-text');
+        if (spinner) {
+          if (disabled) spinner.classList.remove('hidden'); else spinner.classList.add('hidden');
+        }
+        if (textSpan) {
+          if (disabled) textSpan.classList.add('opacity-75'); else textSpan.classList.remove('opacity-75');
+        }
+      } catch (e) {}
+    } catch (e) { /* ignore */ }
+  }
+
+  function animateClearAndFocus(inputEl) {
+    try {
+      if (!inputEl) return;
+      injectChatStyles();
+      inputEl.classList.add('mtg-input-fade');
+      // trigger fade-out -> clear -> focus -> fade-in
+      inputEl.classList.add('fade-out');
+      window.setTimeout(() => {
+        try { inputEl.value = ''; } catch (e) {}
+        inputEl.classList.remove('fade-out');
+        try { inputEl.focus(); } catch (e) {}
+      }, 220);
+    } catch (e) { /* ignore */ }
   }
 
   async function handleRuleLookup(query) {
     ruleLookupHistory.push({ role: 'user', parts: [{ text: query }] });
     renderRuleLookupChat();
+    try { setSubmitDisabled('#rule-lookup-form button[type="submit"]', true); } catch (e) {}
+    try { const inputEl = document.getElementById('rule-lookup-input'); if (inputEl) animateClearAndFocus(inputEl); } catch (e) {}
     let prompt = `You are a Magic: The Gathering Level 3 Judge and rules expert. Your knowledge is comprehensive and up-to-date. Answer the following rules question accurately and clearly. If possible, cite the relevant Comprehensive Rule number(s). Keep your answer focused on the rules question asked.\n\nQuestion: ${query}`;
     try {
       if (window.playstyle && typeof window.playstyle.attachPlaystyleToPrompt === 'function') {
@@ -911,6 +964,7 @@ if (typeof window !== 'undefined') {
       ruleLookupHistory.push({ role: 'model', parts: [{ text: `Sorry, I encountered an error trying to look that up: ${error.message}` }] });
     } finally {
       renderRuleLookupChat();
+      try { setSubmitDisabled('#rule-lookup-form button[type="submit"]', false); } catch (e) {}
     }
   }
 
@@ -977,6 +1031,9 @@ async function handleMtgChat(userMessage) {
     mtgChatHistory.push({ role: 'user', parts: [{ text: userMessage }] });
     renderMtgChat();
 
+    try { setSubmitDisabled('#mtg-chat-form button[type="submit"]', true); } catch (e) {}
+    try { const inputEl = document.getElementById('mtg-chat-input'); if (inputEl) animateClearAndFocus(inputEl); } catch (e) {}
+
     // 1. Define the core persona and instructions for the AI model.
     let systemInstructionText = `You are MTG Forge, an expert AI assistant for all things Magic: The Gathering. You are knowledgeable about card interactions, deck building strategies, the latest meta, MTG lore, and tournament results.
 - You are friendly, engaging, and helpful.
@@ -1019,6 +1076,7 @@ async function handleMtgChat(userMessage) {
         // 5. Clear the in-flight flag and render the final response or error.
         window.__mtgChatRequestInFlight = false;
         renderMtgChat();
+    try { setSubmitDisabled('#mtg-chat-form button[type="submit"]', false); } catch (e) {}
     }
 }
 
