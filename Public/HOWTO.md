@@ -1,3 +1,20 @@
+## Quick Start (recommended order)
+
+1. Playstyle (first)
+	 - Open the Playstyle panel (header). Set your preferred format (Commander/Standard/etc.), deck sizing and budget. This personalizes AI blueprints and suggestions.
+2. Add cards to your collection (next)
+	 - Go to *My Collection* → use the Add Card search (Scryfall). Pick exact print/version, set quantity and finish, then add.
+	 - Or import a backup (Settings → Data Management → Import All Data) to bulk-populate your collection and decks.
+3. Create decks (after collection)
+	 - Open *Decks* → Create New Deck. Choose format (Commander, Modern, etc.).
+	 - For Commander: select a commander from your collection; optionally request an AI blueprint to build a 99-card suggestion.
+	 - Important: AI features require a per-user Gemini API key. Open Settings → "AI / Gemini API Key" and paste your Gemini API key before using any AI tools. The app encrypts the key in your account settings (client-side) and uses it to call Gemini on your behalf.
+	 - AI-assisted deck suggestions: From the Single Deck view you can run the "Deck Suggestions" AI pass. The app gathers the current decklist and a candidate pool from your collection (respecting commander color identity and ownership), then calls Gemini to rate and recommend cards to add or remove. Suggestions are shown as a preview where you can accept individual recommendations or apply the selected changes in bulk.
+4. Add cards to decks
+	 - In Single Deck view click *Add Cards* to open the modal, select cards from your collection and confirm. The collection counts will update.
+
+After those core steps explore Filters, Saved Views, AI tools and Data Management.
+
 How to Start — MTG Library
 
 Quick Start (recommended order of actions)
@@ -121,7 +138,14 @@ After those core steps explore Filters, Saved Views, AI tools and Data Managemen
 - Create Deck: Decks → Create New Deck → pick format.
 - Commander specifics:
 	- Select commander from your collection (or search Scryfall).
+	- Select commander from your collection (or search Scryfall).
 	- Use **Get AI Blueprint** (requires playstyle & Gemini key) to generate a suggested 99-card plan.
+	- AI Deck Suggestions and how they work:
+	  - From the Single Deck view run the **Deck Suggestions** AI pass to get add/remove recommendations tailored to your deck, collection, and playstyle.
+	  - Preview mode: suggestions are displayed with reasons/ratings. You can accept individual recommendations or uncheck ones you don't want.
+	  - Apply selected: click "Add selected" to apply the chosen suggestions to your deck; collection counts will be updated accordingly.
+	  - Auto mode: optionally run auto-apply to have the app take the top suggestions automatically (it still respects commander color identity and ownership constraints).
+	  - Metadata: when you save AI suggestions the app stores lightweight metadata (reason, rating) with the deck so you can review why a card was recommended.
 - Add cards to a deck: in Single Deck view click *Add Cards* and pick from your collection.
 - Export a deck as JSON or TXT (Export Deck buttons). Import decks from Settings → Import Deck.
 
@@ -141,6 +165,13 @@ After those core steps explore Filters, Saved Views, AI tools and Data Managemen
 - Features: AI Blueprint (Commander), Deck Suggestions (chat-based analysis), Rule Lookup, MTG Chat assistant.
 - Requirement: you must provide your own Gemini API key in Settings for AI features to work.
 - Safety: AI-provided HTML is sanitized with DOMPurify before rendering.
+
+Additional details and tips:
+
+- Where to put your key: open Settings → "AI / Gemini API Key" and paste your per-user key. A left-nav banner will appear in the app when an AI key is missing to help you find Settings quickly.
+- Deck Suggestions workflow (quick recap): gather deck + candidate pool → AI rates cards and returns suggested adds/removals → preview and accept or auto-apply → app updates deck and collection; you may save the AI metadata with the deck.
+- Permissions & constraints: AI suggestions respect commander color identity, card legality for the chosen format, and ownership (the app will not add cards you don't own unless you choose to ignore ownership warnings).
+- CORS & proxies: if direct client calls to Gemini are blocked by CORS in your environment, run the API calls through a server-side proxy that injects your key (recommended for production for better key control).
 
 ---
 

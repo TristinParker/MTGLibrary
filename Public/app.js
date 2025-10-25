@@ -166,11 +166,31 @@ document.addEventListener("DOMContentLoaded", () => {
   db = getFirestore(app);
   auth = getAuth(app);
 
-  const GEMINI_API_KEY = "AIzaSyDkbSsM1e4aN85G7ZVGw-XOs4HE8_E4Zig";
-  const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${GEMINI_API_KEY}`;
-  console.log("[Config] Gemini API URL configured.");
-  // Expose globally so other modules can call the Gemini API
-  try { window.GEMINI_API_URL = GEMINI_API_URL; } catch (e) {}
+  // Gemini API key removed from source. Per-user keys are stored encrypted in Firestore.
+  // Use the runtime getter window.getGeminiUrl() (provided by Public/js/firebase/gemini.js)
+  // Helper: resolves the per-user Gemini URL or shows the Settings modal/toast when missing.
+  // Resolve the Gemini API URL for the current runtime.
+  // Preference order:
+  // 1. If window.getGeminiUrl() (per-user encrypted key flow) is available, use its result.
+  // 2. If the per-user runtime getter is unavailable or returns null, surface the Settings UI and show a friendly toast.
+  async function getGeminiUrlOrShowSettings() {
+    try {
+  const url = (typeof window.getGeminiUrl === 'function') ? await window.getGeminiUrl() : null;
+      if (!url) {
+        // Try to surface the Gemini settings UI so users can add their key.
+        try { if (typeof window.renderGeminiSettings === 'function') window.renderGeminiSettings(); } catch (e) {}
+        try { if (typeof window.showView === 'function') window.showView('settings'); } catch (e) {}
+        try { if (typeof window.showModal === 'function') window.showModal('settings-modal'); } catch (e) {}
+        if (typeof window.showToast === 'function') window.showToast('No Gemini API key found. Please add it in Settings to enable AI features.', 'error');
+        return null;
+      }
+      return url;
+    } catch (e) {
+      console.error('[getGeminiUrlOrShowSettings] error', e);
+      try { if (typeof window.showToast === 'function') window.showToast('Error resolving Gemini API key. Check Settings.', 'error'); } catch (er) {}
+      return null;
+    }
+  }
 
   // --- STATE ---
   let currentCardForAdd = null;
@@ -870,9 +890,11 @@ if (typeof window !== 'undefined') {
       if (typeof window.showToast === 'function') {
         window.showToast('Waiting for AI response...', 'info');
       }
-      const response = await fetch(GEMINI_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: activeAiChatHistory }) });
-      if (!response.ok) throw new Error(`Gemini API request failed with status ${response.status}`);
-      const result = await response.json();
+  const geminiUrl = await getGeminiUrlOrShowSettings();
+  if (!geminiUrl) throw new Error('No Gemini API key configured');
+  const response = await fetch(geminiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: activeAiChatHistory }) });
+  if (!response.ok) throw new Error(`Gemini API request failed with status ${response.status}`);
+  const result = await response.json();
       const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
       if (text) activeAiChatHistory.push({ role: 'model', parts: [{ text }] }); else throw new Error('Invalid response from Gemini API.');
     } catch (error) {
@@ -954,9 +976,11 @@ if (typeof window !== 'undefined') {
     } catch (e) {}
     const apiHistory = [{ role: 'user', parts: [{ text: prompt }] }];
     try {
-      const response = await fetch(GEMINI_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: apiHistory }) });
-      if (!response.ok) { const errorBody = await response.text(); throw new Error(`Gemini API request failed with status ${response.status}: ${errorBody}`); }
-      const result = await response.json();
+  const geminiUrl = await getGeminiUrlOrShowSettings();
+  if (!geminiUrl) throw new Error('No Gemini API key configured');
+  const response = await fetch(geminiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: apiHistory }) });
+  if (!response.ok) { const errorBody = await response.text(); throw new Error(`Gemini API request failed with status ${response.status}: ${errorBody}`); }
+  const result = await response.json();
       const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
       if (text) ruleLookupHistory.push({ role: 'model', parts: [{ text }] }); else { throw new Error('Received an invalid or empty response from the AI.'); }
     } catch (error) {
@@ -985,12 +1009,14 @@ if (typeof window !== 'undefined') {
 
   async function callGeminiChat(payload, retries = 3, delay = 1000) {
     for (let i = 0; i < retries; i++) {
-        try {
-            const resp = await fetch(GEMINI_API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
+    try {
+      const geminiUrl = await getGeminiUrlOrShowSettings();
+      if (!geminiUrl) throw new Error('No Gemini API key configured');
+      const resp = await fetch(geminiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
 
             if (!resp.ok) {
                 const errorBody = await resp.text();

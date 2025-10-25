@@ -1,4 +1,5 @@
-import { db, appId, GEMINI_API_URL } from '../main/index.js';
+import { db, appId } from '../main/index.js';
+// Use runtime getter for per-user Gemini URL (returns null if no key saved)
 import { doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 import { showToast, openModal, closeModal } from '../lib/ui.js';
 
@@ -19,7 +20,14 @@ export let playstyleState = {
 async function callGeminiWithRetry(payload, retries = 3, delay = 1000) {
   for (let i = 0; i < retries; i++) {
     try {
-      const resp = await fetch(GEMINI_API_URL, {
+      const url = (typeof window.getGeminiUrl === 'function') ? await window.getGeminiUrl() : null;
+      if (!url) {
+        console.error('[playstyle] Gemini API Key is not defined (per-user key missing).');
+        try { if (typeof window.renderGeminiSettings === 'function') window.renderGeminiSettings(); } catch (e) {}
+        try { if (typeof window.showView === 'function') window.showView('settings'); } catch (e) {}
+        return null;
+      }
+      const resp = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

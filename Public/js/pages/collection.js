@@ -31,6 +31,42 @@ function sortCards(cards) {
   return sorted;
 }
 
+// Helpers for double-faced (modal/transform) cards
+function getCardFaceImageUrls(card, sizeKey = 'normal') {
+  try {
+    // Prefer card_faces when present (double-faced cards)
+    if (Array.isArray(card.card_faces) && card.card_faces.length > 0) {
+      const frontFace = card.card_faces[0];
+      const backFace = card.card_faces[1] || null;
+      // prefer a sensible ordering of available sizes
+      const choose = (uris) => {
+        if (!uris) return null;
+        return uris[sizeKey] || uris.art_crop || uris.large || uris.normal || uris.small || uris.png || null;
+      };
+      const front = choose(frontFace.image_uris) || (card.image_uris ? choose(card.image_uris) : null);
+      const back = backFace ? (choose(backFace.image_uris) || null) : null;
+      return { front, back };
+    }
+    // Fallback to top-level image_uris
+    if (card.image_uris) {
+      const chooseTop = (uris) => uris[sizeKey] || uris.art_crop || uris.large || uris.normal || uris.small || uris.png || null;
+      return { front: chooseTop(card.image_uris), back: null };
+    }
+  } catch (e) { /* ignore */ }
+  return { front: null, back: null };
+}
+
+function renderCardImageHtml(card, sizeKey = 'normal', imgClass = '') {
+  // Always show the first available image (front) and avoid flip UI.
+  // This reverts the flip behavior: we prefer the first image returned by
+  // getCardFaceImageUrls and fall back to the placeholder when missing.
+  const imgs = getCardFaceImageUrls(card, sizeKey);
+  const front = imgs.front || imgs.back || '';
+  const PLACEHOLDER_SVG = 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600" viewBox="0 0 400 600"><rect width="100%" height="100%" fill="#0f1724"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#9CA3AF" font-family="Arial, Helvetica, sans-serif" font-size="20">No image</text></svg>`);
+  const src = front || PLACEHOLDER_SVG;
+  return `<img src="${src}" alt="${(card.name||'card')}" class="${imgClass} card-image" loading="lazy" />`;
+}
+
 function computeGroupCounts(items) {
   if (!items) return { unique: 0, copies: 0 };
   if (Array.isArray(items)) {
@@ -81,9 +117,7 @@ function renderCollectionCard(card) {
   const assignment = (cardDeckAssignments[card.firestoreId] || [])[0];
   return `
     <div class="relative group rounded-lg overflow-hidden shadow-lg transition-transform transform hover:-translate-y-1 hover:shadow-indigo-500/40 collection-card-item" style="aspect-ratio:2/3">
-      <div class="card-image-container">
-        <img src="${card.image_uris?.normal}" alt="${card.name}" class="collection-card-img" loading="lazy">
-      </div>
+      ${renderCardImageHtml(card, 'normal', 'collection-card-img')}
       <div class="absolute top-1 right-1 bg-gray-900/80 text-white text-sm font-bold px-2 py-1 rounded-full">${card.count || 1}</div>
       <div class="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/90 to-transparent">
         <p class="text-white text-xs font-bold truncate">${card.name}</p>
@@ -197,6 +231,10 @@ export function renderPaginatedCollection() {
     });
   });
 
+  // Make sure any double-faced-card wrappers are initialized after the
+  // main render so their visible-src and img.src attributes are sane.
+  try { initializeDfsWrappers(); } catch (e) { /* ignore */ }
+
   // Update KPIs (total / unique / price / filtered summary)
   try {
     const allCards = Object.values(localCollection || {});
@@ -216,6 +254,40 @@ export function renderPaginatedCollection() {
     if (filteredEl) filteredEl.textContent = `${filteredCopies}/${totalCopiesAll}`;
   } catch (err) {
     console.warn('[Collection] KPI update failed', err);
+  }
+}
+
+// Ensure any existing DFC wrappers in the DOM have sane dataset values and
+// image src attributes. This helps when markup is injected before the
+// flip CSS/handler runs or when a previous render left dataset attrs empty.
+function initializeDfsWrappers() {
+  try {
+    const wrappers = document.querySelectorAll('.dfs-flip-wrapper, .card-image-wrapper');
+    if (!wrappers || wrappers.length === 0) return;
+    wrappers.forEach(wrap => {
+      try {
+        const front = wrap.dataset.front || wrap.getAttribute('data-front') || '';
+        const back = wrap.dataset.back || wrap.getAttribute('data-back') || '';
+        if (!wrap.dataset.current) wrap.dataset.current = front ? 'front' : (back ? 'back' : 'front');
+        if (!wrap.dataset.visibleSrc) {
+          // create a small inline placeholder if neither side is present
+          const placeholder = 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600" viewBox="0 0 400 600"><rect width="100%" height="100%" fill="#0f1724"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#9CA3AF" font-family="Arial, Helvetica, sans-serif" font-size="20">No image</text></svg>`);
+          wrap.dataset.visibleSrc = front || back || (wrap.querySelector('img')?.src) || placeholder;
+        }
+        // Ensure inner imgs have src set (some render paths left empty src attributes)
+        const imgs = wrap.querySelectorAll('img');
+        imgs.forEach((img, idx) => {
+          try {
+            if (!img.getAttribute('src') || img.getAttribute('src').trim() === '') {
+              if (idx === 0) img.setAttribute('src', front || wrap.dataset.visibleSrc);
+              else img.setAttribute('src', back || wrap.dataset.visibleSrc);
+            }
+          } catch (e) { /* ignore per-image */ }
+        });
+      } catch (e) { /* ignore wrapper-level errors */ }
+    });
+  } catch (err) {
+    console.debug('[Collection] initializeDfsWrappers error', err);
   }
 }
 
@@ -317,6 +389,46 @@ export function initCollectionModule() {
     window.__collection_listeners_installed = true;
   }
   console.log('[Collection] Module initialized. window.renderPaginatedCollection present=', typeof window.renderPaginatedCollection === 'function');
+  // Install delegated handler for double-faced-card flip buttons (idempotent)
+  try {
+    if (!window.__dfs_toggle_installed) {
+      // ensure flip CSS is injected once for animations
+      if (!window.__dfs_styles_injected) {
+        try {
+          const css = `
+            .dfs-flip-wrapper { perspective: 1000px; }
+            .dfs-card { transform-style: preserve-3d; transition: transform 320ms ease; }
+            .dfs-flip-wrapper.dfs-flipped .dfs-card { transform: rotateY(180deg); }
+            .dfs-face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+            .dfs-back { transform: rotateY(180deg); }
+            /* helpers for accessibility and layout */
+            .backface-hidden { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+          `;
+          const s = document.createElement('style'); s.setAttribute('data-dfs-flip-styles','1'); s.appendChild(document.createTextNode(css));
+          (document.head || document.documentElement).appendChild(s);
+          window.__dfs_styles_injected = true;
+        } catch (e) { /* ignore */ }
+      }
+
+      document.addEventListener('click', function dfsToggleHandler(e) {
+        try {
+          const btn = e.target.closest && e.target.closest('.dfs-toggle');
+          if (!btn) return;
+          const wrap = btn.closest('.dfs-flip-wrapper, .card-image-wrapper');
+          if (!wrap) return;
+          const front = wrap.dataset.front;
+          const back = wrap.dataset.back;
+          if (!back) return; // nothing to flip to
+          const card = wrap.querySelector('.dfs-card');
+          const isFlipped = wrap.classList.toggle('dfs-flipped');
+          wrap.dataset.current = isFlipped ? 'back' : 'front';
+          // update a visible-src dataset used by hover previews and other consumers
+          wrap.dataset.visibleSrc = isFlipped ? (back || front) : (front || back);
+        } catch (err) { /* ignore */ }
+      });
+      window.__dfs_toggle_installed = true;
+    }
+  } catch (e) { /* ignore */ }
 }
 
 // Migrate searchForCard from inline HTML into module
@@ -408,53 +520,149 @@ export function renderCardVersions(cards) {
   const grid = document.getElementById('card-versions-grid');
   const loading = document.getElementById('versions-loading');
   if (!grid) return;
+  // Ensure a small filter UI exists above the grid (idempotent)
+  const filterContainerId = 'card-versions-filter-container';
+  let filterContainer = document.getElementById(filterContainerId);
+  if (!filterContainer) {
+    filterContainer = document.createElement('div');
+    filterContainer.id = filterContainerId;
+    filterContainer.className = 'mb-3';
+    filterContainer.innerHTML = `
+      <div class="flex items-center gap-2">
+        <input id="card-versions-filter" placeholder="Filter versions (set name, set code, collector#, price, artist)" 
+          class="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm" />
+        <button id="card-versions-filter-clear" title="Clear filter" class="text-gray-300 hover:text-white px-2" aria-label="Clear filter">&times;</button>
+        <span id="card-versions-filter-count" class="text-sm text-gray-300 ml-2">&nbsp;</span>
+      </div>
+    `;
+    grid.parentNode.insertBefore(filterContainer, grid);
+  }
+
+  const filterInput = document.getElementById('card-versions-filter');
   grid.innerHTML = '';
   grid.onclick = null;
   loading && loading.classList.remove('hidden');
 
-  grid.innerHTML = cards.map(card => {
-    const price = card.prices?.usd ? `$${card.prices.usd}` : (card.prices?.usd_foil ? `$${card.prices.usd_foil} (Foil)` : 'N/A');
-    return `
-      <div class="relative group rounded-lg overflow-hidden cursor-pointer card-version-item" data-card-id="${card.id}" style="aspect-ratio:2/3">
-        <img src="${card.image_uris?.large}" alt="${card.name}" class="card-version-img">
-        <div class="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3 text-white">
-          <p class="font-bold">${card.set_name}</p>
-          <p class="text-sm">${price}</p>
-        </div>
-      </div>
-    `;
-  }).join('');
+  // render helper so we can re-run after filtering
+  function renderList() {
+    const q = (filterInput && filterInput.value || '').trim().toLowerCase();
+    const filtered = q === '' ? cards : cards.filter(card => {
+      try {
+        // Match against set full name
+        if ((card.set_name || '').toLowerCase().includes(q)) return true;
+        // Match against set code
+        if ((card.set || '').toLowerCase().includes(q)) return true;
+        // Match against collector number
+        if (String(card.collector_number || '').toLowerCase().includes(q)) return true;
+        // Match against artist
+        if ((card.artist || '').toLowerCase().includes(q)) return true;
+        // Match against numeric price values (usd and usd_foil)
+        const usd = card.prices?.usd ? String(card.prices.usd).toLowerCase() : '';
+        const usdFoil = card.prices?.usd_foil ? String(card.prices.usd_foil).toLowerCase() : '';
+        if (usd.includes(q) || usdFoil.includes(q)) return true;
+      } catch (e) { /* ignore */ }
+      return false;
+    });
 
-  const hoverPreview = document.getElementById('card-hover-preview');
-  const hoverImage = hoverPreview && hoverPreview.querySelector('img');
+    grid.innerHTML = filtered.map(card => {
+        const price = card.prices?.usd ? `$${card.prices.usd}` : (card.prices?.usd_foil ? `$${card.prices.usd_foil} (Foil)` : 'N/A');
+        return `
+          <div class="relative group rounded-lg overflow-hidden cursor-pointer card-version-item" data-card-id="${card.id}" style="aspect-ratio:2/3">
+            ${renderCardImageHtml(card, 'large', 'card-version-img')}
+            <div class="absolute inset-0 bg-black/40 opacity-100 group-hover:opacity-80 transition-opacity flex flex-col justify-end p-3 text-white">
+              <strong class="font-bold">${card.set_name} (${card.set})</strong>
+              <span class="text-xs">Collector's Number: ${card.collector_number}</span>
+              <p class="text-sm">${price}</p>
+            </div>
+          </div>
+        `;
+    }).join('');
 
-  grid.querySelectorAll('.card-version-item').forEach(item => {
-    item.addEventListener('mouseenter', (e) => {
-      const imgSrc = e.currentTarget.querySelector('img')?.src;
-      if (imgSrc && hoverImage && hoverPreview) {
-        hoverImage.src = imgSrc;
-        hoverPreview.classList.remove('hidden');
+  // Ensure any dfs wrappers created by the render have their dataset/src initialized
+  try { initializeDfsWrappers(); } catch (e) { /* ignore */ }
+
+    // restore hover preview behavior
+    const hoverPreview = document.getElementById('card-hover-preview');
+    const hoverImage = hoverPreview && hoverPreview.querySelector('img');
+
+    grid.querySelectorAll('.card-version-item').forEach(item => {
+      item.addEventListener('mouseenter', (e) => {
+        // Prefer a wrapper-provided visible-src (works for flippable cards). Fall back to the first img src.
+        const wrapper = e.currentTarget.querySelector('.dfs-flip-wrapper, .card-image-wrapper');
+        const imgSrc = wrapper?.dataset?.visibleSrc || e.currentTarget.querySelector('img')?.src;
+        if (imgSrc && hoverImage && hoverPreview) {
+          hoverImage.src = imgSrc;
+          hoverPreview.classList.remove('hidden');
+        }
+      });
+      item.addEventListener('mouseleave', () => {
+        if (hoverPreview && hoverImage) { hoverPreview.classList.add('hidden'); hoverImage.src = ''; }
+      });
+    });
+
+    // update match count display (shows "N matches" or "No matches")
+    try {
+      const countEl = document.getElementById('card-versions-filter-count');
+      if (countEl) {
+        if (filtered.length === 0) countEl.textContent = 'No matches';
+        else if (filtered.length === 1) countEl.textContent = '1 match';
+        else countEl.textContent = `${filtered.length} matches`;
       }
-    });
-    item.addEventListener('mouseleave', () => {
-      if (hoverPreview && hoverImage) { hoverPreview.classList.add('hidden'); hoverImage.src = ''; }
-    });
-  });
+    } catch (e) { /* ignore */ }
 
-  grid.onclick = function(event) {
-    const cardItem = event.target.closest('.card-version-item');
-    if (!cardItem) return;
-    const cardId = cardItem.dataset.cardId;
-    const selectedCard = cards.find(c => c.id === cardId);
-    if (selectedCard) {
-      // prefer window handler if present
-      if (typeof window.handleCardSelection === 'function') return window.handleCardSelection(selectedCard);
-      // otherwise dispatch event
-      window.dispatchEvent && window.dispatchEvent(new CustomEvent('card-selected', { detail: { card: selectedCard } }));
+    // click handler uses the filtered array to find selected card
+    grid.onclick = function(event) {
+      const cardItem = event.target.closest('.card-version-item');
+      if (!cardItem) return;
+      const cardId = cardItem.dataset.cardId;
+      const selectedCard = filtered.find(c => c.id === cardId);
+      if (selectedCard) {
+        if (typeof window.handleCardSelection === 'function') return window.handleCardSelection(selectedCard);
+        window.dispatchEvent && window.dispatchEvent(new CustomEvent('card-selected', { detail: { card: selectedCard } }));
+      }
+    };
+
+    loading && loading.classList.add('hidden');
+  }
+
+  // wire filter input with a persistent debounced handler that calls the current renderList
+  if (filterInput) {
+    // store the current render function so the persistent handler always invokes the latest one
+    filterInput._currentRenderList = renderList;
+    // if a global handler isn't installed, add one and keep its own debounce state
+    if (!filterInput._versionsFilterHandler) {
+      filterInput._versionsFilterHandler = (function() {
+        let timer = null;
+        return function() {
+          if (timer) clearTimeout(timer);
+          timer = setTimeout(() => {
+            try {
+              if (typeof filterInput._currentRenderList === 'function') filterInput._currentRenderList();
+            } catch (e) { /* ignore */ }
+          }, 180);
+        };
+      })();
+      filterInput.addEventListener('input', filterInput._versionsFilterHandler);
     }
-  };
+    // wire the clear button (idempotent)
+    try {
+      const clearBtn = document.getElementById('card-versions-filter-clear');
+      if (clearBtn && !clearBtn._handlerInstalled) {
+        clearBtn.addEventListener('click', () => {
+          try {
+            filterInput.value = '';
+            // ensure the persistent handler triggers immediately
+            if (typeof filterInput._currentRenderList === 'function') filterInput._currentRenderList();
+            filterInput.focus();
+          } catch (e) { /* ignore */ }
+        });
+        clearBtn._handlerInstalled = true;
+      }
+    } catch (e) { /* ignore */ }
+  }
 
-  loading && loading.classList.add('hidden');
+  // initial render
+  renderList();
 }
 
 // Migrate handleCardSelection and renderCardConfirmationModal
@@ -482,7 +690,7 @@ export function renderCardConfirmationModal(card) {
 
   contentDiv.innerHTML = `
     <div class="flex justify-center md:justify-start md:col-span-1">
-      <img src="${card.image_uris?.normal}" alt="${card.name}" class="rounded-lg shadow-lg w-full max-w-[360px] h-auto max-h-[640px] object-contain">
+        ${renderCardImageHtml(card, 'normal', 'rounded-lg shadow-lg w-full max-w-[360px] h-auto max-h-[640px] object-contain')}
     </div>
     <div class="space-y-4 md:col-span-1">
       <h3 class="text-3xl font-bold">${card.name}</h3>
@@ -692,9 +900,9 @@ function renderCollectionTable(cards, groupByKeys) {
       <td class="px-6 py-4">
         <div class="flex items-center gap-3">
           <div class="w-10 flex-shrink-0">
-            <div class="card-image-container rounded-md overflow-hidden">
-              <img src="${card.image_uris?.small}" class="card-image" loading="lazy" alt="${card.name}">
-            </div>
+              <div class="card-image-container rounded-md overflow-hidden">
+                ${renderCardImageHtml(card, 'small', 'card-image')}
+              </div>
           </div>
           <div>
             <div class="font-bold">${card.name}</div>

@@ -895,15 +895,15 @@ async function callGeminiWithRetries(payload, retries = 3, initialDelay = 1000) 
   // Store the promise while the request resolves (including retries)
   window.__geminiInFlightMap[key] = (async () => {
   
-  // --- API Key Fix ---
-  // Use window.GEMINI_API_URL, which is how the user's app provides it.
-  const url = window.GEMINI_API_URL || null;
+  // Resolve per-user Gemini URL at runtime (require per-user key; do not rely on hard-coded global)
+  const url = (typeof window.getGeminiUrl === 'function') ? await window.getGeminiUrl() : null;
   if (!url) {
-    console.error('[deckSuggestions] Gemini API Key is not defined (window.GEMINI_API_URL is null).');
-    showToast('Gemini API Key is not configured.', 'error');
+    console.error('[deckSuggestions] Gemini API Key is not configured.');
+    try { if (typeof window.renderGeminiSettings === 'function') window.renderGeminiSettings(); } catch (e) {}
+    try { if (typeof window.showView === 'function') window.showView('settings'); } catch (e) {}
+    if (typeof showToast === 'function') showToast('No Gemini API key configured. Add it in Settings to enable AI features.', 'error');
     return null;
   }
-  // --- End API Key Fix ---
 
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {

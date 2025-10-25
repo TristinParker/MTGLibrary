@@ -1514,9 +1514,8 @@
               };
         console.log("[Config] Firebase config loaded.");
 
-        const GEMINI_API_KEY = "AIzaSyDkbSsM1e4aN85G7ZVGw-XOs4HE8_E4Zig";
-        const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${GEMINI_API_KEY}`;
-        console.log("[Config] Gemini API URL configured.");
+        // Gemini API: legacy inline page expects a global GEMINI_API_URL variable.
+        // (Per-user key flow is implemented in the modular JS; this live HTML keeps the original global behavior.)
 
         // --- STATE ---
         let currentCardForAdd = null;
@@ -1781,7 +1780,9 @@
             console.log(
               "[handleAiChat] Calling Gemini API for deck suggestions."
             );
-            const response = await fetch(GEMINI_API_URL, {
+            const geminiUrl = GEMINI_API_URL;
+            if (!geminiUrl) throw new Error('No Gemini API key configured');
+            const response = await fetch(geminiUrl, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ contents: activeAiChatHistory }),
@@ -1815,7 +1816,9 @@
           console.log(
             `[Function: getAiDeckBlueprint] Requesting AI blueprint for commander "${commanderCard.name}". Find in <script> block.`
           );
-          if (!GEMINI_API_KEY) {
+          // Resolve Gemini URL (legacy inline page uses global GEMINI_API_URL)
+          const geminiUrl = GEMINI_API_URL;
+          if (!geminiUrl) {
             console.warn(
               "[getAiDeckBlueprint] Gemini API key is missing. Skipping AI deck blueprint generation."
             );
@@ -1834,7 +1837,7 @@
           const prompt = `You are an expert MTG Commander deck building strategist. For the commander "${commanderCard.name}", provide a recommended deck composition, strategy, and a deck name if one isn't provided. ${namePromptPart} Respond with ONLY a valid JSON object with the following structure: {"deckName": "Creative Name {U}{B}", "strategySynopsis": "A detailed multi-paragraph strategy guide...", "suggestedCounts": {"Land": 37, "Creature": 28, "Artifact": 12, "Enchantment": 8, "Instant": 6, "Sorcery": 6, "Planeswalker": 3}}. Do not include any text outside of the JSON object or use markdown.`;
           console.log("[getAiDeckBlueprint] Sending prompt to Gemini:", prompt);
           try {
-            const response = await fetch(GEMINI_API_URL, {
+            const response = await fetch(geminiUrl, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -4501,7 +4504,9 @@
             console.log(
               "[handleRuleLookup] Calling Gemini API for rule lookup."
             );
-            const response = await fetch(GEMINI_API_URL, {
+            const geminiUrl = GEMINI_API_URL;
+            if (!geminiUrl) throw new Error('No Gemini API key configured');
+            const response = await fetch(geminiUrl, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ contents: apiHistory }),
@@ -4594,7 +4599,9 @@
 
           try {
             console.log("[handleMtgChat] Calling Gemini API for MTG chat.");
-            const response = await fetch(GEMINI_API_URL, {
+            const geminiUrl = GEMINI_API_URL;
+            if (!geminiUrl) throw new Error('No Gemini API key configured');
+            const response = await fetch(geminiUrl, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ contents: apiHistory }),

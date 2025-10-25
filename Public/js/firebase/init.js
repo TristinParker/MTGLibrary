@@ -38,10 +38,10 @@ window.__firebase_auth = auth;
 window.__app_id = appId;
 
 // Gemini config (placeholder key; keep existing behavior)
-export const GEMINI_API_KEY = "AIzaSyDkbSsM1e4aN85G7ZVGw-XOs4HE8_E4Zig";
-export const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${GEMINI_API_KEY}`;
-window.__GEMINI_API_KEY = GEMINI_API_KEY;
-window.__GEMINI_API_URL = GEMINI_API_URL;
+// NOTE: Gemini API keys must be provided per-user at runtime. Do NOT hard-code
+// a shared key in source. Use the per-user helper module at
+// Public/js/firebase/gemini.js to save/retrieve an encrypted API key from
+// Firestore and to build request URLs at runtime.
 
 console.log('[Firebase] Initialized and exported db/auth/app.');
 

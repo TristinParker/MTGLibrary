@@ -132,14 +132,35 @@ export function openAddCardsToDeckModal(deckId) {
   const commanderColors = deck.commander?.color_identity || ['W','U','B','R','G'];
   const tableBody = document.getElementById('add-cards-modal-table-body');
   const filterInput = document.getElementById('add-card-modal-filter');
+  const jsonFilterInput = document.getElementById('add-card-modal-json-filter');
   if (filterInput) filterInput.value = '';
+  if (jsonFilterInput) jsonFilterInput.value = '';
 
   const renderTable = () => {
     const filterText = (filterInput?.value || '').toLowerCase();
+    const jsonFilterTextRaw = (jsonFilterInput?.value || '') || '';
+    const jsonFilterText = jsonFilterTextRaw.trim().toLowerCase();
     const col = window.localCollection || localCollection;
     const eligibleCards = Object.values(col)
       .filter(card => (card.count || 0) > 0 && isColorIdentityValid(card.color_identity, commanderColors))
-      .filter(card => card.name.toLowerCase().includes(filterText))
+      .filter(card => {
+        // Name filter (existing behavior)
+        if (filterText && !(card.name || '').toLowerCase().includes(filterText)) return false;
+
+        // JSON / full-text filter: if provided, search the serialized card JSON
+        if (jsonFilterText) {
+          try {
+            const cardJson = JSON.stringify(card).toLowerCase();
+            if (cardJson.includes(jsonFilterText)) return true;
+            // If the user provided an object-like string, also try to extract values and match them roughly
+            // (fallback behavior already covered by substring search)
+            return false;
+          } catch (e) {
+            return false;
+          }
+        }
+        return true;
+      })
       .sort((a,b) => a.name.localeCompare(b.name));
 
     if (eligibleCards.length === 0) {
@@ -168,6 +189,7 @@ export function openAddCardsToDeckModal(deckId) {
 
   renderTable();
   filterInput && filterInput.addEventListener('input', renderTable);
+  jsonFilterInput && jsonFilterInput.addEventListener('input', renderTable);
   tableBody && tableBody.addEventListener('change', updateSelectedCount);
   const selectAll = document.getElementById('add-cards-select-all'); if (selectAll) selectAll.addEventListener('change', (e) => { document.querySelectorAll('.add-card-checkbox').forEach(cb => cb.checked = e.target.checked); updateSelectedCount(); });
   document.getElementById('confirm-add-cards-to-deck-btn').onclick = () => {

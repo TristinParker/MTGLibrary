@@ -68,7 +68,7 @@ export function initDecksModule() {
 }
 
 // --- AI Blueprint helpers (migrated from inline HTML) ---
-import { GEMINI_API_URL } from '../main/index.js';
+// Use runtime getter for per-user Gemini URL (may return null if no key saved)
 
 export async function getAiDeckBlueprint(commanderCard, deckCards = null) {
   let prompt = `You are a world-class Magic: The Gathering deck architect specializing in the Commander format. Given the following commander card, you will generate a detailed blueprint for a 100-card deck.
@@ -111,7 +111,13 @@ export async function getAiDeckBlueprint(commanderCard, deckCards = null) {
   } catch (e) { /* non-fatal */ }
 
   try {
-    const response = await fetch(GEMINI_API_URL, {
+    const url = (typeof window.getGeminiUrl === 'function') ? await window.getGeminiUrl() : null;
+    if (!url) {
+      try { if (typeof window.renderGeminiSettings === 'function') window.renderGeminiSettings(); } catch (e) {}
+      try { if (typeof window.showView === 'function') window.showView('settings'); } catch (e) {}
+      throw new Error('Gemini API Key is not defined (per-user key missing).');
+    }
+    const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })

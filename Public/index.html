@@ -875,9 +875,11 @@
             </div>
 
             <div class="flex-grow p-4 overflow-y-auto no-scrollbar">
-                <div class="mb-4">
-                    <input type="text" id="add-card-modal-filter" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2" placeholder="Filter cards by name...">
-                </div>
+        <div class="mb-4 space-y-2">
+          <label for="add-card-modal-json-filter" class="text-xs text-gray-400">JSON / Full-text filter (paste JSON or any text to search across card data)</label>
+          <textarea id="add-card-modal-json-filter" rows="4" class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm" placeholder='Paste JSON or free-text here to search across all card fields (e.g. {"oracle_text":"draw"} or "draw card").'></textarea>
+          <input type="text" id="add-card-modal-filter" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2" placeholder="Filter cards by name...">
+        </div>
                 <div class="overflow-auto" style="max-height: calc(80vh - 150px);">
                     <table class="w-full text-sm text-left text-gray-300">
                         <thead class="text-xs text-gray-400 uppercase bg-gray-700 sticky top-0">
@@ -2132,11 +2134,9 @@
           }
         } catch (e) { /* best-effort */ }
         
-        // IMPORTANT: The user must provide their own Gemini API key for this app to function.
-        // The key is left empty here as a placeholder.
-        const GEMINI_API_KEY = "AIzaSyDkbSsM1e4aN85G7ZVGw-XOs4HE8_E4Zig";
-        const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${GEMINI_API_KEY}`;
-        console.log("[Config] Gemini API URL configured.");
+  // Gemini API key removed from source. Per-user keys are stored encrypted in Firestore.
+  // Use the runtime getter window.getGeminiUrl() (provided by Public/js/firebase/gemini.js).
+  console.log("[Config] Gemini API: per-user key required; configure in Settings.");
 
         // --- STATE ---
         let currentCardForAdd = null;
