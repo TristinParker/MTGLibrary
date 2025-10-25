@@ -552,6 +552,110 @@ export function renderGeminiSettings(containerId = 'settings-gemini-block') {
 
   // Initial status load
   setTimeout(refreshStatus, 120);
+
+  // Render the precons admin block (only visible to specific admin email)
+  try { renderPreconsAdmin(); } catch (e) { /* ignore if function not available yet */ }
+}
+
+/**
+ * Render an admin-only Precons uploader block in Settings.
+ * Visible only when the signed-in user's email matches the configured admin email.
+ */
+export function renderPreconsAdmin(containerId = 'settings-precons-admin') {
+  try {
+    const settingsView = document.getElementById('settings-view');
+    if (!settingsView) return;
+    // remove existing block if present
+    const existing = document.getElementById(containerId);
+    if (existing) existing.remove();
+
+    // Determine current user email via firebase auth on window
+    const auth = window.__firebase_auth || null;
+    const userEmail = auth && auth.currentUser ? (auth.currentUser.email || '') : (window.userEmail || '');
+    const adminEmail = 'Gidgidonihah.147@gmail.com';
+    if (!userEmail || userEmail.toLowerCase() !== adminEmail.toLowerCase()) {
+      // not admin: nothing to render
+      return;
+    }
+
+    const block = document.createElement('section');
+    block.id = containerId;
+    block.className = 'bg-gray-800 p-6 rounded-lg shadow-lg mb-6';
+    block.innerHTML = `
+      <h2 class="text-2xl font-semibold mb-3">Precons Admin</h2>
+      <p class="text-sm text-gray-400 mb-3">Upload all JSON files from <code>/precons</code> into Firestore so they can be served from the database.</p>
+      <div class="flex items-center gap-2">
+        <button id="precons-upload-btn" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded">Upload Precons to Firestore</button>
+        <button id="precons-regenerate-index-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded">Regenerate Index (repo)</button>
+        <span id="precons-upload-status" class="text-sm text-gray-300 ml-3"></span>
+      </div>
+      <div id="precons-upload-results" class="mt-4 text-sm text-gray-300"></div>
+    `;
+
+    // insert near top of settings view, below Gemini section if present
+    const gem = document.getElementById('settings-gemini-section');
+    if (gem && gem.parentElement) gem.parentElement.insertBefore(block, gem.nextSibling);
+    else settingsView.insertBefore(block, settingsView.firstChild);
+
+    const uploadBtn = document.getElementById('precons-upload-btn');
+    const regenBtn = document.getElementById('precons-regenerate-index-btn');
+    const statusEl = document.getElementById('precons-upload-status');
+    const resultsEl = document.getElementById('precons-upload-results');
+
+    if (uploadBtn) uploadBtn.addEventListener('click', async () => {
+      if (!confirm('Upload all precons from /precons to Firestore? This will overwrite existing docs with the same IDs.')) return;
+      uploadBtn.disabled = true; statusEl.textContent = 'Starting...'; resultsEl.textContent = '';
+      try {
+        const mod = await import('../admin/preconsUploader.js');
+        const res = await mod.uploadPreconsToFirestore((done, total, name) => {
+          statusEl.textContent = `Uploading ${done}/${total}: ${name}`;
+        });
+        if (res && res.success) {
+          statusEl.textContent = `Completed: ${res.results.filter(r => r.ok).length}/${res.results.length} uploaded`;
+          resultsEl.innerHTML = `<pre style="white-space:pre-wrap">${JSON.stringify(res.results, null, 2)}</pre>`;
+        } else {
+          statusEl.textContent = 'Upload failed';
+          resultsEl.textContent = JSON.stringify(res || {}, null, 2);
+        }
+      } catch (err) {
+        console.error('Precons upload failed', err);
+        statusEl.textContent = 'Upload failed (see console)';
+      }
+      uploadBtn.disabled = false;
+    });
+
+    // Regenerate index: do a safe check for a generated index and provide clear instructions.
+    if (regenBtn) regenBtn.addEventListener('click', async () => {
+      if (!confirm('Check for or regenerate the precons index. This will not call any server-side scripts from the browser.')) return;
+      try {
+        // First, check whether the generated index already exists on the webserver
+        statusEl.textContent = 'Checking for /precons/index.generated.json...';
+        const idxResp = await fetch('/precons/index.generated.json', { method: 'GET' });
+        if (idxResp && idxResp.ok) {
+          const idx = await idxResp.json();
+          statusEl.textContent = `Found index.generated.json (${(idx && idx.length) ? idx.length : 'unknown'} entries).`;
+          resultsEl.innerHTML = `<pre style="white-space:pre-wrap">${JSON.stringify(idx, null, 2)}</pre>`;
+          return;
+        }
+        // If there's no generated index, provide an explicit, copy-pasteable instruction for the admin.
+        statusEl.textContent = 'No generated index found.';
+        resultsEl.innerHTML = `
+          <div>
+            <div class="mb-2 text-sm text-gray-300">No <code>/precons/index.generated.json</code> was found on the server. Please run the generator locally from the repository root to create it:</div>
+            <pre class="text-sm bg-gray-900 p-3 rounded">node scripts\\generate-precons-index.js</pre>
+            <div class="mt-2 text-sm text-gray-300">After running, commit or copy <code>Public/precons/index.generated.json</code> to the server and reload this page.</div>
+          </div>
+        `;
+      } catch (e) {
+        console.error('Regenerate index check failed', e);
+        statusEl.textContent = 'Could not check for generated index. Run the generator locally:';
+        resultsEl.innerHTML = `<pre class="text-sm">node scripts\\generate-precons-index.js</pre>`;
+      }
+    });
+
+  } catch (err) {
+    console.error('renderPreconsAdmin failed', err);
+  }
 }
 
 // Render saved views management UI inside the Settings page

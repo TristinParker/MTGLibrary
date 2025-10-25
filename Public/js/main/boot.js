@@ -116,6 +116,8 @@ export function setupGlobalListeners() {
     const navLinks = {
       collection: document.getElementById('nav-collection'),
       decks: document.getElementById('nav-decks'),
+      sets: document.getElementById('nav-sets'),
+      precons: document.getElementById('nav-precons'),
       settings: document.getElementById('nav-settings'),
       ruleLookup: document.getElementById('nav-rule-lookup'),
       generalChat: document.getElementById('nav-general-chat')
@@ -135,6 +137,14 @@ export function setupGlobalListeners() {
             if (typeof window.showView === 'function') {
               console.debug('[Boot] calling window.showView for', key);
               window.showView(key);
+              if (key === 'sets') {
+                // lazy-load sets modules and render
+                try { import('../pages/sets.js').then(mod => { if (typeof mod.initSetsModule === 'function') mod.initSetsModule(); }); } catch (e) { console.debug('[Boot] lazy-load sets module failed', e); }
+                }
+                if (key === 'precons') {
+                  // lazy-load precons module and render
+                  try { import('../pages/precons.js').then(mod => { if (typeof mod.initPreconsModule === 'function') mod.initPreconsModule(); }); } catch (e) { console.debug('[Boot] lazy-load precons module failed', e); }
+              }
               // If user opened Settings, ensure playstyle module is loaded and rendered
               if (key === 'settings') {
                 try { import('../settings/playstyle.js').then(mod => { if (window.userId && typeof mod.loadPlaystyleForUser === 'function') mod.loadPlaystyleForUser(window.userId); }); } catch (e) {}
@@ -162,6 +172,18 @@ export function setupGlobalListeners() {
   navDecks.onclick = (e) => { try { console.debug('[Boot][FB] nav-decks onclick fallback'); if (typeof window.showView === 'function') window.showView('decks'); else renderDecksList(); } catch (err) { console.error('[Boot][FB] nav-decks onclick error', err); } };
   console.debug('[Boot][FB] nav-decks fallback onclick installed');
       }
+        const navSets = document.getElementById('nav-sets');
+        if (navSets) {
+      navSets.style.pointerEvents = 'auto';
+      navSets.onclick = (e) => { try { console.debug('[Boot][FB] nav-sets onclick fallback'); if (typeof window.showView === 'function') { window.showView('sets'); } else { try { import('../pages/sets.js').then(mod => { if (typeof mod.initSetsModule === 'function') mod.initSetsModule(); }); } catch(e){} } } catch (err) { console.error('[Boot][FB] nav-sets onclick error', err); } };
+      console.debug('[Boot][FB] nav-sets fallback onclick installed');
+        }
+        const navPrecons = document.getElementById('nav-precons');
+        if (navPrecons) {
+      navPrecons.style.pointerEvents = 'auto';
+      navPrecons.onclick = (e) => { try { console.debug('[Boot][FB] nav-precons onclick fallback'); if (typeof window.showView === 'function') { window.showView('precons'); } else { try { import('../pages/precons.js').then(mod => { if (typeof mod.initPreconsModule === 'function') mod.initPreconsModule(); }); } catch(e){} } } catch (err) { console.error('[Boot][FB] nav-precons onclick error', err); } };
+      console.debug('[Boot][FB] nav-precons fallback onclick installed');
+        }
         if (navSettings) {
       navSettings.style.pointerEvents = 'auto';
       navSettings.onclick = (e) => { try { console.debug('[Boot][FB] nav-settings onclick fallback'); if (typeof window.showView === 'function') window.showView('settings'); else renderSettings(); if (typeof window.renderSettingsSavedViews === 'function') window.renderSettingsSavedViews(); try { import('../settings/playstyle.js').then(mod => { if (window.userId && typeof mod.loadPlaystyleForUser === 'function') mod.loadPlaystyleForUser(window.userId); }); } catch (e) {} } catch (err) { console.error('[Boot][FB] nav-settings onclick error', err); } };

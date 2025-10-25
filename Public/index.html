@@ -179,6 +179,27 @@
             </svg>
             Decks
           </button>
+          <button
+            id="nav-sets"
+            class="nav-link w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-gray-700 hover:text-white"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h18M3 12h18M3 17h18" />
+            </svg>
+            Sets
+          </button>
+          <button
+            id="nav-precons"
+            class="nav-link w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-gray-700 hover:text-white"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" />
+            </svg>
+            <span class="flex items-center gap-2">
+              <span>Precons</span>
+              <span class="ml-2 text-xs text-yellow-300 bg-yellow-900/20 px-2 py-0.5 rounded-md hidden sm:inline">Under construction</span>
+            </span>
+          </button>
           <div class="border-t border-gray-700 my-4"></div>
           <button
             id="nav-rule-lookup"
@@ -577,6 +598,124 @@
               building!
             </p>
           </div>
+
+          <!-- Sets View -->
+          <div id="sets-view" class="hidden">
+            <div class="bg-gray-800 p-4 rounded-lg shadow-lg mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
+              <h2 class="text-2xl font-semibold">Sets</h2>
+              <div class="flex items-center gap-2">
+                <input id="sets-search-input" type="text" placeholder="Filter sets by name or code..." class="bg-gray-700 border border-gray-600 rounded-xl px-4 py-2 text-base focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <button id="refresh-sets-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg">Refresh</button>
+              </div>
+            </div>
+            <!-- Sets Filters / Display Controls (reusable pattern from Collection) -->
+            <div id="sets-filters-bar" class="bg-gray-900 p-4 flex flex-col sm:flex-row gap-4 items-center rounded-b-2xl">
+              <div class="flex-grow min-w-[180px]">
+                <label for="sets-filter-text" class="text-sm text-gray-400 mb-2 block">Quick Filter</label>
+                <input
+                  type="text"
+                  id="sets-filter-text"
+                  class="w-full bg-gray-800 border border-gray-700 rounded-xl px-5 py-3 text-base focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-gray-400"
+                  placeholder="e.g., Zendikar, ZNR..."
+                />
+              </div>
+
+              <div class="flex items-center gap-2">
+                <label class="text-sm text-gray-400 mr-2">Grid Size</label>
+                <div class="mt-1 flex items-center rounded-lg bg-gray-700 p-1">
+                  <button class="sets-grid-size-btn p-2 rounded-md text-gray-400" data-size="sm" title="Small">S</button>
+                  <button class="sets-grid-size-btn p-2 rounded-md bg-indigo-600 text-white" data-size="md" title="Medium">M</button>
+                  <button class="sets-grid-size-btn p-2 rounded-md text-gray-400" data-size="lg" title="Large">L</button>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <label class="text-sm text-gray-400 mr-2">View</label>
+                <div class="mt-1 flex items-center rounded-lg bg-gray-700 p-1">
+                  <button id="sets-view-toggle-grid" class="view-toggle p-2 rounded-md bg-indigo-600 text-white" title="Grid View">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"></path></svg>
+                  </button>
+                  <button id="sets-view-toggle-table" class="view-toggle p-2 rounded-md text-gray-400" title="Table View">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
+                  </button>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <label class="text-sm text-gray-400 mr-2">Sort</label>
+                <select id="sets-sort-select" class="bg-gray-800 border border-gray-700 rounded-xl px-4 py-2 text-base focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                  <option value="name">Name</option>
+                  <option value="released">Release Date</option>
+                  <option value="card_count">Card Count</option>
+                </select>
+              </div>
+
+              <button id="sets-reset-filters-btn" class="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg">Reset</button>
+            </div>
+            <div id="sets-content" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>
+            <p id="no-sets-msg" class="text-center text-gray-500 mt-8 hidden">No sets found.</p>
+          </div>
+
+            <!-- Preconstructed Decks (Precons) View -->
+            <div id="precons-view" class="hidden">
+              <div class="bg-gray-800 p-4 rounded-lg shadow-lg mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
+                <h2 class="text-2xl font-semibold">Preconstructed Decks</h2>
+                <div class="flex items-center gap-2">
+                  <input id="precons-search-input" type="text" placeholder="Filter preconstructed decks by name..." class="bg-gray-700 border border-gray-600 rounded-xl px-4 py-2 text-base focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                  <button id="refresh-precons-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg">Refresh</button>
+                </div>
+              </div>
+              <!-- Banner: Precons under construction -->
+              <div id="precons-under-construction" class="mx-0 p-3 mb-4 rounded-lg bg-yellow-900/10 border border-yellow-700 text-yellow-100 flex items-start gap-3">
+                <svg class="w-5 h-5 text-yellow-300 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01"/></svg>
+                <div class="text-sm">
+                  <strong class="text-yellow-200">Under construction:</strong>
+                  <span class="text-yellow-100"> The Preconstructed decks area is experimental and still being built. Features and data may be incomplete — proceed for preview only.</span>
+                </div>
+              </div>
+              <div id="precons-filters-bar" class="bg-gray-900 p-4 flex flex-col sm:flex-row gap-4 items-center rounded-b-2xl">
+                <div class="flex-grow min-w-[180px]">
+                  <label for="precons-filter-text" class="text-sm text-gray-400 mb-2 block">Quick Filter</label>
+                  <input
+                    type="text"
+                    id="precons-filter-text"
+                    class="w-full bg-gray-800 border border-gray-700 rounded-xl px-5 py-3 text-base focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-gray-400"
+                    placeholder="e.g., Commander 2019, Strixhaven..."
+                  />
+                </div>
+
+                <div class="flex items-center gap-2">
+                  <label class="text-sm text-gray-400 mr-2">Grid Size</label>
+                  <div class="mt-1 flex items-center rounded-lg bg-gray-700 p-1">
+                    <button class="precons-grid-size-btn p-2 rounded-md text-gray-400" data-size="sm" title="Small">S</button>
+                    <button class="precons-grid-size-btn p-2 rounded-md bg-indigo-600 text-white" data-size="md" title="Medium">M</button>
+                    <button class="precons-grid-size-btn p-2 rounded-md text-gray-400" data-size="lg" title="Large">L</button>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                  <label class="text-sm text-gray-400 mr-2">View</label>
+                  <div class="mt-1 flex items-center rounded-lg bg-gray-700 p-1">
+                    <button id="precons-view-toggle-grid" class="view-toggle p-2 rounded-md bg-indigo-600 text-white" title="Grid View">Grid</button>
+                    <button id="precons-view-toggle-table" class="view-toggle p-2 rounded-md text-gray-400" title="Table View">Table</button>
+                  </div>
+                </div>
+
+                <button id="precons-reset-filters-btn" class="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg">Reset</button>
+              </div>
+              <div id="precons-content" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 p-2"></div>
+              <p id="no-precons-msg" class="text-center text-gray-500 mt-8 hidden">No preconstructed decks found. Place a precons index at /precons/index.json or add files under Public/precons/.</p>
+            </div>
+
+              <!-- Single Precon (per-product) View -->
+              <div id="precon-view" class="hidden">
+                <div class="bg-gray-800 p-4 rounded-lg shadow-lg mb-6 flex items-center gap-4">
+                  <button id="precon-back-btn" class="bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded">Back</button>
+            <h2 id="precon-title" class="text-2xl font-semibold flex items-center gap-3">Precon <span class="ml-2 text-xs text-yellow-300 bg-yellow-900/20 px-2 py-0.5 rounded-md">Under construction</span></h2>
+                </div>
+                <div id="precon-content" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 p-2"></div>
+                <p id="no-precon-msg" class="text-center text-gray-500 mt-8 hidden">Could not load this preconstructed deck.</p>
+              </div>
 
           <!-- Single Deck View -->
           <div id="single-deck-view" class="hidden">
@@ -1682,6 +1821,8 @@
     <script type="module" src="js/pages/collection.js"></script>
     <script type="module" src="js/pages/decks.js"></script>
     <script type="module" src="js/pages/singleDeck.js"></script>
+    <script type="module" src="js/pages/sets.js"></script>
+    <script type="module" src="js/pages/setView.js"></script>
   <script type="module" src="js/main/app.js"></script>
   <!-- Load the extracted Public/app.js as a module so its ES module imports
     execute and it can register window.__module_handle* handlers that
@@ -2275,13 +2416,20 @@
         const views = {
           collection: document.getElementById("collection-view"),
           decks: document.getElementById("decks-view"),
+          sets: document.getElementById("sets-view"),
           singleDeck: document.getElementById("single-deck-view"),
           settings: document.getElementById("settings-view"),
+          // Precons UI (added by precons feature)
+          precons: document.getElementById("precons-view"),
+          precon: document.getElementById("precon-view"),
         };
 
         const navLinks = {
           collection: document.getElementById("nav-collection"),
           decks: document.getElementById("nav-decks"),
+          sets: document.getElementById("nav-sets"),
+          // Precons nav link (sidebar)
+          precons: document.getElementById("nav-precons"),
           settings: document.getElementById("nav-settings"),
           ruleLookup: document.getElementById("nav-rule-lookup"),
           generalChat: document.getElementById("nav-general-chat"),
@@ -2876,7 +3024,12 @@
             Object.keys(views).forEach(key => {
                 views[key].classList.add('hidden');
             });
-            views[viewName].classList.remove('hidden');
+          // Defensive: if the requested view isn't registered, warn and return instead of throwing
+          if (!views[viewName]) {
+            console.warn('[showView] Unknown view "' + viewName + '" requested. Available views: ' + Object.keys(views).join(', '));
+            return;
+          }
+          views[viewName].classList.remove('hidden');
 
             Object.keys(navLinks).forEach(key => {
                 const link = navLinks[key];
